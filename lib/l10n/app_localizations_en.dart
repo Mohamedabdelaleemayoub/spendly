@@ -1,0 +1,443 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for English (`en`).
+class AppLocalizationsEn extends AppLocalizations {
+  AppLocalizationsEn([String locale = 'en']) : super(locale);
+
+  @override
+  String get appName => 'Spendly';
+
+  @override
+  String get navDashboard => 'Dashboard';
+
+  @override
+  String get navExpenses => 'My Expenses';
+
+  @override
+  String get navAllExpenses => 'All Expenses';
+
+  @override
+  String get navReports => 'Reports';
+
+  @override
+  String get navCategories => 'Categories';
+
+  @override
+  String get navEmployees => 'Employees';
+
+  @override
+  String get navProfile => 'Account';
+
+  @override
+  String get loginTitle => 'Welcome Back';
+
+  @override
+  String get loginSubtitle =>
+      'Sign in to track and manage your business expenses seamlessly';
+
+  @override
+  String get loginButton => 'Sign In';
+
+  @override
+  String get signupTitle => 'Join Spendly';
+
+  @override
+  String get signupSubtitle =>
+      'Create an account to manage expenses and track receipts';
+
+  @override
+  String get signupButton => 'Create Account';
+
+  @override
+  String get noAccount => 'Don\'t have an account?';
+
+  @override
+  String get haveAccount => 'Already have an account?';
+
+  @override
+  String get createAccountLink => 'Create new account';
+
+  @override
+  String get signInLink => 'Sign in';
+
+  @override
+  String get emailLabel => 'Email Address';
+
+  @override
+  String get emailHint => 'name@company.com';
+
+  @override
+  String get emailRequired => 'Please enter your email';
+
+  @override
+  String get emailInvalid => 'Please enter a valid email address';
+
+  @override
+  String get passwordLabel => 'Password';
+
+  @override
+  String get passwordRequired => 'Please enter your password';
+
+  @override
+  String get passwordTooShort => 'Password must be at least 6 characters';
+
+  @override
+  String get fullNameLabel => 'Full Name';
+
+  @override
+  String get fullNameHint => 'John Doe';
+
+  @override
+  String get fullNameRequired => 'Please enter your name';
+
+  @override
+  String get roleAdmin => 'Admin';
+
+  @override
+  String get roleEmployee => 'Employee';
+
+  @override
+  String get profileTitle => 'Profile';
+
+  @override
+  String get editNameTitle => 'Edit Name';
+
+  @override
+  String get joinedDateLabel => 'Joined Date';
+
+  @override
+  String get unspecified => 'Unspecified';
+
+  @override
+  String get userLoadFailed => 'Could not load user data';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get logout => 'Log Out';
+
+  @override
+  String get logoutConfirmTitle => 'Log Out';
+
+  @override
+  String get logoutConfirmMessage =>
+      'Are you sure you want to log out from the application?';
+
+  @override
+  String get settingsHeader => 'Preferences & Security';
+
+  @override
+  String get languageLabel => 'Language';
+
+  @override
+  String get languageArabic => 'العربية (Arabic)';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get selectLanguage => 'Select Language';
+
+  @override
+  String get themeLabel => 'Appearance';
+
+  @override
+  String get themeLight => 'Light';
+
+  @override
+  String get themeDark => 'Dark';
+
+  @override
+  String get themeSystem => 'System Default';
+
+  @override
+  String get selectTheme => 'Select Theme';
+
+  @override
+  String get changePasswordTitle => 'Change Password';
+
+  @override
+  String get changePasswordSubtitle => 'Update your account password securely';
+
+  @override
+  String get currentPasswordLabel => 'Current Password';
+
+  @override
+  String get currentPasswordRequired => 'Please enter your current password';
+
+  @override
+  String get newPasswordLabel => 'New Password';
+
+  @override
+  String get newPasswordRequired => 'Please enter a new password';
+
+  @override
+  String get confirmNewPasswordLabel => 'Confirm New Password';
+
+  @override
+  String get confirmNewPasswordRequired => 'Please confirm your new password';
+
+  @override
+  String get passwordsDoNotMatch => 'Passwords do not match';
+
+  @override
+  String get passwordMustBeDifferent =>
+      'New password must be different from current password';
+
+  @override
+  String get passwordChangeSuccess => 'Password changed successfully';
+
+  @override
+  String get changePasswordButton => 'Change Password';
+
+  @override
+  String get changePasswordHeaderInfo =>
+      'Enter your current password and choose a strong new password with at least 6 characters.';
+
+  @override
+  String get profileImageTitle => 'Profile Picture';
+
+  @override
+  String get chooseFromGallery => 'Choose from Gallery';
+
+  @override
+  String get takePhoto => 'Take a Photo';
+
+  @override
+  String get removePhoto => 'Remove Photo';
+
+  @override
+  String get photoUploadedSuccess => 'Profile picture updated successfully';
+
+  @override
+  String get photoRemovedSuccess => 'Profile picture removed';
+
+  @override
+  String get photoUploadError => 'Failed to upload profile picture';
+
+  @override
+  String get addExpenseTitle => 'Add Expense';
+
+  @override
+  String get editExpenseTitle => 'Edit Expense';
+
+  @override
+  String get expenseDetailsTitle => 'Expense Details';
+
+  @override
+  String get deleteExpenseTitle => 'Delete Expense';
+
+  @override
+  String get deleteExpenseConfirm =>
+      'Are you sure you want to delete this expense?';
+
+  @override
+  String get expenseTitleLabel => 'Expense Title';
+
+  @override
+  String get expenseAmountLabel => 'Amount';
+
+  @override
+  String get expenseCategoryLabel => 'Category';
+
+  @override
+  String get expenseDateLabel => 'Date';
+
+  @override
+  String get expenseNotesLabel => 'Notes';
+
+  @override
+  String get paymentMethodLabel => 'Payment Method';
+
+  @override
+  String get cashPayment => 'Cash';
+
+  @override
+  String get creditCardPayment => 'Credit Card';
+
+  @override
+  String get bankTransferPayment => 'Bank Transfer';
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get filterAllCategories => 'All Categories';
+
+  @override
+  String get filterEmployee => 'Employee:';
+
+  @override
+  String get noExpensesFound => 'No expenses recorded';
+
+  @override
+  String get noExpensesAdmin => 'No expenses match the filter';
+
+  @override
+  String get searchHint => 'Search in expenses...';
+
+  @override
+  String get profileUpdateSuccess => 'Profile updated successfully';
+
+  @override
+  String get genericError => 'Something went wrong. Please try again.';
+
+  @override
+  String get employeesTitle => 'Employee Management';
+
+  @override
+  String get addUserButton => 'Add User';
+
+  @override
+  String get addUserTitle => 'Add New User';
+
+  @override
+  String get userRoleLabel => 'Role';
+
+  @override
+  String get statusActive => 'Active';
+
+  @override
+  String get statusInactive => 'Deactivated';
+
+  @override
+  String get deactivateUser => 'Deactivate Account';
+
+  @override
+  String get reactivateUser => 'Activate Account';
+
+  @override
+  String get changeRole => 'Change Role';
+
+  @override
+  String get makeAdmin => 'Promote to Admin';
+
+  @override
+  String get makeEmployee => 'Demote to Employee';
+
+  @override
+  String get deleteUser => 'Delete Account';
+
+  @override
+  String get deleteUserConfirmTitle => 'Delete User';
+
+  @override
+  String get deleteUserConfirmMessage =>
+      'Are you sure you want to permanently delete this user? This will remove their user account and associated profile.';
+
+  @override
+  String get deactivateUserConfirmTitle => 'Deactivate User';
+
+  @override
+  String get deactivateUserConfirmMessage =>
+      'Are you sure you want to deactivate this user? They will not be able to log in, but all historical expenses will be preserved.';
+
+  @override
+  String get reactivateUserConfirmTitle => 'Activate User';
+
+  @override
+  String get reactivateUserConfirmMessage =>
+      'Do you want to reactivate this user\'s access to the application?';
+
+  @override
+  String get cannotDeactivateSelf => 'You cannot deactivate your own account.';
+
+  @override
+  String get cannotDeleteSelf => 'You cannot delete your own account.';
+
+  @override
+  String get cannotDemoteLastAdmin =>
+      'You cannot demote the last remaining administrator.';
+
+  @override
+  String get cannotDeactivateLastAdmin =>
+      'You cannot deactivate the last active administrator.';
+
+  @override
+  String get userCreatedSuccess => 'User created successfully';
+
+  @override
+  String get userDeletedSuccess => 'User deleted successfully';
+
+  @override
+  String get userRoleUpdatedSuccess => 'Role updated successfully';
+
+  @override
+  String get userStatusUpdatedSuccess => 'Account status updated successfully';
+
+  @override
+  String get accountInactiveError =>
+      'This account is deactivated. Please contact an administrator.';
+
+  @override
+  String get allRoles => 'All Roles';
+
+  @override
+  String get allStatuses => 'All Statuses';
+
+  @override
+  String get teamAndExpenses => 'Team & Expenses';
+
+  @override
+  String get registeredUsersCount => 'registered users';
+
+  @override
+  String get teamTotalSpent => 'Team Total Spent';
+
+  @override
+  String get totalOperations => 'Total Operations';
+
+  @override
+  String get searchEmployeeHint => 'Search users by name or email...';
+
+  @override
+  String get noUsersFound => 'No users found';
+
+  @override
+  String get employeeDetailsTitle => 'Employee Details';
+
+  @override
+  String get employeeExpensesTitle => 'Employee Expenses';
+
+  @override
+  String get totalExpensesLabel => 'Total Expenses';
+
+  @override
+  String get expensesCountLabel => 'Number of Expenses';
+
+  @override
+  String get thisMonthExpensesLabel => 'This Month';
+
+  @override
+  String get todayExpensesLabel => 'Today\'s Expenses';
+
+  @override
+  String get viewExpenses => 'View Expenses';
+
+  @override
+  String get noExpensesForEmployee => 'No expenses recorded for this employee';
+
+  @override
+  String get filterAllPaymentMethods => 'All Payment Methods';
+
+  @override
+  String get resetFilters => 'Reset Filters';
+
+  @override
+  String get filterByDate => 'Date Range';
+
+  @override
+  String get allTime => 'All Time';
+}

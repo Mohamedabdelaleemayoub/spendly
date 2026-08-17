@@ -1,0 +1,165 @@
+name: Spendly CI & Cloud Build (Android + iOS)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # 1. Verification & Quality Gates (Analysis & Tests)
+  # ────────────────────────────────────────────────────────────────────────────
+  quality-checks:
+    name: Code Quality & Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Create .env Configuration
+        run: |
+          cat << 'EOF' > .env
+          SUPABASE_URL=${{ secrets.SUPABASE_URL || 'https://oajgzalwifafbjadbbil.supabase.co' }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key_for_ci_tests' }}
+          EOF
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Generate Localizations
+        run: flutter gen-l10n
+
+      - name: Run Flutter Analyzer
+        run: flutter analyze
+
+      - name: Run Unit Tests
+        run: flutter test --no-pub --coverage test/admin_user_management_test.dart
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 2. Android Build Job (APK & AAB)
+  # ────────────────────────────────────────────────────────────────────────────
+  android-build:
+    name: Build Android (APK & App Bundle)
+    needs: quality-checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Create .env Configuration
+        run: |
+          cat << 'EOF' > .env
+          SUPABASE_URL=${{ secrets.SUPABASE_URL || 'https://oajgzalwifafbjadbbil.supabase.co' }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key_for_ci_tests' }}
+          EOF
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Android Release APK
+        run: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
+
+      - name: Build Android Release App Bundle (AAB)
+        run: |
+          flutter build appbundle --release \
+            --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: spendly-android-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+      - name: Upload Release AAB (Play Store)
+        uses: actions/upload-artifact@v4
+        with:
+          name: spendly-android-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 3. iOS Cloud Build Job (macOS Runner)
+  # ────────────────────────────────────────────────────────────────────────────
+  ios-build:
+    name: Build iOS on macOS (Cloud Build)
+    needs: quality-checks
+    runs-on: macos-14
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Create .env Configuration
+        run: |
+          cat << 'EOF' > .env
+          SUPABASE_URL=${{ secrets.SUPABASE_URL || 'https://oajgzalwifafbjadbbil.supabase.co' }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key_for_ci_tests' }}
+          EOF
+
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods Dependencies
+        run: |
+          cd ios
+          pod repo update
+          pod install
+          cd ..
+
+      - name: Build iOS (Compile Verification --no-codesign)
+        run: |
+          flutter build ios --release --no-codesign \
+            --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
+
+      - name: Compress iOS App Payload
+        run: |
+          cd build/ios/iphoneos
+          zip -r Runner.app.zip Runner.app
+          cd ../../..
+
+      - name: Upload iOS App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spendly-ios-release-app
+          path: build/ios/iphoneos/Runner.app.zip
+          if-no-files-found: warn

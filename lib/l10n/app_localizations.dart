@@ -1,0 +1,974 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart' as intl;
+
+import 'app_localizations_ar.dart';
+import 'app_localizations_en.dart';
+
+// ignore_for_file: type=lint
+
+/// Callers can lookup localized strings with an instance of AppLocalizations
+/// returned by `AppLocalizations.of(context)`.
+///
+/// Applications need to include `AppLocalizations.delegate()` in their app's
+/// `localizationDelegates` list, and the locales they support in the app's
+/// `supportedLocales` list. For example:
+///
+/// ```dart
+/// import 'l10n/app_localizations.dart';
+///
+/// return MaterialApp(
+///   localizationsDelegates: AppLocalizations.localizationsDelegates,
+///   supportedLocales: AppLocalizations.supportedLocales,
+///   home: MyApplicationHome(),
+/// );
+/// ```
+///
+/// ## Update pubspec.yaml
+///
+/// Please make sure to update your pubspec.yaml to include the following
+/// packages:
+///
+/// ```yaml
+/// dependencies:
+///   # Internationalization support.
+///   flutter_localizations:
+///     sdk: flutter
+///   intl: any # Use the pinned version from flutter_localizations
+///
+///   # Rest of dependencies
+/// ```
+///
+/// ## iOS Applications
+///
+/// iOS applications define key application metadata, including supported
+/// locales, in an Info.plist file that is built into the application bundle.
+/// To configure the locales supported by your app, you’ll need to edit this
+/// file.
+///
+/// First, open your project’s ios/Runner.xcworkspace Xcode workspace file.
+/// Then, in the Project Navigator, open the Info.plist file under the Runner
+/// project’s Runner folder.
+///
+/// Next, select the Information Property List item, select Add Item from the
+/// Editor menu, then select Localizations from the pop-up menu.
+///
+/// Select and expand the newly-created Localizations item then, for each
+/// locale your application supports, add a new item and select the locale
+/// you wish to add from the pop-up menu in the Value field. This list should
+/// be consistent with the languages listed in the AppLocalizations.supportedLocales
+/// property.
+abstract class AppLocalizations {
+  AppLocalizations(String locale)
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+
+  final String localeName;
+
+  static AppLocalizations? of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations);
+  }
+
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
+
+  /// A list of this localizations delegate along with the default localizations
+  /// delegates.
+  ///
+  /// Returns a list of localizations delegates containing this delegate along with
+  /// GlobalMaterialLocalizations.delegate, GlobalCupertinoLocalizations.delegate,
+  /// and GlobalWidgetsLocalizations.delegate.
+  ///
+  /// Additional delegates can be added by appending to this list in
+  /// MaterialApp. This list does not have to be used at all if a custom list
+  /// of delegates is preferred or required.
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
+
+  /// A list of this localizations delegate's supported locales.
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('ar'),
+    Locale('en'),
+  ];
+
+  /// No description provided for @appName.
+  ///
+  /// In en, this message translates to:
+  /// **'Spendly'**
+  String get appName;
+
+  /// No description provided for @navDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get navDashboard;
+
+  /// No description provided for @navExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'My Expenses'**
+  String get navExpenses;
+
+  /// No description provided for @navAllExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'All Expenses'**
+  String get navAllExpenses;
+
+  /// No description provided for @navReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports'**
+  String get navReports;
+
+  /// No description provided for @navCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get navCategories;
+
+  /// No description provided for @navEmployees.
+  ///
+  /// In en, this message translates to:
+  /// **'Employees'**
+  String get navEmployees;
+
+  /// No description provided for @navProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get navProfile;
+
+  /// No description provided for @loginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome Back'**
+  String get loginTitle;
+
+  /// No description provided for @loginSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to track and manage your business expenses seamlessly'**
+  String get loginSubtitle;
+
+  /// No description provided for @loginButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get loginButton;
+
+  /// No description provided for @signupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join Spendly'**
+  String get signupTitle;
+
+  /// No description provided for @signupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account to manage expenses and track receipts'**
+  String get signupSubtitle;
+
+  /// No description provided for @signupButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get signupButton;
+
+  /// No description provided for @noAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account?'**
+  String get noAccount;
+
+  /// No description provided for @haveAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account?'**
+  String get haveAccount;
+
+  /// No description provided for @createAccountLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Create new account'**
+  String get createAccountLink;
+
+  /// No description provided for @signInLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get signInLink;
+
+  /// No description provided for @emailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Address'**
+  String get emailLabel;
+
+  /// No description provided for @emailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'name@company.com'**
+  String get emailHint;
+
+  /// No description provided for @emailRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your email'**
+  String get emailRequired;
+
+  /// No description provided for @emailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid email address'**
+  String get emailInvalid;
+
+  /// No description provided for @passwordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordLabel;
+
+  /// No description provided for @passwordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your password'**
+  String get passwordRequired;
+
+  /// No description provided for @passwordTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 6 characters'**
+  String get passwordTooShort;
+
+  /// No description provided for @fullNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Name'**
+  String get fullNameLabel;
+
+  /// No description provided for @fullNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'John Doe'**
+  String get fullNameHint;
+
+  /// No description provided for @fullNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your name'**
+  String get fullNameRequired;
+
+  /// No description provided for @roleAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get roleAdmin;
+
+  /// No description provided for @roleEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee'**
+  String get roleEmployee;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
+
+  /// No description provided for @editNameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Name'**
+  String get editNameTitle;
+
+  /// No description provided for @joinedDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined Date'**
+  String get joinedDateLabel;
+
+  /// No description provided for @unspecified.
+  ///
+  /// In en, this message translates to:
+  /// **'Unspecified'**
+  String get unspecified;
+
+  /// No description provided for @userLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load user data'**
+  String get userLoadFailed;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @logout.
+  ///
+  /// In en, this message translates to:
+  /// **'Log Out'**
+  String get logout;
+
+  /// No description provided for @logoutConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log Out'**
+  String get logoutConfirmTitle;
+
+  /// No description provided for @logoutConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log out from the application?'**
+  String get logoutConfirmMessage;
+
+  /// No description provided for @settingsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences & Security'**
+  String get settingsHeader;
+
+  /// No description provided for @languageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get languageLabel;
+
+  /// No description provided for @languageArabic.
+  ///
+  /// In en, this message translates to:
+  /// **'العربية (Arabic)'**
+  String get languageArabic;
+
+  /// No description provided for @languageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
+  /// No description provided for @selectLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Language'**
+  String get selectLanguage;
+
+  /// No description provided for @themeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get themeLabel;
+
+  /// No description provided for @themeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get themeLight;
+
+  /// No description provided for @themeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get themeDark;
+
+  /// No description provided for @themeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System Default'**
+  String get themeSystem;
+
+  /// No description provided for @selectTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Theme'**
+  String get selectTheme;
+
+  /// No description provided for @changePasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePasswordTitle;
+
+  /// No description provided for @changePasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your account password securely'**
+  String get changePasswordSubtitle;
+
+  /// No description provided for @currentPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Password'**
+  String get currentPasswordLabel;
+
+  /// No description provided for @currentPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your current password'**
+  String get currentPasswordRequired;
+
+  /// No description provided for @newPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New Password'**
+  String get newPasswordLabel;
+
+  /// No description provided for @newPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a new password'**
+  String get newPasswordRequired;
+
+  /// No description provided for @confirmNewPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm New Password'**
+  String get confirmNewPasswordLabel;
+
+  /// No description provided for @confirmNewPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm your new password'**
+  String get confirmNewPasswordRequired;
+
+  /// No description provided for @passwordsDoNotMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get passwordsDoNotMatch;
+
+  /// No description provided for @passwordMustBeDifferent.
+  ///
+  /// In en, this message translates to:
+  /// **'New password must be different from current password'**
+  String get passwordMustBeDifferent;
+
+  /// No description provided for @passwordChangeSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed successfully'**
+  String get passwordChangeSuccess;
+
+  /// No description provided for @changePasswordButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePasswordButton;
+
+  /// No description provided for @changePasswordHeaderInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your current password and choose a strong new password with at least 6 characters.'**
+  String get changePasswordHeaderInfo;
+
+  /// No description provided for @profileImageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Picture'**
+  String get profileImageTitle;
+
+  /// No description provided for @chooseFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from Gallery'**
+  String get chooseFromGallery;
+
+  /// No description provided for @takePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a Photo'**
+  String get takePhoto;
+
+  /// No description provided for @removePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Photo'**
+  String get removePhoto;
+
+  /// No description provided for @photoUploadedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile picture updated successfully'**
+  String get photoUploadedSuccess;
+
+  /// No description provided for @photoRemovedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile picture removed'**
+  String get photoRemovedSuccess;
+
+  /// No description provided for @photoUploadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to upload profile picture'**
+  String get photoUploadError;
+
+  /// No description provided for @addExpenseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Expense'**
+  String get addExpenseTitle;
+
+  /// No description provided for @editExpenseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Expense'**
+  String get editExpenseTitle;
+
+  /// No description provided for @expenseDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense Details'**
+  String get expenseDetailsTitle;
+
+  /// No description provided for @deleteExpenseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Expense'**
+  String get deleteExpenseTitle;
+
+  /// No description provided for @deleteExpenseConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this expense?'**
+  String get deleteExpenseConfirm;
+
+  /// No description provided for @expenseTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense Title'**
+  String get expenseTitleLabel;
+
+  /// No description provided for @expenseAmountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get expenseAmountLabel;
+
+  /// No description provided for @expenseCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get expenseCategoryLabel;
+
+  /// No description provided for @expenseDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get expenseDateLabel;
+
+  /// No description provided for @expenseNotesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get expenseNotesLabel;
+
+  /// No description provided for @paymentMethodLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Method'**
+  String get paymentMethodLabel;
+
+  /// No description provided for @cashPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get cashPayment;
+
+  /// No description provided for @creditCardPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit Card'**
+  String get creditCardPayment;
+
+  /// No description provided for @bankTransferPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank Transfer'**
+  String get bankTransferPayment;
+
+  /// No description provided for @filterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAll;
+
+  /// No description provided for @filterAllCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'All Categories'**
+  String get filterAllCategories;
+
+  /// No description provided for @filterEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee:'**
+  String get filterEmployee;
+
+  /// No description provided for @noExpensesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No expenses recorded'**
+  String get noExpensesFound;
+
+  /// No description provided for @noExpensesAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'No expenses match the filter'**
+  String get noExpensesAdmin;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in expenses...'**
+  String get searchHint;
+
+  /// No description provided for @profileUpdateSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated successfully'**
+  String get profileUpdateSuccess;
+
+  /// No description provided for @genericError.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get genericError;
+
+  /// No description provided for @employeesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee Management'**
+  String get employeesTitle;
+
+  /// No description provided for @addUserButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add User'**
+  String get addUserButton;
+
+  /// No description provided for @addUserTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add New User'**
+  String get addUserTitle;
+
+  /// No description provided for @userRoleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get userRoleLabel;
+
+  /// No description provided for @statusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get statusActive;
+
+  /// No description provided for @statusInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivated'**
+  String get statusInactive;
+
+  /// No description provided for @deactivateUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate Account'**
+  String get deactivateUser;
+
+  /// No description provided for @reactivateUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate Account'**
+  String get reactivateUser;
+
+  /// No description provided for @changeRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Role'**
+  String get changeRole;
+
+  /// No description provided for @makeAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Promote to Admin'**
+  String get makeAdmin;
+
+  /// No description provided for @makeEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'Demote to Employee'**
+  String get makeEmployee;
+
+  /// No description provided for @deleteUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteUser;
+
+  /// No description provided for @deleteUserConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete User'**
+  String get deleteUserConfirmTitle;
+
+  /// No description provided for @deleteUserConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to permanently delete this user? This will remove their user account and associated profile.'**
+  String get deleteUserConfirmMessage;
+
+  /// No description provided for @deactivateUserConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate User'**
+  String get deactivateUserConfirmTitle;
+
+  /// No description provided for @deactivateUserConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to deactivate this user? They will not be able to log in, but all historical expenses will be preserved.'**
+  String get deactivateUserConfirmMessage;
+
+  /// No description provided for @reactivateUserConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate User'**
+  String get reactivateUserConfirmTitle;
+
+  /// No description provided for @reactivateUserConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to reactivate this user\'s access to the application?'**
+  String get reactivateUserConfirmMessage;
+
+  /// No description provided for @cannotDeactivateSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot deactivate your own account.'**
+  String get cannotDeactivateSelf;
+
+  /// No description provided for @cannotDeleteSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot delete your own account.'**
+  String get cannotDeleteSelf;
+
+  /// No description provided for @cannotDemoteLastAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot demote the last remaining administrator.'**
+  String get cannotDemoteLastAdmin;
+
+  /// No description provided for @cannotDeactivateLastAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot deactivate the last active administrator.'**
+  String get cannotDeactivateLastAdmin;
+
+  /// No description provided for @userCreatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'User created successfully'**
+  String get userCreatedSuccess;
+
+  /// No description provided for @userDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'User deleted successfully'**
+  String get userDeletedSuccess;
+
+  /// No description provided for @userRoleUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Role updated successfully'**
+  String get userRoleUpdatedSuccess;
+
+  /// No description provided for @userStatusUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Account status updated successfully'**
+  String get userStatusUpdatedSuccess;
+
+  /// No description provided for @accountInactiveError.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is deactivated. Please contact an administrator.'**
+  String get accountInactiveError;
+
+  /// No description provided for @allRoles.
+  ///
+  /// In en, this message translates to:
+  /// **'All Roles'**
+  String get allRoles;
+
+  /// No description provided for @allStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'All Statuses'**
+  String get allStatuses;
+
+  /// No description provided for @teamAndExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Team & Expenses'**
+  String get teamAndExpenses;
+
+  /// No description provided for @registeredUsersCount.
+  ///
+  /// In en, this message translates to:
+  /// **'registered users'**
+  String get registeredUsersCount;
+
+  /// No description provided for @teamTotalSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Team Total Spent'**
+  String get teamTotalSpent;
+
+  /// No description provided for @totalOperations.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Operations'**
+  String get totalOperations;
+
+  /// No description provided for @searchEmployeeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search users by name or email...'**
+  String get searchEmployeeHint;
+
+  /// No description provided for @noUsersFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No users found'**
+  String get noUsersFound;
+
+  /// No description provided for @employeeDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee Details'**
+  String get employeeDetailsTitle;
+
+  /// No description provided for @employeeExpensesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee Expenses'**
+  String get employeeExpensesTitle;
+
+  /// No description provided for @totalExpensesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Expenses'**
+  String get totalExpensesLabel;
+
+  /// No description provided for @expensesCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of Expenses'**
+  String get expensesCountLabel;
+
+  /// No description provided for @thisMonthExpensesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'This Month'**
+  String get thisMonthExpensesLabel;
+
+  /// No description provided for @todayExpensesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Expenses'**
+  String get todayExpensesLabel;
+
+  /// No description provided for @viewExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'View Expenses'**
+  String get viewExpenses;
+
+  /// No description provided for @noExpensesForEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'No expenses recorded for this employee'**
+  String get noExpensesForEmployee;
+
+  /// No description provided for @filterAllPaymentMethods.
+  ///
+  /// In en, this message translates to:
+  /// **'All Payment Methods'**
+  String get filterAllPaymentMethods;
+
+  /// No description provided for @resetFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Filters'**
+  String get resetFilters;
+
+  /// No description provided for @filterByDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date Range'**
+  String get filterByDate;
+
+  /// No description provided for @allTime.
+  ///
+  /// In en, this message translates to:
+  /// **'All Time'**
+  String get allTime;
+}
+
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
+  const _AppLocalizationsDelegate();
+
+  @override
+  Future<AppLocalizations> load(Locale locale) {
+    return SynchronousFuture<AppLocalizations>(lookupAppLocalizations(locale));
+  }
+
+  @override
+  bool isSupported(Locale locale) =>
+      <String>['ar', 'en'].contains(locale.languageCode);
+
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
+}
+
+AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when only language code is specified.
+  switch (locale.languageCode) {
+    case 'ar':
+      return AppLocalizationsAr();
+    case 'en':
+      return AppLocalizationsEn();
+  }
+
+  throw FlutterError(
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
+}
