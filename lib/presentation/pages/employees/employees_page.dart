@@ -12,6 +12,8 @@ import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../cubits/auth/auth_cubit.dart';
 import '../../cubits/employees/employees_cubit.dart';
+import '../../cubits/balance/admin_balance_cubit.dart';
+import '../../cubits/balance/admin_balance_state.dart';
 import '../../cubits/employees/employees_state.dart';
 
 class EmployeesPage extends StatelessWidget {
@@ -19,8 +21,11 @@ class EmployeesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => sl<EmployeesCubit>()..loadEmployees(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => sl<EmployeesCubit>()..loadEmployees()),
+        BlocProvider(create: (context) => sl<AdminBalanceCubit>()..loadAllBalances()),
+      ],
       child: const _EmployeesView(),
     );
   }
@@ -899,6 +904,50 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                       label: Text(l10n.viewExpenses, style: const TextStyle(fontSize: 12)),
                                     ),
                                   ],
+                                ),
+                                // Financial Allowance / Balance Row
+                                BlocBuilder<AdminBalanceCubit, AdminBalanceState>(
+                                  builder: (context, balanceState) {
+                                    if (balanceState is AdminBalanceLoaded) {
+                                      final summary = balanceState.employeeBalances
+                                          .where((b) => b.userId == profile.id)
+                                          .firstOrNull;
+                                      if (summary != null) {
+                                        return Container(
+                                          margin: const EdgeInsets.only(top: 10),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.surfaceVariant,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                '${l10n.givenAmount}: ${currencyFormat.format(summary.totalReceived)}',
+                                                style: AppTextStyles.caption.copyWith(fontSize: 11),
+                                              ),
+                                              Text(
+                                                '${l10n.spentAmount}: ${currencyFormat.format(summary.totalSpent)}',
+                                                style: AppTextStyles.caption.copyWith(fontSize: 11),
+                                              ),
+                                              Text(
+                                                '${l10n.remainingBalance}: ${currencyFormat.format(summary.availableBalance)}',
+                                                style: AppTextStyles.caption.copyWith(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: summary.availableBalance > 0
+                                                      ? AppColors.success
+                                                      : AppColors.error,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }
+                                    }
+                                    return const SizedBox.shrink();
+                                  },
                                 ),
                               ],
                             ),

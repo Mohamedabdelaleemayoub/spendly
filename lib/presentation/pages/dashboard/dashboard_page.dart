@@ -9,6 +9,8 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../router/app_router.dart';
+import '../../cubits/balance/employee_balance_cubit.dart';
+import '../../cubits/balance/employee_balance_state.dart';
 import '../../cubits/dashboard/dashboard_cubit.dart';
 import '../../cubits/dashboard/dashboard_state.dart';
 
@@ -17,8 +19,11 @@ class DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => sl<DashboardCubit>()..loadDashboard(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => sl<DashboardCubit>()..loadDashboard()),
+        BlocProvider(create: (context) => sl<EmployeeBalanceCubit>()..loadBalance()),
+      ],
       child: const _DashboardView(),
     );
   }
@@ -65,7 +70,10 @@ class _DashboardView extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: l10n.retry,
-            onPressed: () => context.read<DashboardCubit>().loadDashboard(),
+            onPressed: () {
+              context.read<DashboardCubit>().loadDashboard();
+              context.read<EmployeeBalanceCubit>().loadBalance();
+            },
           ),
         ],
       ),
@@ -74,6 +82,7 @@ class _DashboardView extends StatelessWidget {
           await context.push(AppRoutes.addExpense);
           if (context.mounted) {
             context.read<DashboardCubit>().loadDashboard();
+            context.read<EmployeeBalanceCubit>().loadBalance();
           }
         },
         child: const Icon(Icons.add),
@@ -99,11 +108,140 @@ class _DashboardView extends StatelessWidget {
             final currentPeriod = state.period;
 
             return RefreshIndicator(
-              onRefresh: () => context.read<DashboardCubit>().loadDashboard(),
+              onRefresh: () async {
+                await Future.wait([
+                  context.read<DashboardCubit>().loadDashboard(),
+                  context.read<EmployeeBalanceCubit>().loadBalance(),
+                ]);
+              },
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 children: [
-                  // Period Selector Controls (Compact & Beautiful)
+                  // 1. Employee Available Balance Card (For employees & users)
+                  BlocBuilder<EmployeeBalanceCubit, EmployeeBalanceState>(
+                    builder: (context, balanceState) {
+                      if (balanceState is EmployeeBalanceLoaded) {
+                        final summary = balanceState.summary;
+                        final isZeroOrNegative = summary.availableBalance <= 0;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: isZeroOrNegative
+                                  ? [const Color(0xFF636E72), const Color(0xFF2D3436)]
+                                  : [const Color(0xFF00B894), const Color(0xFF00897B)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (isZeroOrNegative ? Colors.grey : const Color(0xFF00B894))
+                                    .withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.account_balance_wallet, color: Colors.white, size: 20),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        l10n.availableBalance,
+                                        style: AppTextStyles.subtitle2.copyWith(
+                                          color: Colors.white.withValues(alpha: 0.9),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      summary.hasRemainingBalance ? l10n.statusActive : l10n.noAvailableBalance,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                currencyFormat.format(summary.availableBalance),
+                                style: AppTextStyles.amountLarge.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              const Divider(color: Colors.white24, height: 1),
+                              const SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.totalReceived,
+                                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        currencyFormat.format(summary.totalReceived),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        l10n.totalSpent,
+                                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        currencyFormat.format(summary.totalSpent),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+
+                  // 2. Period Selector Controls (Compact & Beautiful)
                   Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     child: SegmentedButton<ExpenseSummaryPeriod>(
@@ -146,7 +284,7 @@ class _DashboardView extends StatelessWidget {
                     ),
                   ),
 
-                  // Main Banner: Reactive Period Total
+                  // 3. Main Banner: Reactive Period Total
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -241,7 +379,7 @@ class _DashboardView extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
 
-                  // Mini Stats Row (Today, Active Count, Active Employees)
+                  // 4. Mini Stats Row (Today, Active Count, Active Employees)
                   Row(
                     children: [
                       // Today Spending Card
@@ -394,7 +532,7 @@ class _DashboardView extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // Admin Only: Spending By Employee Section (for selected period)
+                  // 5. Admin Only: Spending By Employee Section
                   if (isAdmin && state.employeeSpending.isNotEmpty) ...[
                     Text(
                       l10n.distributionByEmployee,
@@ -492,7 +630,7 @@ class _DashboardView extends StatelessWidget {
                     const SizedBox(height: 20),
                   ],
 
-                  // Category Breakdown Section
+                  // 6. Category Breakdown Section
                   if (state.categorySpending.isNotEmpty) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -557,7 +695,7 @@ class _DashboardView extends StatelessWidget {
                     const SizedBox(height: 20),
                   ],
 
-                  // Recent Expenses Section
+                  // 7. Recent Expenses Section
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -606,6 +744,7 @@ class _DashboardView extends StatelessWidget {
                             await context.push('/expenses/${expense.id}');
                             if (context.mounted) {
                               context.read<DashboardCubit>().loadDashboard();
+                              context.read<EmployeeBalanceCubit>().loadBalance();
                             }
                           },
                           leading: Container(

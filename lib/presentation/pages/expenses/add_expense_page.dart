@@ -13,6 +13,8 @@ import '../../../domain/entities/category.dart';
 import '../../../domain/entities/expense.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../cubits/balance/employee_balance_cubit.dart';
+import '../../cubits/balance/employee_balance_state.dart';
 import '../../cubits/category/category_cubit.dart';
 import '../../cubits/category/category_state.dart';
 import '../../cubits/expense/expense_cubit.dart';
@@ -29,6 +31,7 @@ class AddExpensePage extends StatelessWidget {
       providers: [
         BlocProvider(create: (context) => sl<ExpenseCubit>()),
         BlocProvider(create: (context) => sl<CategoryCubit>()..loadCategories()),
+        BlocProvider(create: (context) => sl<EmployeeBalanceCubit>()..loadBalance()),
       ],
       child: _AddExpenseForm(initialExpense: initialExpense),
     );
@@ -140,66 +143,78 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
   }
 
   Future<void> _pickDate() async {
+    final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      lastDate: DateTime(now.year + 1),
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
     }
   }
 
-  Future<void> _onSubmit() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+  void _submit() {
+    final l10n = AppLocalizations.of(context)!;
+    if (!_formKey.currentState!.validate()) return;
 
-    final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
-    if (amount <= 0) {
+    final amount = double.tryParse(_amountController.text.trim());
+    if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى إدخال مبلغ صحيح أكبر من الصفر'),
+        SnackBar(
+          content: Text(l10n.amountMustBeGreaterThanZero),
           backgroundColor: AppColors.error,
         ),
       );
       return;
     }
 
-    final cubit = context.read<ExpenseCubit>();
-    bool success;
-
-    if (_isEditing) {
-      success = await cubit.updateExpense(
-        id: widget.initialExpense!.id,
-        title: _titleController.text.trim(),
-        amount: amount,
-        paymentMethod: _selectedPaymentMethod,
-        expenseDate: _selectedDate,
-        categoryId: _selectedCategoryId,
-        notes: _notesController.text.trim(),
-        receiptFile: _receiptFile,
-        existingReceiptUrl: _existingReceiptUrl,
+    if (_selectedCategoryId == null || _selectedCategoryId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.categoryRequired),
+          backgroundColor: AppColors.error,
+        ),
       );
-    } else {
-      success = await cubit.createExpense(
-        title: _titleController.text.trim(),
-        amount: amount,
-        paymentMethod: _selectedPaymentMethod,
-        expenseDate: _selectedDate,
-        categoryId: _selectedCategoryId,
-        notes: _notesController.text.trim(),
-        receiptFile: _receiptFile,
-      );
+      return;
     }
 
-    if (success && mounted) {
-      context.pop();
+    final title = _titleController.text.trim();
+    final notes = _notesController.text.trim();
+
+    if (_isEditing) {
+      context.read<ExpenseCubit>().updateExpense(
+            id: widget.initialExpense!.id,
+            title: title,
+            amount: amount,
+            categoryId: _selectedCategoryId,
+            paymentMethod: _selectedPaymentMethod,
+            expenseDate: _selectedDate,
+            notes: notes.isNotEmpty ? notes : null,
+            receiptFile: _receiptFile,
+            existingReceiptUrl: _existingReceiptUrl,
+          );
+    } else {
+      context.read<ExpenseCubit>().createExpense(
+            amount: amount,
+            categoryId: _selectedCategoryId,
+            expenseDate: _selectedDate,
+            paymentMethod: _selectedPaymentMethod,
+            title: title,
+            notes: notes.isNotEmpty ? notes : null,
+            receiptFile: _receiptFile,
+          );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final currencyFormat = NumberFormat.currency(
+      symbol: Localizations.localeOf(context).languageCode == 'ar' ? 'ر.س ' : 'SAR ',
+      decimalDigits: 2,
+    );
     final dateFormat = DateFormat('yyyy/MM/dd');
 
     return Scaffold(
@@ -208,10 +223,24 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
       ),
       body: BlocConsumer<ExpenseCubit, ExpenseState>(
         listener: (context, state) {
-          if (state is ExpenseError) {
+          if (state is ExpenseActionSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(_isEditing ? l10n.expenseUpdatedSuccess : l10n.expenseAddedSuccess),
+                backgroundColor: AppColors.success,
+              ),
+            );
+            context.pop(true);
+          } else if (state is ExpenseError) {
+            String errorMsg = state.message;
+            if (errorMsg.contains('INSUFFICIENT_BALANCE') ||
+                errorMsg.contains('exceeds available balance')) {
+              errorMsg = l10n.insufficientBalance;
+            }
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMsg),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -225,32 +254,99 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                // 1. Amount (Required)
-                TextFormField(
-                  controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                  ],
-                  decoration: InputDecoration(
-                    labelText: '${l10n.expenseAmountLabel} *',
-                    hintText: '0.00',
-                    prefixIcon: const Icon(Icons.attach_money),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'يرجى إدخال المبلغ';
+                // 1. Available Balance Indicator Banner
+                BlocBuilder<EmployeeBalanceCubit, EmployeeBalanceState>(
+                  builder: (context, balanceState) {
+                    if (balanceState is EmployeeBalanceLoaded) {
+                      final summary = balanceState.summary;
+                      final available = summary.availableBalance;
+                      final isLow = available <= 0;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 18),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isLow
+                              ? AppColors.error.withValues(alpha: 0.1)
+                              : AppColors.success.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isLow ? AppColors.error.withValues(alpha: 0.3) : AppColors.success.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.account_balance_wallet_outlined,
+                                  color: isLow ? AppColors.error : AppColors.success,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l10n.availableBalance,
+                                  style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              currencyFormat.format(available),
+                              style: AppTextStyles.subtitle1.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: isLow ? AppColors.error : AppColors.success,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
                     }
-                    final parsed = double.tryParse(value);
-                    if (parsed == null || parsed <= 0) {
-                      return 'يرجى إدخال مبلغ صالح';
+                    return const SizedBox.shrink();
+                  },
+                ),
+
+                // 2. Amount (Required)
+                BlocBuilder<EmployeeBalanceCubit, EmployeeBalanceState>(
+                  builder: (context, balanceState) {
+                    double? availableBalance;
+                    if (balanceState is EmployeeBalanceLoaded) {
+                      availableBalance = balanceState.summary.availableBalance;
+                      if (_isEditing && widget.initialExpense != null) {
+                        availableBalance += widget.initialExpense!.amount;
+                      }
                     }
-                    return null;
+
+                    return TextFormField(
+                      controller: _amountController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                      ],
+                      decoration: InputDecoration(
+                        labelText: '${l10n.expenseAmountLabel} *',
+                        hintText: '0.00',
+                        prefixIcon: const Icon(Icons.attach_money),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return l10n.amountMustBeGreaterThanZero;
+                        }
+                        final parsed = double.tryParse(value);
+                        if (parsed == null || parsed <= 0) {
+                          return l10n.amountMustBeGreaterThanZero;
+                        }
+                        if (availableBalance != null && parsed > availableBalance) {
+                          return l10n.insufficientBalance;
+                        }
+                        return null;
+                      },
+                    );
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // 2. Category Dropdown (REQUIRED)
+                // 3. Category Dropdown (REQUIRED)
                 BlocBuilder<CategoryCubit, CategoryState>(
                   builder: (context, catState) {
                     final categories = context.read<CategoryCubit>().categories;
@@ -282,7 +378,7 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                 ),
                 const SizedBox(height: 16),
 
-                // 3. Title (OPTIONAL)
+                // 4. Title (OPTIONAL)
                 TextFormField(
                   controller: _titleController,
                   decoration: InputDecoration(
@@ -290,142 +386,175 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                     hintText: 'مثلاً: غداء عمل، وقود، صيانة...',
                     prefixIcon: const Icon(Icons.edit_outlined),
                   ),
-                  // Title is explicitly optional: No validation error on empty
                 ),
                 const SizedBox(height: 16),
 
-                // 4. Date Picker
+                // 5. Date Picker
                 InkWell(
                   onTap: _pickDate,
                   borderRadius: BorderRadius.circular(12),
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      labelText: '${l10n.expenseDateLabel} *',
+                      labelText: l10n.expenseDateLabel,
                       prefixIcon: const Icon(Icons.calendar_today_outlined),
+                      suffixIcon: const Icon(Icons.arrow_drop_down),
                     ),
                     child: Text(
                       dateFormat.format(_selectedDate),
-                      style: AppTextStyles.bodyMedium,
+                      style: AppTextStyles.bodyLarge,
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // 5. Payment Method Picker
-                Text(l10n.paymentMethodLabel, style: AppTextStyles.label),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: AppConstants.paymentMethods.map((methodKey) {
-                    final isSelected = _selectedPaymentMethod == methodKey;
-                    final label = AppConstants.paymentMethodLabels[methodKey] ?? methodKey;
-
-                    return ChoiceChip(
-                      label: Text(label),
-                      selected: isSelected,
-                      selectedColor: AppColors.primary.withValues(alpha: 0.18),
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() => _selectedPaymentMethod = methodKey);
-                        }
-                      },
+                // 6. Payment Method Dropdown
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedPaymentMethod,
+                  decoration: InputDecoration(
+                    labelText: l10n.paymentMethodLabel,
+                    prefixIcon: const Icon(Icons.payment_outlined),
+                  ),
+                  items: AppConstants.paymentMethods.map((method) {
+                    return DropdownMenuItem<String>(
+                      value: method,
+                      child: Text(
+                        AppConstants.paymentMethodLabels[method] ?? method,
+                      ),
                     );
                   }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _selectedPaymentMethod = val);
+                    }
+                  },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // 6. Notes Field (Optional)
+                // 7. Notes
                 TextFormField(
                   controller: _notesController,
                   maxLines: 3,
                   decoration: InputDecoration(
-                    labelText: l10n.expenseNotesLabel,
-                    hintText: 'تفاصيل إضافية أو مرجع الفاتورة...',
+                    labelText: l10n.notesLabel,
+                    hintText: l10n.notesHint,
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(bottom: 48),
+                      child: Icon(Icons.notes_outlined),
+                    ),
                     alignLabelWithHint: true,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // 7. Receipt Attachment
-                Text(l10n.profileImageTitle, style: AppTextStyles.label),
-                const SizedBox(height: 8),
-                if (_receiptFile != null) ...[
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(
-                          _receiptFile!,
-                          height: 160,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
+                // 8. Receipt Image Picker
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.receiptPhotoLabel,
+                          style: AppTextStyles.subtitle2,
                         ),
-                      ),
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: CircleAvatar(
-                          backgroundColor: Colors.black54,
-                          child: IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            onPressed: () => setState(() => _receiptFile = null),
+                        const SizedBox(height: 12),
+                        if (_receiptFile != null) ...[
+                          Stack(
+                            alignment: Alignment.topRight,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.file(
+                                  _receiptFile!,
+                                  height: 180,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              IconButton.filled(
+                                icon: const Icon(Icons.close, size: 18),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: AppColors.error,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () {
+                                  setState(() => _receiptFile = null);
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ] else if (_existingReceiptUrl != null &&
+                            _existingReceiptUrl!.isNotEmpty) ...[
+                          Stack(
+                            alignment: Alignment.topRight,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  _existingReceiptUrl!,
+                                  height: 180,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                                ),
+                              ),
+                              IconButton.filled(
+                                icon: const Icon(Icons.close, size: 18),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: AppColors.error,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () {
+                                  setState(() => _existingReceiptUrl = null);
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        OutlinedButton.icon(
+                          onPressed: _showImageSourceDialog,
+                          icon: const Icon(Icons.add_a_photo_outlined),
+                          label: Text(
+                            _receiptFile != null ||
+                                    (_existingReceiptUrl != null &&
+                                        _existingReceiptUrl!.isNotEmpty)
+                                ? l10n.changePhoto
+                                : l10n.addPhoto,
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ] else if (_existingReceiptUrl != null) ...[
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          _existingReceiptUrl!,
-                          height: 160,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const Icon(Icons.error),
-                        ),
-                      ),
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: CircleAvatar(
-                          backgroundColor: Colors.black54,
-                          child: IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            onPressed: () => setState(() => _existingReceiptUrl = null),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  OutlinedButton.icon(
-                    onPressed: _showImageSourceDialog,
-                    icon: const Icon(Icons.add_a_photo_outlined),
-                    label: const Text('إرفاق صورة الفاتورة'),
-                  ),
-                ],
-                const SizedBox(height: 32),
+                ),
+                const SizedBox(height: 28),
 
-                // Submit Button
+                // 9. Submit Button
                 ElevatedButton(
-                  onPressed: isLoading ? null : _onSubmit,
+                  onPressed: isLoading ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
                   child: isLoading
                       ? const SizedBox(
-                          width: 24,
                           height: 24,
+                          width: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.textOnPrimary,
-                            ),
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : Text(_isEditing ? l10n.save : l10n.addExpenseTitle),
+                      : Text(
+                          _isEditing ? l10n.saveChanges : l10n.addExpenseTitle,
+                          style: AppTextStyles.button,
+                        ),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           );

@@ -1255,6 +1255,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No expenses recorded for this period'**
   String get noExpensesThisPeriod;
+
+  /// No description provided for @availableBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Balance'**
+  String get availableBalance;
+
+  /// No description provided for @totalReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Received'**
+  String get totalReceived;
+
+  /// No description provided for @totalSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Spent'**
+  String get totalSpent;
+
+  /// No description provided for @addBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Balance'**
+  String get addBalance;
+
+  /// No description provided for @addBalanceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Employee Balance'**
+  String get addBalanceTitle;
+
+  /// No description provided for @addBalanceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add funds to employee\'s available balance'**
+  String get addBalanceSubtitle;
+
+  /// No description provided for @amountMustBeGreaterThanZero.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount must be greater than zero.'**
+  String get amountMustBeGreaterThanZero;
+
+  /// No description provided for @balanceAddedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance added successfully'**
+  String get balanceAddedSuccess;
+
+  /// No description provided for @insufficientBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Insufficient available balance for this expense.'**
+  String get insufficientBalance;
+
+  /// No description provided for @noAvailableBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'No available balance.'**
+  String get noAvailableBalance;
+
+  /// No description provided for @transactionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction & Allowance History'**
+  String get transactionHistory;
+
+  /// No description provided for @employeeBalances.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee Balances'**
+  String get employeeBalances;
+
+  /// No description provided for @remainingBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining'**
+  String get remainingBalance;
+
+  /// No description provided for @givenAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Given'**
+  String get givenAmount;
+
+  /// No description provided for @spentAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent'**
+  String get spentAmount;
+
+  /// No description provided for @allowanceDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowance Date'**
+  String get allowanceDate;
+
+  /// No description provided for @allowanceNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get allowanceNote;
+
+  /// No description provided for @allowanceNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., Weekly allowance / Office expenses'**
+  String get allowanceNoteHint;
+
+  /// No description provided for @creditTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit (Add)'**
+  String get creditTransaction;
+
+  /// No description provided for @expenseTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense'**
+  String get expenseTransaction;
+
+  /// No description provided for @adjustmentAddTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjustment (Add)'**
+  String get adjustmentAddTransaction;
+
+  /// No description provided for @adjustmentSubTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjustment (Deduct)'**
+  String get adjustmentSubTransaction;
+
+  /// No description provided for @confirmAddBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Add Balance'**
+  String get confirmAddBalance;
+
+  /// No description provided for @noTransactionsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions recorded yet'**
+  String get noTransactionsYet;
+
+  /// No description provided for @expenseUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense updated successfully'**
+  String get expenseUpdatedSuccess;
+
+  /// No description provided for @expenseAddedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense added successfully'**
+  String get expenseAddedSuccess;
+
+  /// No description provided for @receiptPhotoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt / Invoice Photo'**
+  String get receiptPhotoLabel;
+
+  /// No description provided for @changePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Photo'**
+  String get changePhoto;
+
+  /// No description provided for @addPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Photo'**
+  String get addPhoto;
+
+  /// No description provided for @saveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Changes'**
+  String get saveChanges;
+
+  /// No description provided for @notesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notesLabel;
+
+  /// No description provided for @notesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional notes...'**
+  String get notesHint;
+
+  /// No description provided for @filterDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Date Range'**
+  String get filterDateRange;
 }
 
 class _AppLocalizationsDelegate

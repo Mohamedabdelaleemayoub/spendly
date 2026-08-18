@@ -608,4 +608,104 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noExpensesThisPeriod => 'No expenses recorded for this period';
+
+  @override
+  String get availableBalance => 'Available Balance';
+
+  @override
+  String get totalReceived => 'Total Received';
+
+  @override
+  String get totalSpent => 'Total Spent';
+
+  @override
+  String get addBalance => 'Add Balance';
+
+  @override
+  String get addBalanceTitle => 'Add Employee Balance';
+
+  @override
+  String get addBalanceSubtitle => 'Add funds to employee\'s available balance';
+
+  @override
+  String get amountMustBeGreaterThanZero => 'Amount must be greater than zero.';
+
+  @override
+  String get balanceAddedSuccess => 'Balance added successfully';
+
+  @override
+  String get insufficientBalance =>
+      'Insufficient available balance for this expense.';
+
+  @override
+  String get noAvailableBalance => 'No available balance.';
+
+  @override
+  String get transactionHistory => 'Transaction & Allowance History';
+
+  @override
+  String get employeeBalances => 'Employee Balances';
+
+  @override
+  String get remainingBalance => 'Remaining';
+
+  @override
+  String get givenAmount => 'Given';
+
+  @override
+  String get spentAmount => 'Spent';
+
+  @override
+  String get allowanceDate => 'Allowance Date';
+
+  @override
+  String get allowanceNote => 'Note (optional)';
+
+  @override
+  String get allowanceNoteHint => 'e.g., Weekly allowance / Office expenses';
+
+  @override
+  String get creditTransaction => 'Credit (Add)';
+
+  @override
+  String get expenseTransaction => 'Expense';
+
+  @override
+  String get adjustmentAddTransaction => 'Adjustment (Add)';
+
+  @override
+  String get adjustmentSubTransaction => 'Adjustment (Deduct)';
+
+  @override
+  String get confirmAddBalance => 'Confirm Add Balance';
+
+  @override
+  String get noTransactionsYet => 'No transactions recorded yet';
+
+  @override
+  String get expenseUpdatedSuccess => 'Expense updated successfully';
+
+  @override
+  String get expenseAddedSuccess => 'Expense added successfully';
+
+  @override
+  String get receiptPhotoLabel => 'Receipt / Invoice Photo';
+
+  @override
+  String get changePhoto => 'Change Photo';
+
+  @override
+  String get addPhoto => 'Add Photo';
+
+  @override
+  String get saveChanges => 'Save Changes';
+
+  @override
+  String get notesLabel => 'Notes';
+
+  @override
+  String get notesHint => 'Additional notes...';
+
+  @override
+  String get filterDateRange => 'Custom Date Range';
 }

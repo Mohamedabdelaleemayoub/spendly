@@ -602,4 +602,103 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noExpensesThisPeriod => 'لا توجد مصروفات مسجلة لهذه الفترة';
+
+  @override
+  String get availableBalance => 'الرصيد المتاح';
+
+  @override
+  String get totalReceived => 'إجمالي المستلم';
+
+  @override
+  String get totalSpent => 'إجمالي المصروف';
+
+  @override
+  String get addBalance => 'إضافة رصيد';
+
+  @override
+  String get addBalanceTitle => 'إضافة رصيد للموظف';
+
+  @override
+  String get addBalanceSubtitle => 'إضافة مبلغ إلى الرصيد المتاح للموظف';
+
+  @override
+  String get amountMustBeGreaterThanZero => 'يجب إدخال مبلغ أكبر من صفر.';
+
+  @override
+  String get balanceAddedSuccess => 'تمت إضافة الرصيد بنجاح';
+
+  @override
+  String get insufficientBalance => 'الرصيد المتاح غير كافٍ لهذا المصروف.';
+
+  @override
+  String get noAvailableBalance => 'لا يوجد رصيد متاح.';
+
+  @override
+  String get transactionHistory => 'سجل المعاملات والبدلات';
+
+  @override
+  String get employeeBalances => 'أرصدة الموظفين';
+
+  @override
+  String get remainingBalance => 'المتبقي';
+
+  @override
+  String get givenAmount => 'المستلم';
+
+  @override
+  String get spentAmount => 'المصروف';
+
+  @override
+  String get allowanceDate => 'تاريخ الإضافة';
+
+  @override
+  String get allowanceNote => 'ملاحظة (اختياري)';
+
+  @override
+  String get allowanceNoteHint => 'مثال: بدلات الأسبوع / مصروفات مكتبية';
+
+  @override
+  String get creditTransaction => 'إضافة رصيد';
+
+  @override
+  String get expenseTransaction => 'مصروف';
+
+  @override
+  String get adjustmentAddTransaction => 'تسوية (إضافة)';
+
+  @override
+  String get adjustmentSubTransaction => 'تسوية (خصم)';
+
+  @override
+  String get confirmAddBalance => 'تأكيد إضافة الرصيد';
+
+  @override
+  String get noTransactionsYet => 'لا توجد معاملات مسجلة بعد';
+
+  @override
+  String get expenseUpdatedSuccess => 'تم تعديل المصروف بنجاح';
+
+  @override
+  String get expenseAddedSuccess => 'تم حفظ المصروف بنجاح';
+
+  @override
+  String get receiptPhotoLabel => 'صورة الإيصال / الفاتورة';
+
+  @override
+  String get changePhoto => 'تغيير الصورة';
+
+  @override
+  String get addPhoto => 'إضافة صورة';
+
+  @override
+  String get saveChanges => 'حفظ التعديلات';
+
+  @override
+  String get notesLabel => 'الملاحظات';
+
+  @override
+  String get notesHint => 'ملاحظات إضافية...';
+
+  @override
+  String get filterDateRange => 'تحديد فترة';
 }

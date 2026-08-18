@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/services/supabase_service.dart';
 import '../core/services/sync_service.dart';
 import '../data/datasources/auth_remote_datasource.dart';
+import '../data/datasources/balance_remote_datasource.dart';
 import '../data/datasources/category_remote_datasource.dart';
 import '../data/datasources/expense_remote_datasource.dart';
 import '../data/datasources/local_expense_datasource.dart';
@@ -12,18 +13,22 @@ import '../data/datasources/notification_remote_datasource.dart';
 import '../data/datasources/profile_remote_datasource.dart';
 import '../data/datasources/settings_remote_datasource.dart';
 import '../data/repositories/auth_repository_impl.dart';
+import '../data/repositories/balance_repository_impl.dart';
 import '../data/repositories/category_repository_impl.dart';
 import '../data/repositories/expense_repository_impl.dart';
 import '../data/repositories/notification_repository_impl.dart';
 import '../data/repositories/profile_repository_impl.dart';
 import '../data/repositories/settings_repository_impl.dart';
 import '../domain/repositories/auth_repository.dart';
+import '../domain/repositories/balance_repository.dart';
 import '../domain/repositories/category_repository.dart';
 import '../domain/repositories/expense_repository.dart';
 import '../domain/repositories/notification_repository.dart';
 import '../domain/repositories/profile_repository.dart';
 import '../domain/repositories/settings_repository.dart';
 import '../presentation/cubits/auth/auth_cubit.dart';
+import '../presentation/cubits/balance/admin_balance_cubit.dart';
+import '../presentation/cubits/balance/employee_balance_cubit.dart';
 import '../presentation/cubits/category/category_cubit.dart';
 import '../presentation/cubits/dashboard/dashboard_cubit.dart';
 import '../presentation/cubits/employee_details/employee_details_cubit.dart';
@@ -72,6 +77,9 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<NotificationRemoteDataSource>(
     () => NotificationRemoteDataSourceImpl(client: sl()),
   );
+  sl.registerLazySingleton<BalanceRemoteDataSource>(
+    () => BalanceRemoteDataSourceImpl(client: sl()),
+  );
 
   // ── Services ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<SyncService>(
@@ -105,6 +113,13 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<NotificationRepository>(
     () => NotificationRepositoryImpl(remoteDataSource: sl()),
   );
+  sl.registerLazySingleton<BalanceRepository>(
+    () => BalanceRepositoryImpl(
+      remoteDataSource: sl(),
+      localExpenseDataSource: sl(),
+      expenseRepository: sl(),
+    ),
+  );
 
   // ── Cubits / State Management ─────────────────────────────────────────
   sl.registerLazySingleton<SettingsCubit>(
@@ -115,6 +130,15 @@ Future<void> initDependencies() async {
   );
   sl.registerLazySingleton<AdminNotificationCubit>(
     () => AdminNotificationCubit(notificationRepository: sl()),
+  );
+  sl.registerFactory<EmployeeBalanceCubit>(
+    () => EmployeeBalanceCubit(
+      balanceRepository: sl(),
+      authRepository: sl(),
+    ),
+  );
+  sl.registerFactory<AdminBalanceCubit>(
+    () => AdminBalanceCubit(balanceRepository: sl()),
   );
   sl.registerLazySingleton<AuthCubit>(
     () => AuthCubit(

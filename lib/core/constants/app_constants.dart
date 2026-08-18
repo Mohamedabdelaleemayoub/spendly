@@ -7,6 +7,7 @@ abstract final class AppConstants {
   static const String profilesTable = 'profiles';
   static const String categoriesTable = 'categories';
   static const String expensesTable = 'expenses';
+  static const String balanceTransactionsTable = 'employee_balance_transactions';
 
   // ── Supabase Storage ───────────────────────────────────────────────
   static const String receiptsBucket = 'expense-receipts';
