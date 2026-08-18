@@ -566,4 +566,40 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get offline => 'غير متصل';
+
+  @override
+  String get periodToday => 'اليوم';
+
+  @override
+  String get periodThisWeek => 'هذا الأسبوع';
+
+  @override
+  String get periodThisMonth => 'هذا الشهر';
+
+  @override
+  String get totalMonthlyExpenses => 'إجمالي المصروفات';
+
+  @override
+  String get companyTotalExpenses => 'إجمالي مصروفات الشركة';
+
+  @override
+  String get employeeTotalExpenses => 'إجمالي مصروفاتي';
+
+  @override
+  String get distributionByCategory => 'توزيع المصروفات حسب الفئة';
+
+  @override
+  String get distributionByEmployee => 'توزيع المصروفات حسب الموظفين';
+
+  @override
+  String get recentExpenses => 'أحدث المصروفات';
+
+  @override
+  String get viewAll => 'عرض الكل';
+
+  @override
+  String get viewReports => 'عرض التقارير';
+
+  @override
+  String get noExpensesThisPeriod => 'لا توجد مصروفات مسجلة لهذه الفترة';
 }

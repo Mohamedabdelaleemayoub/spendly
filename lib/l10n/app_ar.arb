@@ -201,5 +201,18 @@
   "expenseSyncSuccess": "تمت مزامنة جميع المصروفات المحلية بنجاح.",
   "retrySync": "إعادة المزامنة",
   "online": "متصل",
-  "offline": "غير متصل"
+  "offline": "غير متصل",
+
+  "periodToday": "اليوم",
+  "periodThisWeek": "هذا الأسبوع",
+  "periodThisMonth": "هذا الشهر",
+  "totalMonthlyExpenses": "إجمالي المصروفات",
+  "companyTotalExpenses": "إجمالي مصروفات الشركة",
+  "employeeTotalExpenses": "إجمالي مصروفاتي",
+  "distributionByCategory": "توزيع المصروفات حسب الفئة",
+  "distributionByEmployee": "توزيع المصروفات حسب الموظفين",
+  "recentExpenses": "أحدث المصروفات",
+  "viewAll": "عرض الكل",
+  "viewReports": "عرض التقارير",
+  "noExpensesThisPeriod": "لا توجد مصروفات مسجلة لهذه الفترة"
 }

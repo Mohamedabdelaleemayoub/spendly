@@ -13,6 +13,7 @@ import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../cubits/category/category_cubit.dart';
 import '../../cubits/category/category_state.dart';
+import '../../cubits/dashboard/dashboard_state.dart';
 import '../../cubits/employee_details/employee_details_cubit.dart';
 import '../../cubits/employee_details/employee_details_state.dart';
 
@@ -409,7 +410,42 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            // Date Range Filter Chip
+                            // Period Preset Chips
+                            FilterChip(
+                              label: Text(l10n.allTime),
+                              selected: state.selectedStartDate == null && state.selectedEndDate == null,
+                              onSelected: (_) => context
+                                  .read<EmployeeDetailsCubit>()
+                                  .filterByPeriod(null),
+                            ),
+                            const SizedBox(width: 6),
+                            FilterChip(
+                              label: Text(l10n.periodToday),
+                              selected: state.selectedStartDate != null &&
+                                  state.selectedEndDate != null &&
+                                  state.selectedStartDate == state.selectedEndDate,
+                              onSelected: (_) => context
+                                  .read<EmployeeDetailsCubit>()
+                                  .filterByPeriod(ExpenseSummaryPeriod.today),
+                            ),
+                            const SizedBox(width: 6),
+                            FilterChip(
+                              label: Text(l10n.periodThisWeek),
+                              selected: false,
+                              onSelected: (_) => context
+                                  .read<EmployeeDetailsCubit>()
+                                  .filterByPeriod(ExpenseSummaryPeriod.week),
+                            ),
+                            const SizedBox(width: 6),
+                            FilterChip(
+                              label: Text(l10n.periodThisMonth),
+                              selected: false,
+                              onSelected: (_) => context
+                                  .read<EmployeeDetailsCubit>()
+                                  .filterByPeriod(ExpenseSummaryPeriod.month),
+                            ),
+                            const SizedBox(width: 6),
+                            // Date Range Picker Chip
                             ActionChip(
                               avatar: const Icon(Icons.date_range, size: 16),
                               label: Text(
@@ -419,7 +455,9 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> {
                               ),
                               onPressed: () => _pickDateRange(context),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 12),
+                            Container(width: 1, height: 24, color: AppColors.divider),
+                            const SizedBox(width: 12),
 
                             // Payment Method Filter Chips
                             FilterChip(

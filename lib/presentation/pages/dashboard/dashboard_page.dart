@@ -7,6 +7,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../injection/injection_container.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../router/app_router.dart';
 import '../../cubits/dashboard/dashboard_cubit.dart';
 import '../../cubits/dashboard/dashboard_state.dart';
@@ -36,17 +37,34 @@ class _DashboardView extends StatelessWidget {
     }
   }
 
+  String _getPeriodLabel(BuildContext context, ExpenseSummaryPeriod period) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (period) {
+      case ExpenseSummaryPeriod.today:
+        return l10n.periodToday;
+      case ExpenseSummaryPeriod.week:
+        return l10n.periodThisWeek;
+      case ExpenseSummaryPeriod.month:
+        return l10n.periodThisMonth;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat.currency(symbol: 'ر.س ', decimalDigits: 2);
+    final l10n = AppLocalizations.of(context)!;
+    final currencyFormat = NumberFormat.currency(
+      symbol: Localizations.localeOf(context).languageCode == 'ar' ? 'ر.س ' : 'SAR ',
+      decimalDigits: 2,
+    );
     final dateFormat = DateFormat('yyyy/MM/dd');
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('لوحة المعلومات'),
+        title: Text(l10n.navDashboard),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: l10n.retry,
             onPressed: () => context.read<DashboardCubit>().loadDashboard(),
           ),
         ],
@@ -78,13 +96,57 @@ class _DashboardView extends StatelessWidget {
 
           if (state is DashboardLoaded) {
             final isAdmin = state.isAdmin;
+            final currentPeriod = state.period;
 
             return RefreshIndicator(
               onRefresh: () => context.read<DashboardCubit>().loadDashboard(),
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 children: [
-                  // Main Banner: Monthly Total
+                  // Period Selector Controls (Compact & Beautiful)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: SegmentedButton<ExpenseSummaryPeriod>(
+                      segments: [
+                        ButtonSegment(
+                          value: ExpenseSummaryPeriod.today,
+                          label: Text(
+                            l10n.periodToday,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                          icon: const Icon(Icons.today, size: 16),
+                        ),
+                        ButtonSegment(
+                          value: ExpenseSummaryPeriod.week,
+                          label: Text(
+                            l10n.periodThisWeek,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                          icon: const Icon(Icons.view_week_outlined, size: 16),
+                        ),
+                        ButtonSegment(
+                          value: ExpenseSummaryPeriod.month,
+                          label: Text(
+                            l10n.periodThisMonth,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                          icon: const Icon(Icons.calendar_month_outlined, size: 16),
+                        ),
+                      ],
+                      selected: {currentPeriod},
+                      onSelectionChanged: (newSelection) {
+                        context.read<DashboardCubit>().changePeriod(newSelection.first);
+                      },
+                      style: SegmentedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        selectedBackgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                        selectedForegroundColor: AppColors.primary,
+                      ),
+                    ),
+                  ),
+
+                  // Main Banner: Reactive Period Total
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -110,46 +172,52 @@ class _DashboardView extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Text(
-                                  isAdmin
-                                      ? 'إجمالي مصروفات الشركة'
-                                      : 'إجمالي مصروفات الشهر',
-                                  style: AppTextStyles.subtitle2.copyWith(
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                                if (isAdmin) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.secondary,
-                                      borderRadius: BorderRadius.circular(6),
+                            Flexible(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      isAdmin
+                                          ? '${l10n.companyTotalExpenses} (${_getPeriodLabel(context, currentPeriod)})'
+                                          : '${l10n.employeeTotalExpenses} (${_getPeriodLabel(context, currentPeriod)})',
+                                      style: AppTextStyles.subtitle2.copyWith(
+                                        color: Colors.white70,
+                                        fontSize: 13,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    child: const Text(
-                                      'لوحة المدير',
-                                      style: TextStyle(
-                                        color: Colors.black87,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
+                                  ),
+                                  if (isAdmin) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.secondary,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        l10n.roleAdmin,
+                                        style: const TextStyle(
+                                          color: Colors.black87,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                DateFormat('MMMM yyyy', 'ar')
+                                DateFormat('MMMM yyyy', Localizations.localeOf(context).languageCode)
                                     .format(DateTime.now()),
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -162,7 +230,7 @@ class _DashboardView extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          currencyFormat.format(state.totalThisMonth),
+                          currencyFormat.format(state.activePeriodTotal),
                           style: AppTextStyles.amountLarge.copyWith(
                             color: Colors.white,
                             fontSize: 30,
@@ -173,7 +241,7 @@ class _DashboardView extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
 
-                  // Mini Stats Row
+                  // Mini Stats Row (Today, Active Count, Active Employees)
                   Row(
                     children: [
                       // Today Spending Card
@@ -190,8 +258,7 @@ class _DashboardView extends StatelessWidget {
                                     Container(
                                       padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
-                                        color: AppColors.secondary
-                                            .withValues(alpha: 0.15),
+                                        color: AppColors.secondary.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: const Icon(
@@ -201,8 +268,13 @@ class _DashboardView extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    const Text('اليوم',
-                                        style: AppTextStyles.caption),
+                                    Flexible(
+                                      child: Text(
+                                        l10n.periodToday,
+                                        style: AppTextStyles.caption,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 10),
@@ -210,8 +282,10 @@ class _DashboardView extends StatelessWidget {
                                   currencyFormat.format(state.totalToday),
                                   style: AppTextStyles.subtitle1.copyWith(
                                     fontWeight: FontWeight.w700,
-                                    fontSize: 14,
+                                    fontSize: 13,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
@@ -220,7 +294,7 @@ class _DashboardView extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
 
-                      // Monthly Count Card
+                      // Count for Active Period Card
                       Expanded(
                         child: Card(
                           margin: EdgeInsets.zero,
@@ -234,24 +308,28 @@ class _DashboardView extends StatelessWidget {
                                     Container(
                                       padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
-                                        color: AppColors.primary
-                                            .withValues(alpha: 0.15),
+                                        color: AppColors.primary.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: const Icon(
-                                        Icons.receipt,
+                                        Icons.receipt_long_outlined,
                                         size: 18,
                                         color: AppColors.primary,
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    const Text('العمليات',
-                                        style: AppTextStyles.caption),
+                                    Flexible(
+                                      child: Text(
+                                        l10n.expensesCountLabel,
+                                        style: AppTextStyles.caption,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  '${state.countThisMonth} عملية',
+                                  '${state.activePeriodCount}',
                                   style: AppTextStyles.subtitle1.copyWith(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 14,
@@ -279,10 +357,8 @@ class _DashboardView extends StatelessWidget {
                                       Container(
                                         padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF6C5CE7)
-                                              .withValues(alpha: 0.15),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                          color: const Color(0xFF6C5CE7).withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: const Icon(
                                           Icons.people_alt_outlined,
@@ -291,13 +367,18 @@ class _DashboardView extends StatelessWidget {
                                         ),
                                       ),
                                       const SizedBox(width: 6),
-                                      const Text('الموظفين',
-                                          style: AppTextStyles.caption),
+                                      Flexible(
+                                        child: Text(
+                                          l10n.navEmployees,
+                                          style: AppTextStyles.caption,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 10),
                                   Text(
-                                    '${state.employeeCount} موظف',
+                                    '${state.employeeCount}',
                                     style: AppTextStyles.subtitle1.copyWith(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 14,
@@ -313,10 +394,10 @@ class _DashboardView extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // Admin Only: Spending By Employee Section
+                  // Admin Only: Spending By Employee Section (for selected period)
                   if (isAdmin && state.employeeSpending.isNotEmpty) ...[
-                    const Text(
-                      'توزيع المصروفات حسب الموظفين',
+                    Text(
+                      l10n.distributionByEmployee,
                       style: AppTextStyles.heading3,
                     ),
                     const SizedBox(height: 8),
@@ -337,53 +418,53 @@ class _DashboardView extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Row(
-                                          children: [
-                                            CircleAvatar(
-                                              radius: 12,
-                                              backgroundColor: AppColors.primary
-                                                  .withValues(alpha: 0.15),
-                                              child: Text(
-                                                emp.name.isNotEmpty
-                                                    ? emp.name.characters.first
-                                                        .toUpperCase()
-                                                    : 'M',
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: AppColors.primary,
+                                        Flexible(
+                                          child: Row(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 12,
+                                                backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                                                child: Text(
+                                                  emp.name.isNotEmpty
+                                                      ? emp.name.characters.first.toUpperCase()
+                                                      : 'U',
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.primary,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              emp.name,
-                                              style: AppTextStyles.bodyMedium
-                                                  .copyWith(
-                                                fontWeight: FontWeight.w600,
+                                              const SizedBox(width: 8),
+                                              Flexible(
+                                                child: Text(
+                                                  emp.name,
+                                                  style: AppTextStyles.bodyMedium.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '(${emp.count} عملية)',
-                                              style: AppTextStyles.caption,
-                                            ),
-                                          ],
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '(${emp.count})',
+                                                style: AppTextStyles.caption,
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                         Row(
                                           children: [
                                             Text(
                                               '${currencyFormat.format(emp.amount)} (${emp.percentage.toStringAsFixed(1)}%)',
-                                              style:
-                                                  AppTextStyles.caption.copyWith(
+                                              style: AppTextStyles.caption.copyWith(
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),
                                             const SizedBox(width: 4),
-                                            const Icon(Icons.chevron_left, size: 16, color: AppColors.textHint),
+                                            const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.textHint),
                                           ],
                                         ),
                                       ],
@@ -392,14 +473,12 @@ class _DashboardView extends StatelessWidget {
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(4),
                                       child: LinearProgressIndicator(
-                                        value: emp.percentage / 100,
-                                        backgroundColor:
-                                            AppColors.surfaceVariant,
-                                        valueColor:
-                                            const AlwaysStoppedAnimation<Color>(
+                                        value: emp.percentage > 0 ? (emp.percentage / 100).clamp(0.0, 1.0) : 0.0,
+                                        backgroundColor: AppColors.surfaceVariant,
+                                        valueColor: const AlwaysStoppedAnimation<Color>(
                                           AppColors.primary,
                                         ),
-                                        minHeight: 8,
+                                        minHeight: 6,
                                       ),
                                     ),
                                   ],
@@ -418,13 +497,13 @@ class _DashboardView extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'توزيع المصروفات حسب الفئة',
+                        Text(
+                          l10n.distributionByCategory,
                           style: AppTextStyles.heading3,
                         ),
                         TextButton(
                           onPressed: () => context.go(AppRoutes.reports),
-                          child: const Text('عرض التقارير'),
+                          child: Text(l10n.viewReports),
                         ),
                       ],
                     ),
@@ -442,20 +521,17 @@ class _DashboardView extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         cat.name,
-                                        style: AppTextStyles.bodyMedium
-                                            .copyWith(
+                                        style: AppTextStyles.bodyMedium.copyWith(
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       Text(
                                         '${currencyFormat.format(cat.amount)} (${cat.percentage.toStringAsFixed(1)}%)',
-                                        style:
-                                            AppTextStyles.caption.copyWith(
+                                        style: AppTextStyles.caption.copyWith(
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -465,13 +541,10 @@ class _DashboardView extends StatelessWidget {
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(4),
                                     child: LinearProgressIndicator(
-                                      value: cat.percentage / 100,
-                                      backgroundColor:
-                                          AppColors.surfaceVariant,
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(
-                                              catColor),
-                                      minHeight: 8,
+                                      value: cat.percentage > 0 ? (cat.percentage / 100).clamp(0.0, 1.0) : 0.0,
+                                      backgroundColor: AppColors.surfaceVariant,
+                                      valueColor: AlwaysStoppedAnimation<Color>(catColor),
+                                      minHeight: 6,
                                     ),
                                   ),
                                 ],
@@ -490,13 +563,13 @@ class _DashboardView extends StatelessWidget {
                     children: [
                       Text(
                         isAdmin
-                            ? 'أحدث المصروفات (جميع الموظفين)'
-                            : 'أحدث المصروفات',
+                            ? '${l10n.recentExpenses} (${l10n.navEmployees})'
+                            : l10n.recentExpenses,
                         style: AppTextStyles.heading3,
                       ),
                       TextButton(
                         onPressed: () => context.go(AppRoutes.expenses),
-                        child: const Text('عرض الكل'),
+                        child: Text(l10n.viewAll),
                       ),
                     ],
                   ),
@@ -509,12 +582,12 @@ class _DashboardView extends StatelessWidget {
                         child: Center(
                           child: Column(
                             children: [
-                              Icon(Icons.inbox_outlined,
-                                  size: 40, color: AppColors.textHint),
+                              const Icon(Icons.inbox_outlined, size: 40, color: AppColors.textHint),
                               const SizedBox(height: 8),
-                              const Text(
-                                  'لا توجد مصروفات مسجلة هذا الشهر',
-                                  style: AppTextStyles.caption),
+                              Text(
+                                l10n.noExpensesThisPeriod,
+                                style: AppTextStyles.caption,
+                              ),
                             ],
                           ),
                         ),
@@ -523,8 +596,7 @@ class _DashboardView extends StatelessWidget {
                   ] else ...[
                     ...state.recentExpenses.map((expense) {
                       final catColor = _parseColor(expense.category?.color);
-                      final paymentLabel = AppConstants
-                              .paymentMethodLabels[expense.paymentMethod] ??
+                      final paymentLabel = AppConstants.paymentMethodLabels[expense.paymentMethod] ??
                           expense.paymentMethod;
 
                       return Card(
@@ -548,9 +620,8 @@ class _DashboardView extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  expense.title,
-                                  style: AppTextStyles.subtitle2.copyWith(
-                                      fontWeight: FontWeight.w600),
+                                  expense.displayTitle,
+                                  style: AppTextStyles.subtitle2.copyWith(fontWeight: FontWeight.w600),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -558,10 +629,8 @@ class _DashboardView extends StatelessWidget {
                               if (isAdmin && expense.profile != null) ...[
                                 const SizedBox(width: 6),
                                 Container(
-                                  constraints:
-                                      const BoxConstraints(maxWidth: 90),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
+                                  constraints: const BoxConstraints(maxWidth: 90),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: AppColors.surfaceVariant,
                                     borderRadius: BorderRadius.circular(6),

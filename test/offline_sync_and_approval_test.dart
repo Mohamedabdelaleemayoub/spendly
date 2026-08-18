@@ -11,11 +11,15 @@ import 'package:spendly/domain/entities/employee_summary.dart';
 import 'package:spendly/domain/entities/expense.dart';
 import 'package:spendly/domain/entities/profile.dart';
 import 'package:spendly/domain/repositories/auth_repository.dart';
+import 'package:spendly/domain/repositories/category_repository.dart';
+import 'package:spendly/domain/repositories/expense_repository.dart';
 import 'package:spendly/domain/repositories/notification_repository.dart';
 import 'package:spendly/domain/repositories/profile_repository.dart';
 import 'package:spendly/domain/repositories/settings_repository.dart';
 import 'package:spendly/presentation/cubits/auth/auth_cubit.dart';
 import 'package:spendly/presentation/cubits/auth/auth_state.dart' as spendly_auth;
+import 'package:spendly/presentation/cubits/dashboard/dashboard_cubit.dart';
+import 'package:spendly/presentation/cubits/dashboard/dashboard_state.dart';
 import 'package:spendly/presentation/cubits/notifications/admin_notification_cubit.dart';
 import 'package:spendly/presentation/cubits/notifications/admin_notification_state.dart';
 import 'package:spendly/presentation/cubits/settings/admin_settings_cubit.dart';
@@ -140,6 +144,75 @@ class MockFullProfileRepository implements ProfileRepository {
 
   @override
   Future<void> rejectUser(String userId) async {}
+}
+
+class MockDashboardExpenseRepository implements ExpenseRepository {
+  List<Expense> monthExpenses = [];
+
+  @override
+  Future<List<Expense>> getExpenses({
+    int page = 0,
+    int pageSize = 20,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? categoryId,
+    String? userId,
+    String? paymentMethod,
+    String? searchQuery,
+  }) async => monthExpenses;
+
+  @override
+  Future<Expense> getExpenseById(String id) async => monthExpenses.firstWhere((e) => e.id == id);
+
+  @override
+  Future<Expense> createExpense({
+    String title = '',
+    required double amount,
+    required String paymentMethod,
+    required DateTime expenseDate,
+    String? categoryId,
+    String? notes,
+    File? receiptFile,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<Expense> updateExpense({
+    required String id,
+    String title = '',
+    required double amount,
+    required String paymentMethod,
+    required DateTime expenseDate,
+    String? categoryId,
+    String? notes,
+    File? receiptFile,
+    String? existingReceiptUrl,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<void> deleteExpense(String id) async {}
+
+  @override
+  Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId}) async => monthExpenses;
+
+  @override
+  Future<int> syncPendingExpenses({String? userId}) async => 0;
+}
+
+class MockCategoryRepository implements CategoryRepository {
+  @override
+  Future<List<Category>> getCategories() async => [];
+
+  @override
+  Future<Category> createCategory({required String name, required String icon, required String color}) async => throw UnimplementedError();
+
+  @override
+  Future<Category> updateCategory(Category category) async => throw UnimplementedError();
+
+  @override
+  Future<void> deleteCategory(String id) async {}
+
+  @override
+  Future<void> seedDefaultCategoriesIfEmpty() async {}
 }
 
 void main() {
@@ -301,6 +374,89 @@ void main() {
         expenseDate: date,
       );
       expect(genericExpense.displayTitle, 'مصروف');
+    });
+  });
+
+  group('DashboardCubit Period Summary Tests (Today, This Week, This Month)', () {
+    test('loads and calculates Today, This Week, and This Month totals correctly', () async {
+      final authRepo = MockAuthRepository();
+      final profileRepo = MockFullProfileRepository();
+      final expenseRepo = MockDashboardExpenseRepository();
+      final catRepo = MockCategoryRepository();
+
+      const userProfile = Profile(
+        id: 'u_dash',
+        name: 'Dashboard User',
+        role: 'employee',
+        status: 'active',
+      );
+      profileRepo.returnedProfile = userProfile;
+
+      final testUser = supabase.User(
+        id: 'u_dash',
+        appMetadata: {},
+        userMetadata: {},
+        aud: 'authenticated',
+        createdAt: '2026-08-18T00:00:00.000Z',
+      );
+      authRepo.mockUser = testUser;
+
+      final now = DateTime.now();
+      expenseRepo.monthExpenses = [
+        // Today expense
+        Expense(
+          id: 'exp-today',
+          userId: 'u_dash',
+          title: 'Morning Coffee',
+          amount: 25.0,
+          paymentMethod: 'cash',
+          expenseDate: now,
+          category: const Category(id: 'c1', name: 'Food', icon: 'restaurant', color: '#E17055'),
+        ),
+        // Yesterday expense (part of current week/month)
+        Expense(
+          id: 'exp-yesterday',
+          userId: 'u_dash',
+          title: 'Office Supplies',
+          amount: 75.0,
+          paymentMethod: 'bank',
+          expenseDate: now.subtract(const Duration(hours: 24)),
+          category: const Category(id: 'c2', name: 'Supplies', icon: 'shopping_bag', color: '#0984E3'),
+        ),
+      ];
+
+      final cubit = DashboardCubit(
+        expenseRepository: expenseRepo,
+        categoryRepository: catRepo,
+        profileRepository: profileRepo,
+        authRepository: authRepo,
+      );
+
+      await cubit.loadDashboard();
+      expect(cubit.state, isA<DashboardLoaded>());
+      final loaded = cubit.state as DashboardLoaded;
+
+      expect(loaded.totalToday, 25.0);
+      expect(loaded.countToday, 1);
+      expect(loaded.totalThisMonth, 100.0);
+      expect(loaded.countThisMonth, 2);
+
+      // Default active period is Month
+      expect(loaded.period, ExpenseSummaryPeriod.month);
+      expect(loaded.activePeriodTotal, 100.0);
+
+      // Change period to Today
+      cubit.changePeriod(ExpenseSummaryPeriod.today);
+      final todayState = cubit.state as DashboardLoaded;
+      expect(todayState.period, ExpenseSummaryPeriod.today);
+      expect(todayState.activePeriodTotal, 25.0);
+      expect(todayState.activePeriodCount, 1);
+
+      // Change period to Week
+      cubit.changePeriod(ExpenseSummaryPeriod.week);
+      final weekState = cubit.state as DashboardLoaded;
+      expect(weekState.period, ExpenseSummaryPeriod.week);
+      expect(weekState.activePeriodTotal >= 25.0, true);
     });
   });
 

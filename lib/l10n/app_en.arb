@@ -196,10 +196,23 @@
   "syncStatusPending": "Saved locally",
   "syncStatusSyncing": "Syncing...",
   "syncStatusFailed": "Sync failed - Tap to retry",
-  "expenseSavedOffline": "Expense saved locally. It will sync when internet is available.",
-  "expenseSyncRetrying": "Retrying expense synchronization...",
-  "expenseSyncSuccess": "All local expenses synchronized successfully.",
+  "expenseSavedOffline": "Expense saved locally. It will sync automatically when internet is available.",
+  "expenseSyncRetrying": "Retrying expense sync...",
+  "expenseSyncSuccess": "All local expenses have been synchronized successfully.",
   "retrySync": "Retry Sync",
   "online": "Online",
-  "offline": "Offline"
+  "offline": "Offline",
+
+  "periodToday": "Today",
+  "periodThisWeek": "This Week",
+  "periodThisMonth": "This Month",
+  "totalMonthlyExpenses": "Total Expenses",
+  "companyTotalExpenses": "Total Company Expenses",
+  "employeeTotalExpenses": "My Total Expenses",
+  "distributionByCategory": "Spending by Category",
+  "distributionByEmployee": "Spending by Employee",
+  "recentExpenses": "Recent Expenses",
+  "viewAll": "View All",
+  "viewReports": "View Reports",
+  "noExpensesThisPeriod": "No expenses recorded for this period"
 }

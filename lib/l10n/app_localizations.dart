@@ -1151,19 +1151,19 @@ abstract class AppLocalizations {
   /// No description provided for @expenseSavedOffline.
   ///
   /// In en, this message translates to:
-  /// **'Expense saved locally. It will sync when internet is available.'**
+  /// **'Expense saved locally. It will sync automatically when internet is available.'**
   String get expenseSavedOffline;
 
   /// No description provided for @expenseSyncRetrying.
   ///
   /// In en, this message translates to:
-  /// **'Retrying expense synchronization...'**
+  /// **'Retrying expense sync...'**
   String get expenseSyncRetrying;
 
   /// No description provided for @expenseSyncSuccess.
   ///
   /// In en, this message translates to:
-  /// **'All local expenses synchronized successfully.'**
+  /// **'All local expenses have been synchronized successfully.'**
   String get expenseSyncSuccess;
 
   /// No description provided for @retrySync.
@@ -1183,6 +1183,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Offline'**
   String get offline;
+
+  /// No description provided for @periodToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get periodToday;
+
+  /// No description provided for @periodThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This Week'**
+  String get periodThisWeek;
+
+  /// No description provided for @periodThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This Month'**
+  String get periodThisMonth;
+
+  /// No description provided for @totalMonthlyExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Expenses'**
+  String get totalMonthlyExpenses;
+
+  /// No description provided for @companyTotalExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Company Expenses'**
+  String get companyTotalExpenses;
+
+  /// No description provided for @employeeTotalExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'My Total Expenses'**
+  String get employeeTotalExpenses;
+
+  /// No description provided for @distributionByCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Spending by Category'**
+  String get distributionByCategory;
+
+  /// No description provided for @distributionByEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'Spending by Employee'**
+  String get distributionByEmployee;
+
+  /// No description provided for @recentExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Expenses'**
+  String get recentExpenses;
+
+  /// No description provided for @viewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View All'**
+  String get viewAll;
+
+  /// No description provided for @viewReports.
+  ///
+  /// In en, this message translates to:
+  /// **'View Reports'**
+  String get viewReports;
+
+  /// No description provided for @noExpensesThisPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'No expenses recorded for this period'**
+  String get noExpensesThisPeriod;
 }
 
 class _AppLocalizationsDelegate

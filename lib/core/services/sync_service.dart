@@ -9,16 +9,32 @@ abstract class SyncService {
   Future<int> syncPendingExpenses({String? userId});
   Stream<SyncStatus> get syncStatusStream;
   bool get isSyncing;
+  void dispose();
 }
 
 class SyncServiceImpl implements SyncService {
   SyncServiceImpl({
     required this.localDataSource,
     required this.supabaseClient,
-  });
+  }) {
+    try {
+      _authSub = supabaseClient.auth.onAuthStateChange.listen((data) {
+        if (data.session != null) {
+          syncPendingExpenses();
+        }
+      });
+    } catch (_) {}
+  }
 
   final LocalExpenseDataSource localDataSource;
   final SupabaseClient supabaseClient;
+  StreamSubscription? _authSub;
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    _syncStatusController.close();
+  }
 
   final _syncStatusController = StreamController<SyncStatus>.broadcast();
   bool _isCurrentlySyncing = false;

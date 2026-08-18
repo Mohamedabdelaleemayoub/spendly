@@ -555,14 +555,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get expenseSavedOffline =>
-      'Expense saved locally. It will sync when internet is available.';
+      'Expense saved locally. It will sync automatically when internet is available.';
 
   @override
-  String get expenseSyncRetrying => 'Retrying expense synchronization...';
+  String get expenseSyncRetrying => 'Retrying expense sync...';
 
   @override
   String get expenseSyncSuccess =>
-      'All local expenses synchronized successfully.';
+      'All local expenses have been synchronized successfully.';
 
   @override
   String get retrySync => 'Retry Sync';
@@ -572,4 +572,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offline => 'Offline';
+
+  @override
+  String get periodToday => 'Today';
+
+  @override
+  String get periodThisWeek => 'This Week';
+
+  @override
+  String get periodThisMonth => 'This Month';
+
+  @override
+  String get totalMonthlyExpenses => 'Total Expenses';
+
+  @override
+  String get companyTotalExpenses => 'Total Company Expenses';
+
+  @override
+  String get employeeTotalExpenses => 'My Total Expenses';
+
+  @override
+  String get distributionByCategory => 'Spending by Category';
+
+  @override
+  String get distributionByEmployee => 'Spending by Employee';
+
+  @override
+  String get recentExpenses => 'Recent Expenses';
+
+  @override
+  String get viewAll => 'View All';
+
+  @override
+  String get viewReports => 'View Reports';
+
+  @override
+  String get noExpensesThisPeriod => 'No expenses recorded for this period';
 }

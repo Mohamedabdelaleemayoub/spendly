@@ -277,7 +277,12 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId}) async {
     try {
       final remoteList = await remoteDataSource.getExpensesForMonth(month, userId: userId);
-      return remoteList;
+      final localPending = await localDataSource.getPendingExpenses(userId: userId);
+      final monthPending = localPending.where((exp) {
+        return exp.expenseDate.year == month.year && exp.expenseDate.month == month.month;
+      });
+      final remoteIds = remoteList.map((e) => e.id).toSet();
+      return [...remoteList, ...monthPending.where((e) => !remoteIds.contains(e.id))];
     } catch (e) {
       debugPrint('⚠️ [ExpenseRepositoryImpl] Remote getExpensesForMonth failed ($e), calculating from local store.');
       final localAll = await localDataSource.getExpenses(userId: userId);

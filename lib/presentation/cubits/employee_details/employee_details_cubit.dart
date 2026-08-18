@@ -4,6 +4,7 @@ import '../../../domain/entities/expense.dart';
 import '../../../domain/entities/profile.dart';
 import '../../../domain/repositories/expense_repository.dart';
 import '../../../domain/repositories/profile_repository.dart';
+import '../dashboard/dashboard_state.dart';
 import 'employee_details_state.dart';
 
 class EmployeeDetailsCubit extends Cubit<EmployeeDetailsState> {
@@ -108,6 +109,32 @@ class EmployeeDetailsCubit extends Cubit<EmployeeDetailsState> {
   void filterByDateRange(DateTime? start, DateTime? end) {
     _startDate = start;
     _endDate = end;
+    _reemitFiltered();
+  }
+
+  void filterByPeriod(ExpenseSummaryPeriod? period) {
+    if (period == null) {
+      _startDate = null;
+      _endDate = null;
+    } else {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      switch (period) {
+        case ExpenseSummaryPeriod.today:
+          _startDate = today;
+          _endDate = today;
+          break;
+        case ExpenseSummaryPeriod.week:
+          final daysSinceSaturday = (now.weekday + 1) % 7;
+          _startDate = today.subtract(Duration(days: daysSinceSaturday));
+          _endDate = today;
+          break;
+        case ExpenseSummaryPeriod.month:
+          _startDate = DateTime(now.year, now.month, 1);
+          _endDate = today;
+          break;
+      }
+    }
     _reemitFiltered();
   }
 
