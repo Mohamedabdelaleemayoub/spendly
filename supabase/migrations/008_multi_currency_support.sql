@@ -36,6 +36,10 @@ ALTER TABLE public.employee_balance_transactions ADD CONSTRAINT employee_balance
 CREATE INDEX IF NOT EXISTS idx_balance_tx_user_currency ON public.employee_balance_transactions(user_id, currency);
 
 -- 3. Calculate Available Balance for an Employee by Currency
+-- Drop previous signatures to prevent ambiguous function overloads and signature conflicts
+DROP FUNCTION IF EXISTS public.get_employee_available_balance(UUID);
+DROP FUNCTION IF EXISTS public.get_employee_available_balance(UUID, TEXT);
+
 CREATE OR REPLACE FUNCTION public.get_employee_available_balance(p_user_id UUID, p_currency TEXT DEFAULT 'EGP')
 RETURNS NUMERIC AS $$
 DECLARE
@@ -67,6 +71,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public;
 
 -- 4. Get Employee Balance Summary (Both EGP and USD)
+DROP FUNCTION IF EXISTS public.get_employee_balance_summary(UUID);
+
 CREATE OR REPLACE FUNCTION public.get_employee_balance_summary(p_user_id UUID)
 RETURNS JSON AS $$
 DECLARE
@@ -133,6 +139,9 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public;
 
 -- 5. Get All Employee Balances (Multi-Currency Support)
+-- Explicitly drop old function whose return table structure had 10 columns (now 16 columns) to avoid 42P13
+DROP FUNCTION IF EXISTS public.get_all_employee_balances();
+
 CREATE OR REPLACE FUNCTION public.get_all_employee_balances()
 RETURNS TABLE (
     user_id UUID,
