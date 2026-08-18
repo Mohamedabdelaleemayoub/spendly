@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'category.dart';
+import 'expense_currency.dart';
 import 'profile.dart';
 
 /// Represents synchronization status of an expense record.
@@ -36,6 +37,7 @@ class Expense extends Equatable {
     this.profile,
     this.title = '',
     required this.amount,
+    this.currency = ExpenseCurrency.egp,
     required this.paymentMethod,
     required this.expenseDate,
     this.notes,
@@ -52,6 +54,7 @@ class Expense extends Equatable {
   final Profile? profile;
   final String title;
   final double amount;
+  final ExpenseCurrency currency;
   final String paymentMethod;
   final DateTime expenseDate;
   final String? notes;
@@ -81,6 +84,7 @@ class Expense extends Equatable {
     Profile? profile,
     String? title,
     double? amount,
+    ExpenseCurrency? currency,
     String? paymentMethod,
     DateTime? expenseDate,
     String? notes,
@@ -97,6 +101,7 @@ class Expense extends Equatable {
       profile: profile ?? this.profile,
       title: title ?? this.title,
       amount: amount ?? this.amount,
+      currency: currency ?? this.currency,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       expenseDate: expenseDate ?? this.expenseDate,
       notes: notes ?? this.notes,
@@ -116,6 +121,7 @@ class Expense extends Equatable {
         profile,
         title,
         amount,
+        currency,
         paymentMethod,
         expenseDate,
         notes,
