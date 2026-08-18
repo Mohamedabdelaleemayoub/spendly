@@ -82,4 +82,14 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<void> toggleEmployeeStatus(String userId, String status) {
     return remoteDataSource.toggleEmployeeStatus(userId, status);
   }
+
+  @override
+  Future<void> approveUser(String userId) {
+    return remoteDataSource.approveUser(userId);
+  }
+
+  @override
+  Future<void> rejectUser(String userId) {
+    return remoteDataSource.rejectUser(userId);
+  }
 }

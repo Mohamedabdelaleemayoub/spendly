@@ -98,6 +98,16 @@ class MockProfileRepository implements ProfileRepository {
       );
     }
   }
+
+  @override
+  Future<void> approveUser(String userId) async {
+    await toggleEmployeeStatus(userId, 'active');
+  }
+
+  @override
+  Future<void> rejectUser(String userId) async {
+    await toggleEmployeeStatus(userId, 'rejected');
+  }
 }
 
 class MockExpenseRepository implements ExpenseRepository {
@@ -134,7 +144,7 @@ class MockExpenseRepository implements ExpenseRepository {
 
   @override
   Future<Expense> createExpense({
-    required String title,
+    String title = '',
     required double amount,
     required String paymentMethod,
     required DateTime expenseDate,
@@ -148,7 +158,7 @@ class MockExpenseRepository implements ExpenseRepository {
   @override
   Future<Expense> updateExpense({
     required String id,
-    required String title,
+    String title = '',
     required double amount,
     required String paymentMethod,
     required DateTime expenseDate,
@@ -169,11 +179,16 @@ class MockExpenseRepository implements ExpenseRepository {
   Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId}) async {
     return mockExpenses;
   }
+
+  @override
+  Future<int> syncPendingExpenses({String? userId}) async {
+    return 0;
+  }
 }
 
 void main() {
   group('Admin User Management & Entity Tests', () {
-    test('Profile entity correctly detects active/inactive status and roles', () {
+    test('Profile entity correctly detects active/inactive/pending/rejected status and roles', () {
       const activeEmployee = Profile(
         id: '1',
         name: 'Employee One',
@@ -184,10 +199,30 @@ void main() {
       expect(activeEmployee.isAdmin, false);
       expect(activeEmployee.isActive, true);
       expect(activeEmployee.isInactive, false);
+      expect(activeEmployee.isPending, false);
+      expect(activeEmployee.isRejected, false);
+
+      const pendingUser = Profile(
+        id: '2',
+        name: 'Pending Two',
+        role: 'employee',
+        status: 'pending',
+      );
+      expect(pendingUser.isPending, true);
+      expect(pendingUser.isActive, false);
+
+      const rejectedUser = Profile(
+        id: '3',
+        name: 'Rejected Three',
+        role: 'employee',
+        status: 'rejected',
+      );
+      expect(rejectedUser.isRejected, true);
+      expect(rejectedUser.isActive, false);
 
       const inactiveAdmin = Profile(
-        id: '2',
-        name: 'Admin Two',
+        id: '4',
+        name: 'Admin Four',
         role: 'admin',
         status: 'inactive',
       );
@@ -197,7 +232,7 @@ void main() {
       expect(inactiveAdmin.isInactive, true);
     });
 
-    test('EmployeesCubit loads, searches, and filters employees accurately', () async {
+    test('EmployeesCubit loads, searches, filters, and approves/rejects employees', () async {
       final mockRepo = MockProfileRepository();
       mockRepo.mockSummaries = [
         const EmployeeSummary(
@@ -233,6 +268,17 @@ void main() {
           totalExpenses: 500.0,
           expensesCount: 1,
         ),
+        const EmployeeSummary(
+          profile: Profile(
+            id: '4',
+            name: 'Tariq Pending',
+            email: 'tariq@example.com',
+            role: 'employee',
+            status: 'pending',
+          ),
+          totalExpenses: 0.0,
+          expensesCount: 0,
+        ),
       ];
 
       final cubit = EmployeesCubit(profileRepository: mockRepo);
@@ -241,9 +287,10 @@ void main() {
       await cubit.loadEmployees();
       expect(cubit.state, isA<EmployeesLoaded>());
       final loadedState = cubit.state as EmployeesLoaded;
-      expect(loadedState.employees.length, 3);
-      expect(loadedState.totalCompanySpent, 5000.0);
-      expect(loadedState.totalCompanyTransactions, 9);
+      expect(loadedState.employees.length, 4);
+      // Inactive/pending expenses are not counted in company stats
+      expect(loadedState.totalCompanySpent, 4500.0);
+      expect(loadedState.totalCompanyTransactions, 8);
 
       // 2. Search
       cubit.searchEmployees('Sara');
@@ -254,7 +301,7 @@ void main() {
       // Clear search
       cubit.searchEmployees('');
       currentState = cubit.state as EmployeesLoaded;
-      expect(currentState.filteredEmployees.length, 3);
+      expect(currentState.filteredEmployees.length, 4);
 
       // 3. Filter by role
       cubit.filterByRole('admin');
@@ -265,23 +312,18 @@ void main() {
       cubit.filterByRole(null);
 
       // 4. Filter by status
-      cubit.filterByStatus('inactive');
+      cubit.filterByStatus('pending');
       currentState = cubit.state as EmployeesLoaded;
       expect(currentState.filteredEmployees.length, 1);
-      expect(currentState.filteredEmployees.first.profile.name, 'Khaled Hassan');
+      expect(currentState.filteredEmployees.first.profile.name, 'Tariq Pending');
 
-      // 5. Create employee
-      await cubit.createEmployee(
-        email: 'new@example.com',
-        password: 'password123',
-        fullName: 'New User',
-        role: 'employee',
-      );
-      expect(mockRepo.mockSummaries.length, 4);
+      // 5. Approve pending user
+      await cubit.approveUser('4');
+      expect(mockRepo.mockSummaries.firstWhere((s) => s.profile.id == '4').profile.status, 'active');
 
-      // 6. Toggle status
-      await cubit.toggleEmployeeStatus('3', 'active');
-      expect(mockRepo.mockSummaries.firstWhere((s) => s.profile.id == '3').profile.status, 'active');
+      // 6. Reject user
+      await cubit.rejectUser('4');
+      expect(mockRepo.mockSummaries.firstWhere((s) => s.profile.id == '4').profile.status, 'rejected');
 
       // 7. Delete employee
       await cubit.deleteEmployee('3');

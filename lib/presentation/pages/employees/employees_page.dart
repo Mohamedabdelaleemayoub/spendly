@@ -66,6 +66,66 @@ class _EmployeesViewState extends State<_EmployeesView> {
     );
   }
 
+  void _confirmApproveUser(BuildContext context, Profile profile) {
+    final l10n = AppLocalizations.of(context)!;
+    final cubit = context.read<EmployeesCubit>();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(l10n.approveUserConfirmTitle),
+        content: Text('${l10n.approveUserConfirmMessage}\n\n${profile.name} (${profile.email ?? ""})'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              cubit.approveUser(profile.id);
+            },
+            child: Text(l10n.approveUser),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmRejectUser(BuildContext context, Profile profile) {
+    final l10n = AppLocalizations.of(context)!;
+    final cubit = context.read<EmployeesCubit>();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(l10n.rejectUserConfirmTitle),
+        content: Text('${l10n.rejectUserConfirmMessage}\n\n${profile.name} (${profile.email ?? ""})'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              cubit.rejectUser(profile.id);
+            },
+            child: Text(l10n.rejectUser),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _confirmChangeRole(BuildContext context, Profile profile) {
     final l10n = AppLocalizations.of(context)!;
     final cubit = context.read<EmployeesCubit>();
@@ -171,6 +231,42 @@ class _EmployeesViewState extends State<_EmployeesView> {
     );
   }
 
+  Widget _buildStatusBadge(BuildContext context, Profile profile) {
+    final l10n = AppLocalizations.of(context)!;
+    Color color;
+    String label;
+
+    if (profile.isActive) {
+      color = AppColors.success;
+      label = l10n.statusActive;
+    } else if (profile.isPending) {
+      color = Colors.orange;
+      label = l10n.statusPending;
+    } else if (profile.isRejected) {
+      color = AppColors.error;
+      label = l10n.statusRejected;
+    } else {
+      color = AppColors.textSecondary;
+      label = l10n.statusInactive;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -215,6 +311,7 @@ class _EmployeesViewState extends State<_EmployeesView> {
 
           if (state is EmployeesLoaded) {
             final employees = state.filteredEmployees;
+            final pendingEmployees = state.employees.where((e) => e.profile.isPending).toList();
 
             return RefreshIndicator(
               onRefresh: () async {
@@ -325,6 +422,100 @@ class _EmployeesViewState extends State<_EmployeesView> {
                   ),
                   const SizedBox(height: 16),
 
+                  // Pending Registrations Banner (if any exist)
+                  if (pendingEmployees.isNotEmpty) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.amber.shade300),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.pending_actions, color: Colors.amber, size: 22),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${l10n.pendingRequestsTitle} (${pendingEmployees.length})',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Color(0xFF78350F),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          ...pendingEmployees.map((emp) {
+                            final prof = emp.profile;
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.amber.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: Colors.amber.shade100,
+                                    child: Text(
+                                      prof.name.isNotEmpty ? prof.name[0].toUpperCase() : '?',
+                                      style: TextStyle(color: Colors.amber.shade900, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          prof.name,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                        ),
+                                        Text(
+                                          prof.email ?? '',
+                                          style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Quick Action Buttons: Approve and Reject
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.success,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      minimumSize: Size.zero,
+                                    ),
+                                    onPressed: () => _confirmApproveUser(context, prof),
+                                    child: Text(l10n.approveUser, style: const TextStyle(fontSize: 11)),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.error,
+                                      side: const BorderSide(color: AppColors.error),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                      minimumSize: Size.zero,
+                                    ),
+                                    onPressed: () => _confirmRejectUser(context, prof),
+                                    child: Text(l10n.rejectUser, style: const TextStyle(fontSize: 11)),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   // Search Field
                   TextField(
                     controller: _searchController,
@@ -396,11 +587,27 @@ class _EmployeesViewState extends State<_EmployeesView> {
                         ),
                         const SizedBox(width: 8),
                         FilterChip(
+                          label: Text(l10n.statusPending),
+                          selected: state.statusFilter == 'pending',
+                          onSelected: (selected) => context
+                              .read<EmployeesCubit>()
+                              .filterByStatus(selected ? 'pending' : null),
+                        ),
+                        const SizedBox(width: 8),
+                        FilterChip(
                           label: Text(l10n.statusInactive),
                           selected: state.statusFilter == 'inactive',
                           onSelected: (selected) => context
                               .read<EmployeesCubit>()
                               .filterByStatus(selected ? 'inactive' : null),
+                        ),
+                        const SizedBox(width: 8),
+                        FilterChip(
+                          label: Text(l10n.statusRejected),
+                          selected: state.statusFilter == 'rejected',
+                          onSelected: (selected) => context
+                              .read<EmployeesCubit>()
+                              .filterByStatus(selected ? 'rejected' : null),
                         ),
                       ],
                     ),
@@ -456,239 +663,248 @@ class _EmployeesViewState extends State<_EmployeesView> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 22,
-                                    backgroundColor: isAdmin
-                                        ? AppColors.secondary.withValues(alpha: 0.2)
-                                        : AppColors.primary.withValues(alpha: 0.12),
-                                    backgroundImage: hasAvatar
-                                        ? CachedNetworkImageProvider(profile.avatarUrl!)
-                                        : null,
-                                    child: !hasAvatar
-                                        ? Text(
-                                            profile.name.isNotEmpty
-                                                ? profile.name.characters.first.toUpperCase()
-                                                : 'U',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: isAdmin
-                                                  ? AppColors.secondaryDark
-                                                  : AppColors.primary,
-                                            ),
-                                          )
-                                        : null,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                profile.name,
-                                                style: AppTextStyles.subtitle1.copyWith(
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            // Status Badge
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: isActive
-                                                    ? AppColors.success.withValues(alpha: 0.15)
-                                                    : AppColors.error.withValues(alpha: 0.15),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                isActive ? l10n.statusActive : l10n.statusInactive,
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isActive ? AppColors.success : AppColors.error,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            // Role Badge
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 22,
+                                      backgroundColor: isAdmin
+                                          ? AppColors.secondary.withValues(alpha: 0.2)
+                                          : AppColors.primary.withValues(alpha: 0.12),
+                                      backgroundImage: hasAvatar
+                                          ? CachedNetworkImageProvider(profile.avatarUrl!)
+                                          : null,
+                                      child: !hasAvatar
+                                          ? Text(
+                                              profile.name.isNotEmpty
+                                                  ? profile.name.characters.first.toUpperCase()
+                                                  : 'U',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
                                                 color: isAdmin
-                                                    ? AppColors.secondary.withValues(alpha: 0.15)
-                                                    : AppColors.surfaceVariant,
-                                                borderRadius: BorderRadius.circular(6),
+                                                    ? AppColors.secondaryDark
+                                                    : AppColors.primary,
                                               ),
-                                              child: Text(
-                                                isAdmin ? l10n.roleAdmin : l10n.roleEmployee,
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isAdmin
-                                                      ? AppColors.secondaryDark
-                                                      : AppColors.textSecondary,
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  profile.name,
+                                                  style: AppTextStyles.subtitle1.copyWith(
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
                                                 ),
                                               ),
+                                              const SizedBox(width: 6),
+                                              // Status Badge
+                                              _buildStatusBadge(context, profile),
+                                              const SizedBox(width: 4),
+                                              // Role Badge
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                    horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: isAdmin
+                                                      ? AppColors.secondary.withValues(alpha: 0.15)
+                                                      : AppColors.surfaceVariant,
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  isAdmin ? l10n.roleAdmin : l10n.roleEmployee,
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isAdmin
+                                                        ? AppColors.secondaryDark
+                                                        : AppColors.textSecondary,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            profile.email ?? '',
+                                            style: AppTextStyles.caption,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Action Popup Menu
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert, size: 20),
+                                      onSelected: (val) {
+                                        if (val == 'approve') {
+                                          _confirmApproveUser(context, profile);
+                                        } else if (val == 'reject') {
+                                          _confirmRejectUser(context, profile);
+                                        } else if (val == 'role') {
+                                          _confirmChangeRole(context, profile);
+                                        } else if (val == 'status') {
+                                          if (isSelf) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(l10n.cannotDeactivateSelf),
+                                                backgroundColor: AppColors.warning,
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          _confirmToggleStatus(context, profile);
+                                        } else if (val == 'delete') {
+                                          if (isSelf) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(l10n.cannotDeleteSelf),
+                                                backgroundColor: AppColors.warning,
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          _confirmDeleteUser(context, profile);
+                                        }
+                                      },
+                                      itemBuilder: (popCtx) => [
+                                        if (profile.isPending || profile.isRejected)
+                                          PopupMenuItem(
+                                            value: 'approve',
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.check_circle, size: 18, color: AppColors.success),
+                                                const SizedBox(width: 8),
+                                                Text(l10n.approveUser, style: const TextStyle(color: AppColors.success)),
+                                              ],
                                             ),
-                                          ],
+                                          ),
+                                        if (profile.isPending)
+                                          PopupMenuItem(
+                                            value: 'reject',
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.cancel, size: 18, color: AppColors.error),
+                                                const SizedBox(width: 8),
+                                                Text(l10n.rejectUser, style: const TextStyle(color: AppColors.error)),
+                                              ],
+                                            ),
+                                          ),
+                                        PopupMenuItem(
+                                          value: 'role',
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.shield_outlined, size: 18),
+                                              const SizedBox(width: 8),
+                                              Text(l10n.changeRole),
+                                            ],
+                                          ),
                                         ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          profile.email ?? '',
-                                          style: AppTextStyles.caption,
+                                        PopupMenuItem(
+                                          value: 'status',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                isActive
+                                                    ? Icons.block_outlined
+                                                    : Icons.check_circle_outline,
+                                                size: 18,
+                                                color: isActive ? AppColors.warning : AppColors.success,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                isActive ? l10n.deactivateUser : l10n.reactivateUser,
+                                                style: TextStyle(
+                                                  color: isActive ? AppColors.warning : AppColors.success,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.delete_forever_outlined,
+                                                size: 18,
+                                                color: AppColors.error,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                l10n.deleteUser,
+                                                style: const TextStyle(color: AppColors.error),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  // Action Popup Menu
-                                  PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert, size: 20),
-                                    onSelected: (val) {
-                                      if (val == 'role') {
-                                        _confirmChangeRole(context, profile);
-                                      } else if (val == 'status') {
-                                        if (isSelf) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text(l10n.cannotDeactivateSelf),
-                                              backgroundColor: AppColors.warning,
-                                            ),
-                                          );
-                                          return;
-                                        }
-                                        _confirmToggleStatus(context, profile);
-                                      } else if (val == 'delete') {
-                                        if (isSelf) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text(l10n.cannotDeleteSelf),
-                                              backgroundColor: AppColors.warning,
-                                            ),
-                                          );
-                                          return;
-                                        }
-                                        _confirmDeleteUser(context, profile);
-                                      }
-                                    },
-                                    itemBuilder: (popCtx) => [
-                                      PopupMenuItem(
-                                        value: 'role',
-                                        child: Row(
-                                          children: [
-                                            const Icon(Icons.shield_outlined, size: 18),
-                                            const SizedBox(width: 8),
-                                            Text(l10n.changeRole),
-                                          ],
+                                  ],
+                                ),
+                                const Divider(height: 20),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          l10n.expenseAmountLabel,
+                                          style: AppTextStyles.caption,
                                         ),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'status',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              isActive
-                                                  ? Icons.block_outlined
-                                                  : Icons.check_circle_outline,
-                                              size: 18,
-                                              color: isActive ? AppColors.warning : AppColors.success,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              isActive ? l10n.deactivateUser : l10n.reactivateUser,
-                                              style: TextStyle(
-                                                color: isActive ? AppColors.warning : AppColors.success,
-                                              ),
-                                            ),
-                                          ],
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          currencyFormat.format(emp.totalExpenses),
+                                          style: AppTextStyles.subtitle1.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.primary,
+                                          ),
                                         ),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.delete_forever_outlined,
-                                              size: 18,
-                                              color: AppColors.error,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              l10n.deleteUser,
-                                              style: const TextStyle(color: AppColors.error),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              const Divider(height: 20),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        l10n.expenseAmountLabel,
-                                        style: AppTextStyles.caption,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        currencyFormat.format(emp.totalExpenses),
-                                        style: AppTextStyles.subtitle1.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        l10n.totalOperations,
-                                        style: AppTextStyles.caption,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '${emp.expensesCount}',
-                                        style: AppTextStyles.subtitle2.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  OutlinedButton.icon(
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ],
                                     ),
-                                    onPressed: () {
-                                      context.push('/employees/${profile.id}', extra: profile);
-                                    },
-                                    icon: const Icon(Icons.arrow_forward, size: 14),
-                                    label: Text(l10n.viewExpenses, style: const TextStyle(fontSize: 12)),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          l10n.totalOperations,
+                                          style: AppTextStyles.caption,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${emp.expensesCount}',
+                                          style: AppTextStyles.subtitle2.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      onPressed: () {
+                                        context.push('/employees/${profile.id}', extra: profile);
+                                      },
+                                      icon: const Icon(Icons.arrow_forward, size: 14),
+                                      label: Text(l10n.viewExpenses, style: const TextStyle(fontSize: 12)),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
+                      );
                     }),
                   ],
                   const SizedBox(height: 80),

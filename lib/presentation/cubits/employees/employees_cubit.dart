@@ -31,8 +31,11 @@ class EmployeesCubit extends Cubit<EmployeesState> {
       double totalSpent = 0.0;
       int totalTransactions = 0;
       for (final emp in employees) {
-        totalSpent += emp.totalExpenses;
-        totalTransactions += emp.expensesCount;
+        // Only count active employee expenses in company statistics
+        if (emp.profile.isActive) {
+          totalSpent += emp.totalExpenses;
+          totalTransactions += emp.expensesCount;
+        }
       }
 
       final filtered = _applyFilters(_allEmployees, _currentSearch, _currentRoleFilter, _currentStatusFilter);
@@ -180,6 +183,54 @@ class EmployeesCubit extends Cubit<EmployeesState> {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError('فشل تحديث حالة الحساب: $e'));
+      await loadEmployees();
+    }
+  }
+
+  Future<void> approveUser(String userId) async {
+    final currentState = state;
+    if (currentState is EmployeesLoaded) {
+      emit(currentState.copyWith(isActionLoading: true));
+    }
+
+    try {
+      await profileRepository.approveUser(userId);
+      await loadEmployees();
+    } on Failure catch (e) {
+      if (currentState is EmployeesLoaded) {
+        emit(currentState.copyWith(isActionLoading: false));
+      }
+      emit(EmployeesError(e.message));
+      await loadEmployees();
+    } catch (e) {
+      if (currentState is EmployeesLoaded) {
+        emit(currentState.copyWith(isActionLoading: false));
+      }
+      emit(EmployeesError('فشل اعتماد المستخدم: $e'));
+      await loadEmployees();
+    }
+  }
+
+  Future<void> rejectUser(String userId) async {
+    final currentState = state;
+    if (currentState is EmployeesLoaded) {
+      emit(currentState.copyWith(isActionLoading: true));
+    }
+
+    try {
+      await profileRepository.rejectUser(userId);
+      await loadEmployees();
+    } on Failure catch (e) {
+      if (currentState is EmployeesLoaded) {
+        emit(currentState.copyWith(isActionLoading: false));
+      }
+      emit(EmployeesError(e.message));
+      await loadEmployees();
+    } catch (e) {
+      if (currentState is EmployeesLoaded) {
+        emit(currentState.copyWith(isActionLoading: false));
+      }
+      emit(EmployeesError('فشل رفض المستخدم: $e'));
       await loadEmployees();
     }
   }

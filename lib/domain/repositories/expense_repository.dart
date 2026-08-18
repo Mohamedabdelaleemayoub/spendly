@@ -16,7 +16,7 @@ abstract class ExpenseRepository {
   Future<Expense> getExpenseById(String id);
 
   Future<Expense> createExpense({
-    required String title,
+    String title = '',
     required double amount,
     required String paymentMethod,
     required DateTime expenseDate,
@@ -27,7 +27,7 @@ abstract class ExpenseRepository {
 
   Future<Expense> updateExpense({
     required String id,
-    required String title,
+    String title = '',
     required double amount,
     required String paymentMethod,
     required DateTime expenseDate,
@@ -40,4 +40,6 @@ abstract class ExpenseRepository {
   Future<void> deleteExpense(String id);
 
   Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId});
+
+  Future<int> syncPendingExpenses({String? userId});
 }

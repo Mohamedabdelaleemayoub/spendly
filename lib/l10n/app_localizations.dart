@@ -560,6 +560,12 @@ abstract class AppLocalizations {
   /// **'Expense Title'**
   String get expenseTitleLabel;
 
+  /// No description provided for @expenseTitleOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense Title (Optional)'**
+  String get expenseTitleOptional;
+
   /// No description provided for @expenseAmountLabel.
   ///
   /// In en, this message translates to:
@@ -571,6 +577,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Category'**
   String get expenseCategoryLabel;
+
+  /// No description provided for @expenseCategoryRequiredLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category *'**
+  String get expenseCategoryRequiredLabel;
+
+  /// No description provided for @categoryRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select an expense category'**
+  String get categoryRequired;
+
+  /// No description provided for @defaultExpenseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense'**
+  String get defaultExpenseTitle;
 
   /// No description provided for @expenseDateLabel.
   ///
@@ -691,6 +715,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deactivated'**
   String get statusInactive;
+
+  /// No description provided for @statusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Approval'**
+  String get statusPending;
+
+  /// No description provided for @statusRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get statusRejected;
 
   /// No description provided for @deactivateUser.
   ///
@@ -937,6 +973,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All Time'**
   String get allTime;
+
+  /// No description provided for @requireAdminApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Require admin approval for new users'**
+  String get requireAdminApproval;
+
+  /// No description provided for @requireAdminApprovalDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When enabled, newly registered users cannot access the app until approved by an administrator.'**
+  String get requireAdminApprovalDesc;
+
+  /// No description provided for @adminApprovalSettingUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Approval setting updated successfully'**
+  String get adminApprovalSettingUpdated;
+
+  /// No description provided for @adminSettingsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin Settings'**
+  String get adminSettingsSection;
+
+  /// No description provided for @pendingApprovalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Pending Approval'**
+  String get pendingApprovalTitle;
+
+  /// No description provided for @pendingApprovalMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is waiting for administrator approval. You will be able to access Spendly once an administrator approves your registration request.'**
+  String get pendingApprovalMessage;
+
+  /// No description provided for @rejectedAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration Request Rejected'**
+  String get rejectedAccountTitle;
+
+  /// No description provided for @rejectedAccountMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your registration request was not approved by an administrator. Please contact your organization administrator if you think this is a mistake.'**
+  String get rejectedAccountMessage;
+
+  /// No description provided for @checkStatusButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Check Status'**
+  String get checkStatusButton;
+
+  /// No description provided for @statusStillPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is still waiting for administrator approval.'**
+  String get statusStillPending;
+
+  /// No description provided for @pendingRequestsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Registrations'**
+  String get pendingRequestsTitle;
+
+  /// No description provided for @pendingRequestsBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Requests'**
+  String get pendingRequestsBadge;
+
+  /// No description provided for @approveUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get approveUser;
+
+  /// No description provided for @rejectUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get rejectUser;
+
+  /// No description provided for @approveUserConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve User'**
+  String get approveUserConfirmTitle;
+
+  /// No description provided for @approveUserConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to approve this user and grant them access to the application?'**
+  String get approveUserConfirmMessage;
+
+  /// No description provided for @rejectUserConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject Registration Request'**
+  String get rejectUserConfirmTitle;
+
+  /// No description provided for @rejectUserConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to reject this registration request?'**
+  String get rejectUserConfirmMessage;
+
+  /// No description provided for @userApprovedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'User approved successfully'**
+  String get userApprovedSuccess;
+
+  /// No description provided for @userRejectedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'User registration request rejected'**
+  String get userRejectedSuccess;
+
+  /// No description provided for @noPendingRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending registration requests'**
+  String get noPendingRequests;
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin Notifications'**
+  String get notificationsTitle;
+
+  /// No description provided for @markAllAsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark All as Read'**
+  String get markAllAsRead;
+
+  /// No description provided for @noNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'No new notifications'**
+  String get noNotifications;
+
+  /// No description provided for @newRegistrationNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'New Registration Request'**
+  String get newRegistrationNotification;
+
+  /// No description provided for @syncStatusSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced'**
+  String get syncStatusSynced;
+
+  /// No description provided for @syncStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved locally'**
+  String get syncStatusPending;
+
+  /// No description provided for @syncStatusSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing...'**
+  String get syncStatusSyncing;
+
+  /// No description provided for @syncStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed - Tap to retry'**
+  String get syncStatusFailed;
+
+  /// No description provided for @expenseSavedOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense saved locally. It will sync when internet is available.'**
+  String get expenseSavedOffline;
+
+  /// No description provided for @expenseSyncRetrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrying expense synchronization...'**
+  String get expenseSyncRetrying;
+
+  /// No description provided for @expenseSyncSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'All local expenses synchronized successfully.'**
+  String get expenseSyncSuccess;
+
+  /// No description provided for @retrySync.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry Sync'**
+  String get retrySync;
+
+  /// No description provided for @online.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get online;
+
+  /// No description provided for @offline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get offline;
 }
 
 class _AppLocalizationsDelegate

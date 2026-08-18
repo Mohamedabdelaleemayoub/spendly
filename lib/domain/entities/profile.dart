@@ -28,6 +28,8 @@ class Profile extends Equatable {
 
   bool get isActive => status == 'active';
   bool get isInactive => status == 'inactive';
+  bool get isPending => status == 'pending';
+  bool get isRejected => status == 'rejected';
 
   Profile copyWith({
     String? id,

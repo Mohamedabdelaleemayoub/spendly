@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import '../../../core/errors/app_failure.dart';
 import '../../../domain/entities/profile.dart';
 import '../../../domain/repositories/auth_repository.dart';
@@ -30,18 +31,7 @@ class AuthCubit extends Cubit<AuthState> {
     final user = authRepository.currentUser;
 
     if (session != null && user != null) {
-      Profile? profile;
-      try {
-        profile = await profileRepository.getProfile(user.id);
-      } catch (_) {}
-
-      if (profile != null && profile.isInactive) {
-        await authRepository.signOut();
-        emit(const AuthError('هذا الحساب غير مفعل. يرجى التواصل مع المسؤول.'));
-        return;
-      }
-
-      emit(Authenticated(user: user, profile: profile, session: session));
+      await _processUserSession(user, session);
     } else {
       emit(const Unauthenticated());
     }
@@ -51,35 +41,73 @@ class AuthCubit extends Cubit<AuthState> {
       final user = session?.user;
 
       if (user != null) {
-        Profile? profile;
-        try {
-          profile = await profileRepository.getProfile(user.id);
-        } catch (_) {}
-
-        if (profile != null && profile.isInactive) {
-          await authRepository.signOut();
-          emit(const AuthError('هذا الحساب غير مفعل. يرجى التواصل مع المسؤول.'));
-          return;
-        }
-
-        emit(Authenticated(user: user, profile: profile, session: session));
+        await _processUserSession(user, session);
       } else {
         emit(const Unauthenticated());
       }
     });
   }
 
-  Future<void> reloadProfile() async {
-    final currentState = state;
-    if (currentState is Authenticated) {
+  Future<void> _processUserSession(User user, Session? session) async {
+    Profile? profile;
+    try {
+      profile = await profileRepository.getProfile(user.id);
+    } catch (_) {}
+
+    if (profile == null) {
+      // Fallback: Ensure profile is created
       try {
-        final profile = await profileRepository.getProfile(currentState.user.id);
-        if (profile != null && profile.isInactive) {
-          await authRepository.signOut();
-          emit(const AuthError('هذا الحساب غير مفعل. يرجى التواصل مع المسؤول.'));
-          return;
+        profile = await profileRepository.ensureProfileExists(
+          userId: user.id,
+          name: user.email?.split('@').first ?? 'مستخدم',
+          email: user.email,
+        );
+      } catch (_) {}
+    }
+
+    if (profile != null) {
+      if (profile.isInactive) {
+        await authRepository.signOut();
+        emit(const AuthError('هذا الحساب غير مفعل. يرجى التواصل مع المسؤول.'));
+        return;
+      }
+
+      if (profile.isPending) {
+        emit(AuthPendingApproval(user: user, profile: profile, session: session));
+        return;
+      }
+
+      if (profile.isRejected) {
+        emit(AuthRejected(user: user, profile: profile, session: session));
+        return;
+      }
+    }
+
+    emit(Authenticated(user: user, profile: profile, session: session));
+  }
+
+  Future<void> reloadProfile() async {
+    final user = authRepository.currentUser;
+    final session = authRepository.currentSession;
+    if (user != null) {
+      try {
+        final profile = await profileRepository.getProfile(user.id);
+        if (profile != null) {
+          if (profile.isInactive) {
+            await authRepository.signOut();
+            emit(const AuthError('هذا الحساب غير مفعل. يرجى التواصل مع المسؤول.'));
+            return;
+          }
+          if (profile.isPending) {
+            emit(AuthPendingApproval(user: user, profile: profile, session: session));
+            return;
+          }
+          if (profile.isRejected) {
+            emit(AuthRejected(user: user, profile: profile, session: session));
+            return;
+          }
+          emit(Authenticated(user: user, profile: profile, session: session));
         }
-        emit(currentState.copyWith(profile: profile));
       } catch (_) {}
     }
   }
@@ -97,18 +125,7 @@ class AuthCubit extends Cubit<AuthState> {
 
       final user = response.user;
       if (user != null) {
-        Profile? profile;
-        try {
-          profile = await profileRepository.getProfile(user.id);
-        } catch (_) {}
-
-        if (profile != null && profile.isInactive) {
-          await authRepository.signOut();
-          emit(const AuthError('هذا الحساب غير مفعل. يرجى التواصل مع المسؤول.'));
-          return;
-        }
-
-        emit(Authenticated(user: user, profile: profile, session: response.session));
+        await _processUserSession(user, response.session);
       } else {
         emit(const Unauthenticated());
       }
@@ -134,7 +151,7 @@ class AuthCubit extends Cubit<AuthState> {
 
       final user = response.user;
       if (user != null) {
-        // Ensure profile exists in profiles table as fallback
+        // Ensure profile exists in profiles table
         Profile? profile;
         try {
           profile = await profileRepository.ensureProfileExists(
@@ -145,10 +162,16 @@ class AuthCubit extends Cubit<AuthState> {
         } catch (_) {}
 
         final isConfirmed = response.session != null;
-        emit(AuthSignUpSuccess(user: user, isConfirmed: isConfirmed));
+        final isPending = profile?.isPending ?? false;
+
+        emit(AuthSignUpSuccess(
+          user: user,
+          isConfirmed: isConfirmed,
+          isPending: isPending,
+        ));
 
         if (isConfirmed) {
-          emit(Authenticated(user: user, profile: profile, session: response.session));
+          await _processUserSession(user, response.session);
         }
       } else {
         emit(const Unauthenticated());

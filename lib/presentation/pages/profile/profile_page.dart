@@ -8,13 +8,18 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../domain/entities/admin_notification.dart';
 import '../../../domain/entities/profile.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../router/app_router.dart';
 import '../../cubits/auth/auth_cubit.dart';
+import '../../cubits/notifications/admin_notification_cubit.dart';
+import '../../cubits/notifications/admin_notification_state.dart';
 import '../../cubits/profile/profile_cubit.dart';
 import '../../cubits/profile/profile_state.dart';
+import '../../cubits/settings/admin_settings_cubit.dart';
+import '../../cubits/settings/admin_settings_state.dart';
 import '../../cubits/settings/settings_cubit.dart';
 import '../../cubits/settings/settings_state.dart';
 import '../../widgets/spendly_logo.dart';
@@ -24,8 +29,12 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => sl<ProfileCubit>()..loadProfile(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => sl<ProfileCubit>()..loadProfile()),
+        BlocProvider(create: (context) => sl<AdminSettingsCubit>()..loadSettings()),
+        BlocProvider(create: (context) => sl<AdminNotificationCubit>()..loadNotifications()),
+      ],
       child: const _ProfileView(),
     );
   }
@@ -33,6 +42,112 @@ class ProfilePage extends StatelessWidget {
 
 class _ProfileView extends StatelessWidget {
   const _ProfileView();
+
+  void _showNotificationsSheet(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final notificationCubit = context.read<AdminNotificationCubit>();
+    notificationCubit.loadNotifications();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetCtx).size.height * 0.75,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: BlocBuilder<AdminNotificationCubit, AdminNotificationState>(
+            bloc: notificationCubit,
+            builder: (context, state) {
+              final notifications = (state is AdminNotificationLoaded)
+                  ? state.notifications
+                  : <AdminNotification>[];
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        l10n.notificationsTitle,
+                        style: AppTextStyles.heading2.copyWith(fontSize: 18),
+                      ),
+                      if (notifications.isNotEmpty)
+                        TextButton(
+                          onPressed: () {
+                            notificationCubit.markAllAsRead();
+                          },
+                          child: Text(l10n.markAllAsRead),
+                        ),
+                    ],
+                  ),
+                  const Divider(height: 16),
+                  if (notifications.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            const Icon(Icons.notifications_off_outlined, size: 48, color: AppColors.textHint),
+                            const SizedBox(height: 12),
+                            Text(l10n.noNotifications, style: AppTextStyles.caption),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: notifications.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final item = notifications[index];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(
+                              backgroundColor: item.isRead
+                                  ? AppColors.surfaceVariant
+                                  : AppColors.primary.withValues(alpha: 0.15),
+                              child: Icon(
+                                Icons.person_add,
+                                size: 20,
+                                color: item.isRead ? AppColors.textSecondary : AppColors.primary,
+                              ),
+                            ),
+                            title: Text(
+                              item.title,
+                              style: TextStyle(
+                                fontWeight: item.isRead ? FontWeight.normal : FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(item.message, style: AppTextStyles.caption),
+                            trailing: !item.isRead
+                                ? const CircleAvatar(radius: 4, backgroundColor: AppColors.primary)
+                                : null,
+                            onTap: () {
+                              notificationCubit.markAsRead(item.id);
+                              Navigator.pop(sheetCtx);
+                              context.push(AppRoutes.employees);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 
   void _showEditNameDialog(BuildContext context, Profile profile) {
     final l10n = AppLocalizations.of(context)!;
@@ -265,6 +380,48 @@ class _ProfileView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.profileTitle),
+        actions: [
+          BlocBuilder<AdminNotificationCubit, AdminNotificationState>(
+            builder: (context, state) {
+              final unreadCount = (state is AdminNotificationLoaded) ? state.unreadCount : 0;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    tooltip: l10n.notificationsTitle,
+                    onPressed: () => _showNotificationsSheet(context),
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '$unreadCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
       body: BlocConsumer<ProfileCubit, ProfileState>(
         listener: (context, state) {
@@ -429,6 +586,47 @@ class _ProfileView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 28),
+
+              // Admin Settings Card (Visible ONLY for Administrators)
+              if (isAdmin) ...[
+                Text(
+                  l10n.adminSettingsSection,
+                  style: AppTextStyles.subtitle2.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: BlocBuilder<AdminSettingsCubit, AdminSettingsState>(
+                    builder: (context, adminSettingsState) {
+                      final bool isRequireApproval = (adminSettingsState is AdminSettingsLoaded)
+                          ? adminSettingsState.requireAdminApproval
+                          : false;
+                      final bool isUpdatingApproval = (adminSettingsState is AdminSettingsLoaded)
+                          ? adminSettingsState.isUpdating
+                          : false;
+
+                      return SwitchListTile(
+                        secondary: const Icon(Icons.admin_panel_settings_outlined, color: AppColors.primary),
+                        title: Text(
+                          l10n.requireAdminApproval,
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        ),
+                        subtitle: Text(
+                          l10n.requireAdminApprovalDesc,
+                          style: AppTextStyles.caption,
+                        ),
+                        value: isRequireApproval,
+                        onChanged: isUpdatingApproval
+                            ? null
+                            : (val) {
+                                context.read<AdminSettingsCubit>().toggleRequireAdminApproval(val);
+                              },
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
 
               // Profile Details Card
               Card(

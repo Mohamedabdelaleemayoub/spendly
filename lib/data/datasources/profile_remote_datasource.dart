@@ -30,6 +30,8 @@ abstract class ProfileRemoteDataSource {
   Future<void> deleteEmployee(String userId);
   Future<void> updateEmployeeRole(String userId, String role);
   Future<void> toggleEmployeeStatus(String userId, String status);
+  Future<void> approveUser(String userId);
+  Future<void> rejectUser(String userId);
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
@@ -146,7 +148,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
         return ProfileModel.fromJson(response);
       } catch (e) {
-        // Fallback without status if DB column does not exist yet
         insertData.remove('status');
         final response = await client
             .from(AppConstants.profilesTable)
@@ -266,7 +267,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         return ProfileModel.fromJson(data['user'] as Map<String, dynamic>);
       }
 
-      // Fallback reload
       final profile = await getProfile(data['id'] ?? '');
       if (profile != null) return profile;
       throw const ServerFailure('User created but failed to load profile');
@@ -298,21 +298,18 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<void> updateEmployeeRole(String userId, String role) async {
     try {
-      // First attempt Edge Function
       final res = await client.functions.invoke(
         'admin-update-user-role',
         body: {'user_id': userId, 'role': role},
       );
 
       if (res.status != 200) {
-        // Fallback to direct client update protected by RLS trigger
         await client
             .from(AppConstants.profilesTable)
             .update({'role': role})
             .eq('id', userId);
       }
     } catch (_) {
-      // Fallback to direct client update protected by protect_profile_role() trigger
       try {
         await client
             .from(AppConstants.profilesTable)
@@ -327,14 +324,12 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<void> toggleEmployeeStatus(String userId, String status) async {
     try {
-      // First attempt Edge Function
       final res = await client.functions.invoke(
         'admin-toggle-user-status',
         body: {'user_id': userId, 'status': status},
       );
 
       if (res.status != 200) {
-        // Fallback to direct update protected by RLS trigger
         await client
             .from(AppConstants.profilesTable)
             .update({'status': status})
@@ -350,5 +345,15 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         throw mapExceptionToFailure(e);
       }
     }
+  }
+
+  @override
+  Future<void> approveUser(String userId) async {
+    await toggleEmployeeStatus(userId, 'active');
+  }
+
+  @override
+  Future<void> rejectUser(String userId) async {
+    await toggleEmployeeStatus(userId, 'rejected');
   }
 }

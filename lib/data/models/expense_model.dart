@@ -9,12 +9,13 @@ class ExpenseModel extends Expense {
     super.categoryId,
     super.category,
     super.profile,
-    required super.title,
+    super.title = '',
     required super.amount,
     required super.paymentMethod,
     required super.expenseDate,
     super.notes,
     super.receiptUrl,
+    super.syncStatus = SyncStatus.synced,
     super.createdAt,
     super.updatedAt,
   });
@@ -35,6 +36,9 @@ class ExpenseModel extends Expense {
         ? rawAmount.toDouble()
         : double.tryParse(rawAmount?.toString() ?? '0') ?? 0.0;
 
+    final rawSync = json['sync_status'] as String?;
+    final syncStatus = SyncStatus.fromString(rawSync);
+
     return ExpenseModel(
       id: json['id'] as String,
       userId: json['user_id'] as String,
@@ -49,6 +53,7 @@ class ExpenseModel extends Expense {
           : DateTime.now(),
       notes: json['notes'] as String? ?? json['description'] as String?,
       receiptUrl: json['receipt_url'] as String?,
+      syncStatus: syncStatus,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)?.toLocal()
           : null,
@@ -58,18 +63,58 @@ class ExpenseModel extends Expense {
     );
   }
 
-  Map<String, dynamic> toJson() {
+  /// JSON payload for Supabase INSERT / UPSERT
+  Map<String, dynamic> toJson({bool includeId = true}) {
     return {
+      if (includeId) 'id': id,
       'user_id': userId,
       if (categoryId != null) 'category_id': categoryId,
       'title': title,
-      'description': notes ?? title,
+      'description': (notes != null && notes!.isNotEmpty) ? notes : title,
       'amount': amount,
       'payment_method': paymentMethod,
       'expense_date':
           '${expenseDate.year.toString().padLeft(4, '0')}-${expenseDate.month.toString().padLeft(2, '0')}-${expenseDate.day.toString().padLeft(2, '0')}',
       if (notes != null) 'notes': notes,
       if (receiptUrl != null) 'receipt_url': receiptUrl,
+    };
+  }
+
+  /// Full JSON serialization for local persistent queue
+  Map<String, dynamic> toLocalJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'category_id': categoryId,
+      if (category != null)
+        'categories': (category is CategoryModel)
+            ? (category as CategoryModel).toJson()
+            : {
+                'id': category!.id,
+                'name': category!.name,
+                'icon': category!.icon,
+                'color': category!.color,
+              },
+      if (profile != null)
+        'profiles': (profile is ProfileModel)
+            ? (profile as ProfileModel).toJson()
+            : {
+                'id': profile!.id,
+                'full_name': profile!.name,
+                'email': profile!.email,
+                'role': profile!.role,
+                'status': profile!.status,
+              },
+      'title': title,
+      'amount': amount,
+      'payment_method': paymentMethod,
+      'expense_date':
+          '${expenseDate.year.toString().padLeft(4, '0')}-${expenseDate.month.toString().padLeft(2, '0')}-${expenseDate.day.toString().padLeft(2, '0')}',
+      'notes': notes,
+      'receipt_url': receiptUrl,
+      'sync_status': syncStatus.value,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -86,6 +131,7 @@ class ExpenseModel extends Expense {
       expenseDate: expense.expenseDate,
       notes: expense.notes,
       receiptUrl: expense.receiptUrl,
+      syncStatus: expense.syncStatus,
       createdAt: expense.createdAt,
       updatedAt: expense.updatedAt,
     );

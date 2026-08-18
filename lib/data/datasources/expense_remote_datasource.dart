@@ -19,7 +19,8 @@ abstract class ExpenseRemoteDataSource {
   Future<ExpenseModel> getExpenseById(String id);
 
   Future<ExpenseModel> createExpense({
-    required String title,
+    String? id,
+    String title = '',
     required double amount,
     required String paymentMethod,
     required DateTime expenseDate,
@@ -30,7 +31,7 @@ abstract class ExpenseRemoteDataSource {
 
   Future<ExpenseModel> updateExpense({
     required String id,
-    required String title,
+    String title = '',
     required double amount,
     required String paymentMethod,
     required DateTime expenseDate,
@@ -39,6 +40,8 @@ abstract class ExpenseRemoteDataSource {
     File? receiptFile,
     String? existingReceiptUrl,
   });
+
+  Future<ExpenseModel> upsertExpense(ExpenseModel expense);
 
   Future<void> deleteExpense(String id);
 
@@ -147,7 +150,8 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
 
   @override
   Future<ExpenseModel> createExpense({
-    required String title,
+    String? id,
+    String title = '',
     required double amount,
     required String paymentMethod,
     required DateTime expenseDate,
@@ -167,6 +171,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
       }
 
       final insertData = <String, dynamic>{
+        'id': ?id,
         'user_id': user.id,
         'title': title.trim(),
         'description': (notes != null && notes.trim().isNotEmpty) ? notes.trim() : title.trim(),
@@ -174,14 +179,29 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
         'payment_method': paymentMethod,
         'expense_date':
             '${expenseDate.year.toString().padLeft(4, '0')}-${expenseDate.month.toString().padLeft(2, '0')}-${expenseDate.day.toString().padLeft(2, '0')}',
+        'category_id': ?categoryId,
+        if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+        'receipt_url': ?receiptUrl,
       };
-      if (categoryId != null) insertData['category_id'] = categoryId;
-      if (notes != null && notes.trim().isNotEmpty) insertData['notes'] = notes.trim();
-      if (receiptUrl != null) insertData['receipt_url'] = receiptUrl;
 
       final response = await client
           .from(AppConstants.expensesTable)
-          .insert(insertData)
+          .upsert(insertData, onConflict: 'id')
+          .select(_selectColumns)
+          .single();
+
+      return ExpenseModel.fromJson(response);
+    } catch (e) {
+      throw mapExceptionToFailure(e);
+    }
+  }
+
+  @override
+  Future<ExpenseModel> upsertExpense(ExpenseModel expense) async {
+    try {
+      final response = await client
+          .from(AppConstants.expensesTable)
+          .upsert(expense.toJson(includeId: true), onConflict: 'id')
           .select(_selectColumns)
           .single();
 
@@ -194,7 +214,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
   @override
   Future<ExpenseModel> updateExpense({
     required String id,
-    required String title,
+    String title = '',
     required double amount,
     required String paymentMethod,
     required DateTime expenseDate,

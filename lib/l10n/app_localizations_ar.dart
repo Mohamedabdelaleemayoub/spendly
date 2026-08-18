@@ -244,10 +244,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get expenseTitleLabel => 'عنوان المصروف';
 
   @override
+  String get expenseTitleOptional => 'عنوان المصروف (اختياري)';
+
+  @override
   String get expenseAmountLabel => 'المبلغ';
 
   @override
   String get expenseCategoryLabel => 'الفئة';
+
+  @override
+  String get expenseCategoryRequiredLabel => 'الفئة *';
+
+  @override
+  String get categoryRequired => 'يرجى اختيار فئة المصروف';
+
+  @override
+  String get defaultExpenseTitle => 'مصروف';
 
   @override
   String get expenseDateLabel => 'التاريخ';
@@ -308,6 +320,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get statusInactive => 'معطل';
+
+  @override
+  String get statusPending => 'قيد الانتظار';
+
+  @override
+  String get statusRejected => 'مرفوض';
 
   @override
   String get deactivateUser => 'تعطيل الحساب';
@@ -437,4 +455,115 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get allTime => 'كل الفترات';
+
+  @override
+  String get requireAdminApproval => 'طلب موافقة المسؤول على المستخدمين الجدد';
+
+  @override
+  String get requireAdminApprovalDesc =>
+      'عند التفعيل، تتطلب الحسابات الجديدة موافقة المشرف قبل التمكن من الدخول إلى التطبيق.';
+
+  @override
+  String get adminApprovalSettingUpdated => 'تم تحديث إعدادات الموافقة بنجاح';
+
+  @override
+  String get adminSettingsSection => 'إعدادات المسؤول';
+
+  @override
+  String get pendingApprovalTitle => 'الحساب قيد المراجعة';
+
+  @override
+  String get pendingApprovalMessage =>
+      'حسابك قيد انتظار موافقة المسؤول. سيتم تفعيل حسابك وإتاحة الوصول لك فور اعتماد الطلب من قبل مدير النظام.';
+
+  @override
+  String get rejectedAccountTitle => 'تم رفض طلب التسجيل';
+
+  @override
+  String get rejectedAccountMessage =>
+      'نعتذر، لقد تم رفض طلب تسجيل حسابك من قبل مدير النظام. يرجى التواصل مع المسؤول إذا كنت تعتقد أن هذا حدث بالخطأ.';
+
+  @override
+  String get checkStatusButton => 'التحقق من حالة الحساب';
+
+  @override
+  String get statusStillPending => 'حسابك لا يزال بانتظار موافقة المسؤول.';
+
+  @override
+  String get pendingRequestsTitle => 'طلبات التسجيل المعلقة';
+
+  @override
+  String get pendingRequestsBadge => 'طلبات معلقة';
+
+  @override
+  String get approveUser => 'موافقة واعتماد';
+
+  @override
+  String get rejectUser => 'رفض الطلب';
+
+  @override
+  String get approveUserConfirmTitle => 'اعتماد المستخدم';
+
+  @override
+  String get approveUserConfirmMessage =>
+      'هل أنت متأكد من رغبتك في اعتماد حساب هذا المستخدم وتفعيله؟';
+
+  @override
+  String get rejectUserConfirmTitle => 'رفض طلب المستخدم';
+
+  @override
+  String get rejectUserConfirmMessage =>
+      'هل أنت متأكد من رغبتك في رفض طلب انضمام هذا المستخدم؟';
+
+  @override
+  String get userApprovedSuccess => 'تم اعتماد وتفعيل حساب المستخدم بنجاح';
+
+  @override
+  String get userRejectedSuccess => 'تم رفض طلب المستخدم';
+
+  @override
+  String get noPendingRequests => 'لا توجد طلبات تسجيل معلقة حالياً';
+
+  @override
+  String get notificationsTitle => 'إشعارات المسؤول';
+
+  @override
+  String get markAllAsRead => 'تحديد الكل كمقروء';
+
+  @override
+  String get noNotifications => 'لا توجد إشعارات جديدة';
+
+  @override
+  String get newRegistrationNotification => 'طلب تسجيل جديد';
+
+  @override
+  String get syncStatusSynced => 'مكتمل المزامنة';
+
+  @override
+  String get syncStatusPending => 'محفوظ محلياً';
+
+  @override
+  String get syncStatusSyncing => 'جارٍ المزامنة...';
+
+  @override
+  String get syncStatusFailed => 'فشلت المزامنة - اضغط لإعادة المحاولة';
+
+  @override
+  String get expenseSavedOffline =>
+      'تم حفظ المصروف محلياً. ستتم المزامنة تلقائياً عند توفر الإنترنت.';
+
+  @override
+  String get expenseSyncRetrying => 'جارٍ إعادة مزامنة المصروفات...';
+
+  @override
+  String get expenseSyncSuccess => 'تمت مزامنة جميع المصروفات المحلية بنجاح.';
+
+  @override
+  String get retrySync => 'إعادة المزامنة';
+
+  @override
+  String get online => 'متصل';
+
+  @override
+  String get offline => 'غير متصل';
 }

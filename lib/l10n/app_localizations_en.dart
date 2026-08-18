@@ -247,10 +247,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get expenseTitleLabel => 'Expense Title';
 
   @override
+  String get expenseTitleOptional => 'Expense Title (Optional)';
+
+  @override
   String get expenseAmountLabel => 'Amount';
 
   @override
   String get expenseCategoryLabel => 'Category';
+
+  @override
+  String get expenseCategoryRequiredLabel => 'Category *';
+
+  @override
+  String get categoryRequired => 'Please select an expense category';
+
+  @override
+  String get defaultExpenseTitle => 'Expense';
 
   @override
   String get expenseDateLabel => 'Date';
@@ -311,6 +323,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statusInactive => 'Deactivated';
+
+  @override
+  String get statusPending => 'Pending Approval';
+
+  @override
+  String get statusRejected => 'Rejected';
 
   @override
   String get deactivateUser => 'Deactivate Account';
@@ -440,4 +458,118 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allTime => 'All Time';
+
+  @override
+  String get requireAdminApproval => 'Require admin approval for new users';
+
+  @override
+  String get requireAdminApprovalDesc =>
+      'When enabled, newly registered users cannot access the app until approved by an administrator.';
+
+  @override
+  String get adminApprovalSettingUpdated =>
+      'Approval setting updated successfully';
+
+  @override
+  String get adminSettingsSection => 'Admin Settings';
+
+  @override
+  String get pendingApprovalTitle => 'Account Pending Approval';
+
+  @override
+  String get pendingApprovalMessage =>
+      'Your account is waiting for administrator approval. You will be able to access Spendly once an administrator approves your registration request.';
+
+  @override
+  String get rejectedAccountTitle => 'Registration Request Rejected';
+
+  @override
+  String get rejectedAccountMessage =>
+      'Your registration request was not approved by an administrator. Please contact your organization administrator if you think this is a mistake.';
+
+  @override
+  String get checkStatusButton => 'Check Status';
+
+  @override
+  String get statusStillPending =>
+      'Your account is still waiting for administrator approval.';
+
+  @override
+  String get pendingRequestsTitle => 'Pending Registrations';
+
+  @override
+  String get pendingRequestsBadge => 'Pending Requests';
+
+  @override
+  String get approveUser => 'Approve';
+
+  @override
+  String get rejectUser => 'Reject';
+
+  @override
+  String get approveUserConfirmTitle => 'Approve User';
+
+  @override
+  String get approveUserConfirmMessage =>
+      'Are you sure you want to approve this user and grant them access to the application?';
+
+  @override
+  String get rejectUserConfirmTitle => 'Reject Registration Request';
+
+  @override
+  String get rejectUserConfirmMessage =>
+      'Are you sure you want to reject this registration request?';
+
+  @override
+  String get userApprovedSuccess => 'User approved successfully';
+
+  @override
+  String get userRejectedSuccess => 'User registration request rejected';
+
+  @override
+  String get noPendingRequests => 'No pending registration requests';
+
+  @override
+  String get notificationsTitle => 'Admin Notifications';
+
+  @override
+  String get markAllAsRead => 'Mark All as Read';
+
+  @override
+  String get noNotifications => 'No new notifications';
+
+  @override
+  String get newRegistrationNotification => 'New Registration Request';
+
+  @override
+  String get syncStatusSynced => 'Synced';
+
+  @override
+  String get syncStatusPending => 'Saved locally';
+
+  @override
+  String get syncStatusSyncing => 'Syncing...';
+
+  @override
+  String get syncStatusFailed => 'Sync failed - Tap to retry';
+
+  @override
+  String get expenseSavedOffline =>
+      'Expense saved locally. It will sync when internet is available.';
+
+  @override
+  String get expenseSyncRetrying => 'Retrying expense synchronization...';
+
+  @override
+  String get expenseSyncSuccess =>
+      'All local expenses synchronized successfully.';
+
+  @override
+  String get retrySync => 'Retry Sync';
+
+  @override
+  String get online => 'Online';
+
+  @override
+  String get offline => 'Offline';
 }

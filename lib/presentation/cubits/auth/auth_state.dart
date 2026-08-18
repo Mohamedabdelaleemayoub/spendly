@@ -49,6 +49,36 @@ class Authenticated extends AuthState {
   List<Object?> get props => [user.id, profile, session?.accessToken];
 }
 
+class AuthPendingApproval extends AuthState {
+  const AuthPendingApproval({
+    required this.user,
+    required this.profile,
+    this.session,
+  });
+
+  final User user;
+  final Profile profile;
+  final Session? session;
+
+  @override
+  List<Object?> get props => [user.id, profile, session?.accessToken];
+}
+
+class AuthRejected extends AuthState {
+  const AuthRejected({
+    required this.user,
+    required this.profile,
+    this.session,
+  });
+
+  final User user;
+  final Profile profile;
+  final Session? session;
+
+  @override
+  List<Object?> get props => [user.id, profile, session?.accessToken];
+}
+
 class Unauthenticated extends AuthState {
   const Unauthenticated();
 }
@@ -63,11 +93,16 @@ class AuthError extends AuthState {
 }
 
 class AuthSignUpSuccess extends AuthState {
-  const AuthSignUpSuccess({required this.user, required this.isConfirmed});
+  const AuthSignUpSuccess({
+    required this.user,
+    required this.isConfirmed,
+    this.isPending = false,
+  });
 
   final User user;
   final bool isConfirmed;
+  final bool isPending;
 
   @override
-  List<Object?> get props => [user.id, isConfirmed];
+  List<Object?> get props => [user.id, isConfirmed, isPending];
 }

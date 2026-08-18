@@ -110,7 +110,7 @@ class ExpenseCubit extends Cubit<ExpenseState> {
   }
 
   Future<bool> createExpense({
-    required String title,
+    String title = '',
     required double amount,
     required String paymentMethod,
     required DateTime expenseDate,
@@ -130,8 +130,9 @@ class ExpenseCubit extends Cubit<ExpenseState> {
         receiptFile: receiptFile,
       );
 
-      _expenses = [newExpense, ..._expenses];
-      emit(const ExpenseActionSuccess('تمت إضافة المصروف بنجاح'));
+      // Prepend the new expense to current list
+      _expenses = [newExpense, ..._expenses.where((e) => e.id != newExpense.id)];
+      emit(const ExpenseActionSuccess('تم حفظ المصروف بنجاح'));
       emit(ExpenseLoaded(
         expenses: List.unmodifiable(_expenses),
         hasMore: _hasMore,
@@ -166,7 +167,7 @@ class ExpenseCubit extends Cubit<ExpenseState> {
 
   Future<bool> updateExpense({
     required String id,
-    required String title,
+    String title = '',
     required double amount,
     required String paymentMethod,
     required DateTime expenseDate,
@@ -258,5 +259,12 @@ class ExpenseCubit extends Cubit<ExpenseState> {
       ));
       return false;
     }
+  }
+
+  Future<void> retrySync() async {
+    try {
+      await expenseRepository.syncPendingExpenses();
+      await loadExpenses(refresh: true);
+    } catch (_) {}
   }
 }

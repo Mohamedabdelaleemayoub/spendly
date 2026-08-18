@@ -9,6 +9,8 @@ import '../injection/injection_container.dart';
 import '../presentation/cubits/auth/auth_cubit.dart';
 import '../presentation/cubits/auth/auth_state.dart';
 import '../presentation/pages/auth/login_page.dart';
+import '../presentation/pages/auth/pending_approval_page.dart';
+import '../presentation/pages/auth/rejected_account_page.dart';
 import '../presentation/pages/auth/signup_page.dart';
 import '../presentation/pages/categories/categories_page.dart';
 import '../presentation/pages/dashboard/dashboard_page.dart';
@@ -29,6 +31,8 @@ abstract final class AppRoutes {
   static const onboarding = '/onboarding';
   static const login = '/login';
   static const signup = '/signup';
+  static const pendingApproval = '/pending-approval';
+  static const rejectedAccount = '/account-rejected';
   static const dashboard = '/dashboard';
   static const expenses = '/expenses';
   static const addExpense = '/expenses/add';
@@ -72,6 +76,7 @@ final GoRouter appRouter = GoRouter(
     final session = SupabaseService.client.auth.currentSession;
     final isLoggedIn = session != null;
     final location = state.matchedLocation;
+    final authState = sl<AuthCubit>().state;
 
     // Don't redirect on splash or onboarding
     if (location == AppRoutes.splash || location == AppRoutes.onboarding) {
@@ -81,11 +86,30 @@ final GoRouter appRouter = GoRouter(
     final isAuthRoute = location == AppRoutes.login || location == AppRoutes.signup;
 
     if (!isLoggedIn && !isAuthRoute) return AppRoutes.login;
-    if (isLoggedIn && isAuthRoute) return AppRoutes.dashboard;
+
+    // ── Pending Approval & Rejected Account Route Guards ──────────────────
+    if (authState is AuthPendingApproval) {
+      if (location != AppRoutes.pendingApproval) {
+        return AppRoutes.pendingApproval;
+      }
+      return null;
+    }
+
+    if (authState is AuthRejected) {
+      if (location != AppRoutes.rejectedAccount) {
+        return AppRoutes.rejectedAccount;
+      }
+      return null;
+    }
+
+    if (isLoggedIn && (isAuthRoute || location == AppRoutes.pendingApproval || location == AppRoutes.rejectedAccount)) {
+      if (authState is Authenticated) {
+        return AppRoutes.dashboard;
+      }
+    }
 
     // ── Role Authorization Guard ──────────────────────────────────────
     if (location.startsWith(AppRoutes.employees)) {
-      final authState = sl<AuthCubit>().state;
       if (authState is Authenticated) {
         if (!authState.isAdmin) {
           // Employee attempted to access Admin-only employees page -> redirect to dashboard
@@ -117,6 +141,16 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.signup,
       builder: (context, state) => const SignUpPage(),
+    ),
+
+    // ── Pending Approval & Rejected Account Pages ─────────────────────
+    GoRoute(
+      path: AppRoutes.pendingApproval,
+      builder: (context, state) => const PendingApprovalPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.rejectedAccount,
+      builder: (context, state) => const RejectedAccountPage(),
     ),
 
     // ── Change Password (authenticated) ──────────────────────────────

@@ -12,6 +12,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../domain/entities/category.dart';
 import '../../../domain/entities/expense.dart';
 import '../../../injection/injection_container.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../cubits/category/category_cubit.dart';
 import '../../cubits/category/category_state.dart';
 import '../../cubits/expense/expense_cubit.dart';
@@ -82,6 +83,7 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final picked = await _picker.pickImage(
         source: source,
@@ -97,7 +99,7 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل اختيار الصورة: $e'),
+            content: Text('${l10n.photoUploadError}: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -106,6 +108,7 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
   }
 
   void _showImageSourceDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -116,7 +119,7 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('التقاط صورة بالكاميرا'),
+              title: Text(l10n.takePhoto),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickImage(ImageSource.camera);
@@ -124,7 +127,7 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('اختيار من المعرض'),
+              title: Text(l10n.chooseFromGallery),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickImage(ImageSource.gallery);
@@ -196,11 +199,12 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final dateFormat = DateFormat('yyyy/MM/dd');
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'تعديل المصروف' : 'إضافة مصروف جديد'),
+        title: Text(_isEditing ? l10n.editExpenseTitle : l10n.addExpenseTitle),
       ),
       body: BlocConsumer<ExpenseCubit, ExpenseState>(
         listener: (context, state) {
@@ -221,34 +225,17 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                // Title
-                TextFormField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'عنوان المصروف *',
-                    hintText: 'مثلاً: غداء عمل، وقود، اشتراك شهري',
-                    prefixIcon: Icon(Icons.edit_outlined),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'يرجى إدخال عنوان المصروف';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Amount
+                // 1. Amount (Required)
                 TextFormField(
                   controller: _amountController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                   ],
-                  decoration: const InputDecoration(
-                    labelText: 'المبلغ (ر.س) *',
+                  decoration: InputDecoration(
+                    labelText: '${l10n.expenseAmountLabel} *',
                     hintText: '0.00',
-                    prefixIcon: Icon(Icons.attach_money),
+                    prefixIcon: const Icon(Icons.attach_money),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -263,18 +250,24 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                 ),
                 const SizedBox(height: 16),
 
-                // Category Dropdown
+                // 2. Category Dropdown (REQUIRED)
                 BlocBuilder<CategoryCubit, CategoryState>(
                   builder: (context, catState) {
                     final categories = context.read<CategoryCubit>().categories;
 
                     return DropdownButtonFormField<String>(
                       initialValue: _selectedCategoryId,
-                      decoration: const InputDecoration(
-                        labelText: 'الفئة',
-                        prefixIcon: Icon(Icons.category_outlined),
+                      decoration: InputDecoration(
+                        labelText: l10n.expenseCategoryRequiredLabel,
+                        prefixIcon: const Icon(Icons.category_outlined),
                       ),
-                      hint: const Text('اختر فئة'),
+                      hint: Text(l10n.filterAllCategories),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return l10n.categoryRequired;
+                        }
+                        return null;
+                      },
                       items: categories.map((Category cat) {
                         return DropdownMenuItem<String>(
                           value: cat.id,
@@ -289,14 +282,26 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                 ),
                 const SizedBox(height: 16),
 
-                // Date Picker
+                // 3. Title (OPTIONAL)
+                TextFormField(
+                  controller: _titleController,
+                  decoration: InputDecoration(
+                    labelText: l10n.expenseTitleOptional,
+                    hintText: 'مثلاً: غداء عمل، وقود، صيانة...',
+                    prefixIcon: const Icon(Icons.edit_outlined),
+                  ),
+                  // Title is explicitly optional: No validation error on empty
+                ),
+                const SizedBox(height: 16),
+
+                // 4. Date Picker
                 InkWell(
                   onTap: _pickDate,
                   borderRadius: BorderRadius.circular(12),
                   child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'تاريخ المصروف *',
-                      prefixIcon: Icon(Icons.calendar_today_outlined),
+                    decoration: InputDecoration(
+                      labelText: '${l10n.expenseDateLabel} *',
+                      prefixIcon: const Icon(Icons.calendar_today_outlined),
                     ),
                     child: Text(
                       dateFormat.format(_selectedDate),
@@ -306,8 +311,8 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                 ),
                 const SizedBox(height: 20),
 
-                // Payment Method Picker
-                const Text('طريقة الدفع *', style: AppTextStyles.label),
+                // 5. Payment Method Picker
+                Text(l10n.paymentMethodLabel, style: AppTextStyles.label),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 10,
@@ -330,20 +335,20 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                 ),
                 const SizedBox(height: 20),
 
-                // Notes Field
+                // 6. Notes Field (Optional)
                 TextFormField(
                   controller: _notesController,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'ملاحظات إضافية',
-                    hintText: 'تفاصيل أخرى أو مرجع الفاتورة...',
+                  decoration: InputDecoration(
+                    labelText: l10n.expenseNotesLabel,
+                    hintText: 'تفاصيل إضافية أو مرجع الفاتورة...',
                     alignLabelWithHint: true,
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                // Receipt Attachment
-                const Text('صورة الفاتورة / الإيصال', style: AppTextStyles.label),
+                // 7. Receipt Attachment
+                Text(l10n.profileImageTitle, style: AppTextStyles.label),
                 const SizedBox(height: 8),
                 if (_receiptFile != null) ...[
                   Stack(
@@ -419,7 +424,7 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                             ),
                           ),
                         )
-                      : Text(_isEditing ? 'حفظ التعديلات' : 'إضافة المصروف'),
+                      : Text(_isEditing ? l10n.save : l10n.addExpenseTitle),
                 ),
               ],
             ),

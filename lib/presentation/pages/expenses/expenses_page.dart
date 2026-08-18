@@ -9,6 +9,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../domain/entities/category.dart';
 import '../../../domain/entities/expense.dart';
 import '../../../injection/injection_container.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../router/app_router.dart';
 import '../../cubits/auth/auth_cubit.dart';
 import '../../cubits/auth/auth_state.dart';
@@ -101,16 +102,17 @@ class _ExpensesViewState extends State<_ExpensesView> {
   }
 
   void _confirmDelete(BuildContext context, Expense expense) {
+    final l10n = AppLocalizations.of(context)!;
     final cubit = context.read<ExpenseCubit>();
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('حذف المصروف'),
-        content: Text('هل أنت متأكد من حذف "${expense.title}"؟'),
+        title: Text(l10n.deleteExpenseTitle),
+        content: Text('${l10n.deleteExpenseConfirm} ("${expense.displayTitle}")'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('إلغاء'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -121,15 +123,75 @@ class _ExpensesViewState extends State<_ExpensesView> {
               Navigator.pop(dialogCtx);
               cubit.deleteExpense(expense.id);
             },
-            child: const Text('حذف'),
+            child: Text(l10n.save),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildSyncStatusBadge(BuildContext context, Expense expense) {
+    final l10n = AppLocalizations.of(context)!;
+    if (expense.isSynced) return const SizedBox.shrink();
+
+    Color bgColor;
+    Color fgColor;
+    IconData icon;
+    String label;
+
+    if (expense.isSyncing) {
+      bgColor = Colors.blue.shade50;
+      fgColor = Colors.blue.shade700;
+      icon = Icons.sync;
+      label = l10n.syncStatusSyncing;
+    } else if (expense.isFailed) {
+      bgColor = Colors.red.shade50;
+      fgColor = Colors.red.shade700;
+      icon = Icons.sync_problem;
+      label = l10n.syncStatusFailed;
+    } else {
+      // Pending
+      bgColor = Colors.amber.shade50;
+      fgColor = Colors.amber.shade800;
+      icon = Icons.cloud_queue_outlined;
+      label = l10n.syncStatusPending;
+    }
+
+    return InkWell(
+      onTap: () {
+        context.read<ExpenseCubit>().retrySync();
+      },
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        margin: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: fgColor.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: fgColor),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: fgColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final currencyFormat = NumberFormat.currency(symbol: 'ر.س ', decimalDigits: 2);
     final dateFormat = DateFormat('yyyy/MM/dd');
 
@@ -139,8 +201,15 @@ class _ExpensesViewState extends State<_ExpensesView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isAdmin ? 'كل المصروفات' : 'مصروفاتي'),
+        title: Text(isAdmin ? l10n.navAllExpenses : l10n.navExpenses),
         actions: [
+          IconButton(
+            tooltip: l10n.retrySync,
+            icon: const Icon(Icons.sync),
+            onPressed: () {
+              context.read<ExpenseCubit>().retrySync();
+            },
+          ),
           IconButton(
             icon: Icon(_showSearch ? Icons.search_off : Icons.search),
             onPressed: () {
@@ -167,7 +236,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
           }
         },
         icon: const Icon(Icons.add),
-        label: const Text('إضافة مصروف'),
+        label: Text(l10n.addExpenseTitle),
       ),
       body: Column(
         children: [
@@ -179,7 +248,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
                 controller: _searchController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'البحث في المصروفات...',
+                  hintText: l10n.searchHint,
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -218,9 +287,9 @@ class _ExpensesViewState extends State<_ExpensesView> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: Row(
                     children: [
-                      const Text(
-                        'الموظف:',
-                        style: TextStyle(
+                      Text(
+                        l10n.filterEmployee,
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textSecondary,
@@ -228,7 +297,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
                       ),
                       const SizedBox(width: 8),
                       ChoiceChip(
-                        label: const Text('الجميع'),
+                        label: Text(l10n.filterAll),
                         selected: _selectedEmployeeId == null,
                         onSelected: (selected) {
                           if (selected) {
@@ -272,7 +341,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
                 child: Row(
                   children: [
                     FilterChip(
-                      label: const Text('كل الفئات'),
+                      label: Text(l10n.filterAllCategories),
                       selected: _selectedCategory == null,
                       onSelected: (selected) {
                         setState(() => _selectedCategory = null);
@@ -335,22 +404,21 @@ class _ExpensesViewState extends State<_ExpensesView> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.receipt_long_outlined,
                             size: 64,
                             color: AppColors.textHint,
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            isAdmin ? 'لا توجد مصروفات تطابق البحث' : 'لا توجد مصروفات مسجلة',
+                            isAdmin ? l10n.noExpensesAdmin : l10n.noExpensesFound,
                             style: AppTextStyles.heading3,
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            isAdmin
-                                ? 'جرب تغيير عوامل التصفية'
-                                : 'ابدأ بإضافة أول مصروف لتتبع نفقاتك',
+                            isAdmin ? l10n.resetFilters : l10n.expenseSavedOffline,
                             style: AppTextStyles.caption,
+                            textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 20),
                           ElevatedButton.icon(
@@ -361,7 +429,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
                               }
                             },
                             icon: const Icon(Icons.add),
-                            label: const Text('إضافة مصروف جديد'),
+                            label: Text(l10n.addExpenseTitle),
                           ),
                         ],
                       ),
@@ -427,17 +495,15 @@ class _ExpensesViewState extends State<_ExpensesView> {
                                   // Details
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Row(
                                           children: [
                                             Expanded(
                                               child: Text(
-                                                expense.title,
-                                                style: AppTextStyles.subtitle1
-                                                    .copyWith(
+                                                expense.displayTitle,
+                                                style: AppTextStyles.subtitle1.copyWith(
                                                   fontWeight: FontWeight.w600,
                                                 ),
                                                 maxLines: 1,
@@ -447,16 +513,14 @@ class _ExpensesViewState extends State<_ExpensesView> {
                                             if (isAdmin && expense.profile != null) ...[
                                               const SizedBox(width: 6),
                                               Container(
-                                                constraints:
-                                                    const BoxConstraints(maxWidth: 90),
+                                                constraints: const BoxConstraints(maxWidth: 90),
                                                 padding: const EdgeInsets.symmetric(
                                                   horizontal: 6,
                                                   vertical: 2,
                                                 ),
                                                 decoration: BoxDecoration(
                                                   color: AppColors.surfaceVariant,
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
+                                                  borderRadius: BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
                                                   expense.profile!.name,
@@ -479,8 +543,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
                                               if (expense.category != null) ...[
                                                 TextSpan(
                                                   text: expense.category!.name,
-                                                  style: AppTextStyles.caption
-                                                      .copyWith(
+                                                  style: AppTextStyles.caption.copyWith(
                                                     color: catColor,
                                                     fontWeight: FontWeight.w600,
                                                   ),
@@ -491,8 +554,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
                                                 ),
                                               ],
                                               TextSpan(
-                                                text: dateFormat
-                                                    .format(expense.expenseDate),
+                                                text: dateFormat.format(expense.expenseDate),
                                                 style: AppTextStyles.caption,
                                               ),
                                               const TextSpan(
@@ -500,10 +562,8 @@ class _ExpensesViewState extends State<_ExpensesView> {
                                                 style: AppTextStyles.caption,
                                               ),
                                               TextSpan(
-                                                text: _formatPaymentMethod(
-                                                    expense.paymentMethod),
-                                                style: AppTextStyles.caption
-                                                    .copyWith(
+                                                text: _formatPaymentMethod(expense.paymentMethod),
+                                                style: AppTextStyles.caption.copyWith(
                                                   color: AppColors.textSecondary,
                                                 ),
                                               ),
@@ -512,6 +572,8 @@ class _ExpensesViewState extends State<_ExpensesView> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
+                                        // Sync status indicator
+                                        _buildSyncStatusBadge(context, expense),
                                       ],
                                     ),
                                   ),
@@ -552,8 +614,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
                                         size: 20,
                                         color: AppColors.error,
                                       ),
-                                      onPressed: () =>
-                                          _confirmDelete(context, expense),
+                                      onPressed: () => _confirmDelete(context, expense),
                                     ),
                                   ],
                                 ],

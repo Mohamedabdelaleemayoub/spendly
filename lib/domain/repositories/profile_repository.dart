@@ -25,4 +25,6 @@ abstract class ProfileRepository {
   Future<void> deleteEmployee(String userId);
   Future<void> updateEmployeeRole(String userId, String role);
   Future<void> toggleEmployeeStatus(String userId, String status);
+  Future<void> approveUser(String userId);
+  Future<void> rejectUser(String userId);
 }
