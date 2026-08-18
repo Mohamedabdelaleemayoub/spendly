@@ -49,14 +49,22 @@ abstract final class AppRoutes {
 class _MultiStreamListenable extends ChangeNotifier {
   _MultiStreamListenable(List<Stream<dynamic>> streams) {
     for (final stream in streams) {
-      _subscriptions.add(stream.asBroadcastStream().listen((_) => notifyListeners()));
+      _subscriptions.add(
+        stream.listen((_) {
+          if (!_disposed) {
+            notifyListeners();
+          }
+        }),
+      );
     }
   }
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
+  bool _disposed = false;
 
   @override
   void dispose() {
+    _disposed = true;
     for (final sub in _subscriptions) {
       sub.cancel();
     }

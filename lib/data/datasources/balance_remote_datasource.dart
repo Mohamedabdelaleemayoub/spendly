@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/errors/exception_mapper.dart';
+import '../../domain/entities/expense_currency.dart';
 import '../models/balance_transaction_model.dart';
 import '../models/employee_balance_summary_model.dart';
 
@@ -9,6 +10,7 @@ abstract class BalanceRemoteDataSource {
   Future<BalanceTransactionModel> addBalance({
     required String userId,
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
     DateTime? transactionDate,
     String? note,
   });
@@ -29,6 +31,7 @@ class BalanceRemoteDataSourceImpl implements BalanceRemoteDataSource {
   Future<BalanceTransactionModel> addBalance({
     required String userId,
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
     DateTime? transactionDate,
     String? note,
   }) async {
@@ -45,6 +48,7 @@ class BalanceRemoteDataSourceImpl implements BalanceRemoteDataSource {
       final insertData = <String, dynamic>{
         'user_id': userId,
         'amount': amount,
+        'currency': currency.toDbString(),
         'type': 'credit',
         'transaction_date': dateStr,
         if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
@@ -90,38 +94,95 @@ class BalanceRemoteDataSourceImpl implements BalanceRemoteDataSource {
       }
 
       // Fallback calculation if RPC is not deployed yet
-      final creditsRes = await client
-          .from(AppConstants.balanceTransactionsTable)
-          .select('amount, type')
-          .eq('user_id', userId);
-
-      double totalReceived = 0.0;
-      double totalAdjustSub = 0.0;
-      for (final row in (creditsRes as List)) {
-        final amt = (row['amount'] as num).toDouble();
-        final type = row['type'] as String;
-        if (type == 'adjustment_sub') {
-          totalAdjustSub += amt;
-        } else {
-          totalReceived += amt;
+      dynamic creditsRes;
+      try {
+        creditsRes = await client
+            .from(AppConstants.balanceTransactionsTable)
+            .select('amount, currency, type')
+            .eq('user_id', userId);
+      } catch (_) {
+        try {
+          creditsRes = await client
+              .from(AppConstants.balanceTransactionsTable)
+              .select('amount, type')
+              .eq('user_id', userId);
+        } catch (_) {
+          creditsRes = [];
         }
       }
 
-      final expensesRes = await client
-          .from(AppConstants.expensesTable)
-          .select('amount')
-          .eq('user_id', userId);
+      double egpReceived = 0.0;
+      double egpAdjustSub = 0.0;
+      double usdReceived = 0.0;
+      double usdAdjustSub = 0.0;
 
-      double totalSpent = 0.0;
-      for (final row in (expensesRes as List)) {
-        totalSpent += (row['amount'] as num).toDouble();
+      for (final row in (creditsRes as List)) {
+        final amt = (row['amount'] as num).toDouble();
+        final type = row['type'] as String;
+        final curr = (row['currency'] as String?)?.toUpperCase() ?? 'EGP';
+
+        if (curr == 'USD') {
+          if (type == 'adjustment_sub') {
+            usdAdjustSub += amt;
+          } else {
+            usdReceived += amt;
+          }
+        } else {
+          if (type == 'adjustment_sub') {
+            egpAdjustSub += amt;
+          } else {
+            egpReceived += amt;
+          }
+        }
       }
 
-      final profileRes = await client
-          .from(AppConstants.profilesTable)
-          .select('full_name, email, role, status, avatar_url')
-          .eq('id', userId)
-          .maybeSingle();
+      dynamic expensesRes;
+      try {
+        expensesRes = await client
+            .from(AppConstants.expensesTable)
+            .select('amount, currency')
+            .eq('user_id', userId);
+      } catch (_) {
+        try {
+          expensesRes = await client
+              .from(AppConstants.expensesTable)
+              .select('amount')
+              .eq('user_id', userId);
+        } catch (_) {
+          expensesRes = [];
+        }
+      }
+
+      double egpSpent = 0.0;
+      double usdSpent = 0.0;
+      for (final row in (expensesRes as List)) {
+        final amt = (row['amount'] as num).toDouble();
+        final curr = (row['currency'] as String?)?.toUpperCase() ?? 'EGP';
+        if (curr == 'USD') {
+          usdSpent += amt;
+        } else {
+          egpSpent += amt;
+        }
+      }
+
+      dynamic profileRes;
+      try {
+        profileRes = await client
+            .from(AppConstants.profilesTable)
+            .select('full_name, email, role, status, avatar_url')
+            .eq('id', userId)
+            .maybeSingle();
+      } catch (_) {
+        try {
+          profileRes = await client
+              .from(AppConstants.profilesTable)
+              .select('full_name, email, role, avatar_url')
+              .eq('id', userId)
+              .maybeSingle();
+        } catch (_) {
+          profileRes = null;
+        }
+      }
 
       return EmployeeBalanceSummaryModel(
         userId: userId,
@@ -130,9 +191,12 @@ class BalanceRemoteDataSourceImpl implements BalanceRemoteDataSource {
         role: profileRes?['role'] as String? ?? 'employee',
         status: profileRes?['status'] as String? ?? 'active',
         avatarUrl: profileRes?['avatar_url'] as String?,
-        totalReceived: totalReceived,
-        totalSpent: totalSpent,
-        availableBalance: totalReceived - totalAdjustSub - totalSpent,
+        totalReceivedEgp: egpReceived,
+        totalSpentEgp: egpSpent,
+        availableBalanceEgp: egpReceived - egpAdjustSub - egpSpent,
+        totalReceivedUsd: usdReceived,
+        totalSpentUsd: usdSpent,
+        availableBalanceUsd: usdReceived - usdAdjustSub - usdSpent,
       );
     } catch (e) {
       debugPrint('❌ [BalanceRemoteDataSourceImpl] Error getting balance summary: $e');
@@ -153,9 +217,20 @@ class BalanceRemoteDataSourceImpl implements BalanceRemoteDataSource {
     } catch (e) {
       debugPrint('⚠️ [BalanceRemoteDataSourceImpl] RPC get_all_employee_balances failed ($e), falling back.');
       // Fallback: Query profiles and aggregate
-      final profilesRes = await client
-          .from(AppConstants.profilesTable)
-          .select('id, full_name, email, role, status, avatar_url');
+      dynamic profilesRes;
+      try {
+        profilesRes = await client
+            .from(AppConstants.profilesTable)
+            .select('id, full_name, email, role, status, avatar_url');
+      } catch (_) {
+        try {
+          profilesRes = await client
+              .from(AppConstants.profilesTable)
+              .select('id, full_name, email, role, avatar_url');
+        } catch (_) {
+          profilesRes = [];
+        }
+      }
 
       final List<EmployeeBalanceSummaryModel> summaries = [];
       for (final p in (profilesRes as List)) {

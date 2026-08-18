@@ -8,6 +8,8 @@ abstract final class AppConstants {
   static const String categoriesTable = 'categories';
   static const String expensesTable = 'expenses';
   static const String balanceTransactionsTable = 'employee_balance_transactions';
+  static const String salaryAdvancesTable = 'employee_salary_advances';
+  static const String allowanceTransactionsTable = 'employee_allowance_transactions';
 
   // ── Supabase Storage ───────────────────────────────────────────────
   static const String receiptsBucket = 'expense-receipts';

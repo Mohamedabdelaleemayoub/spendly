@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'expense_currency.dart';
 import 'profile.dart';
 
 enum BalanceTransactionType {
@@ -36,6 +37,7 @@ class BalanceTransaction extends Equatable {
     required this.id,
     required this.userId,
     required this.amount,
+    this.currency = ExpenseCurrency.egp,
     required this.type,
     required this.transactionDate,
     this.note,
@@ -47,6 +49,7 @@ class BalanceTransaction extends Equatable {
   final String id;
   final String userId;
   final double amount;
+  final ExpenseCurrency currency;
   final BalanceTransactionType type;
   final DateTime transactionDate;
   final String? note;
@@ -60,6 +63,7 @@ class BalanceTransaction extends Equatable {
     String? id,
     String? userId,
     double? amount,
+    ExpenseCurrency? currency,
     BalanceTransactionType? type,
     DateTime? transactionDate,
     String? note,
@@ -71,6 +75,7 @@ class BalanceTransaction extends Equatable {
       id: id ?? this.id,
       userId: userId ?? this.userId,
       amount: amount ?? this.amount,
+      currency: currency ?? this.currency,
       type: type ?? this.type,
       transactionDate: transactionDate ?? this.transactionDate,
       note: note ?? this.note,
@@ -85,6 +90,7 @@ class BalanceTransaction extends Equatable {
         id,
         userId,
         amount,
+        currency,
         type,
         transactionDate,
         note,

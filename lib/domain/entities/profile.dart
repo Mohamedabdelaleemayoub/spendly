@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'expense_currency.dart';
 import 'user_role.dart';
 
 class Profile extends Equatable {
@@ -9,6 +10,8 @@ class Profile extends Equatable {
     this.role = 'employee',
     this.status = 'active',
     this.avatarUrl,
+    this.salaryAmount = 0.0,
+    this.salaryCurrency = ExpenseCurrency.egp,
     this.createdAt,
     this.updatedAt,
   });
@@ -19,6 +22,8 @@ class Profile extends Equatable {
   final String role;
   final String status;
   final String? avatarUrl;
+  final double salaryAmount;
+  final ExpenseCurrency salaryCurrency;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -38,6 +43,8 @@ class Profile extends Equatable {
     String? role,
     String? status,
     String? avatarUrl,
+    double? salaryAmount,
+    ExpenseCurrency? salaryCurrency,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -48,11 +55,24 @@ class Profile extends Equatable {
       role: role ?? this.role,
       status: status ?? this.status,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      salaryAmount: salaryAmount ?? this.salaryAmount,
+      salaryCurrency: salaryCurrency ?? this.salaryCurrency,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
   @override
-  List<Object?> get props => [id, name, email, role, status, avatarUrl, createdAt, updatedAt];
+  List<Object?> get props => [
+        id,
+        name,
+        email,
+        role,
+        status,
+        avatarUrl,
+        salaryAmount,
+        salaryCurrency,
+        createdAt,
+        updatedAt,
+      ];
 }

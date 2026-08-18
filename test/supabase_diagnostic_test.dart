@@ -65,7 +65,64 @@ void main() {
         role
       )
     ''';
-    final expenses = await client.from('expenses').select(selectQuery).limit(5);
-    print('Expenses query with explicit FK embeds returned HTTP 200 with ${expenses.length} records.');
+    try {
+      final expenses = await client.from('expenses').select(selectQuery).limit(5);
+      print('Expenses query with explicit FK embeds returned HTTP 200 with ${expenses.length} records.');
+    } catch (e) {
+      print('ℹ️ expenses join query: $e');
+    }
+    print('\n==================== 5. ALL EMPLOYEES & BALANCE QUERIES ====================');
+    try {
+      final profiles = await client.from('profiles').select().order('full_name', ascending: true);
+      print('✅ profiles: ${profiles.length} rows');
+    } catch (e) {
+      print('❌ profiles query failed: $e');
+    }
+
+    try {
+      final expenses = await client.from('expenses').select('user_id, amount, currency, expense_date');
+      print('✅ expenses (with currency): ${expenses.length} rows');
+    } catch (e) {
+      print('❌ expenses query failed: $e');
+    }
+
+    try {
+      final advances = await client.from('employee_salary_advances').select('user_id, amount');
+      print('✅ employee_salary_advances: ${advances.length} rows');
+    } catch (e) {
+      print('❌ employee_salary_advances query failed: $e');
+    }
+
+    try {
+      final allowances = await client.from('employee_allowance_transactions').select('user_id, amount, currency, transaction_date');
+      print('✅ employee_allowance_transactions: ${allowances.length} rows');
+    } catch (e) {
+      print('❌ employee_allowance_transactions query failed: $e');
+    }
+
+    try {
+      final balanceTx = await client.from('employee_balance_transactions').select('amount, currency, type');
+      print('✅ employee_balance_transactions: ${balanceTx.length} rows');
+    } catch (e) {
+      print('❌ employee_balance_transactions query failed: $e');
+    }
+
+    try {
+      final rpcAllBalances = await client.rpc('get_all_employee_balances');
+      print('✅ RPC get_all_employee_balances: $rpcAllBalances');
+    } catch (e) {
+      print('❌ RPC get_all_employee_balances failed: $e');
+    }
+
+    try {
+      final rpcWeekly = await client.rpc('get_weekly_work_budget_summary', params: {
+        'p_user_id': '00000000-0000-0000-0000-000000000000',
+        'p_start_date': '2026-08-17',
+        'p_end_date': '2026-08-23',
+      });
+      print('✅ RPC get_weekly_work_budget_summary: $rpcWeekly');
+    } catch (e) {
+      print('❌ RPC get_weekly_work_budget_summary failed: $e');
+    }
   });
 }

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../domain/entities/expense_currency.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../router/app_router.dart';
@@ -21,22 +21,34 @@ class DashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => sl<DashboardCubit>()..loadDashboard()),
-        BlocProvider(create: (context) => sl<EmployeeBalanceCubit>()..loadBalance()),
+        BlocProvider<DashboardCubit>(
+          create: (context) => sl<DashboardCubit>()..loadDashboard(),
+        ),
+        BlocProvider<EmployeeBalanceCubit>(
+          create: (context) => sl<EmployeeBalanceCubit>()..loadBalance(),
+        ),
       ],
       child: const _DashboardView(),
     );
   }
 }
 
-class _DashboardView extends StatelessWidget {
+class _DashboardView extends StatefulWidget {
   const _DashboardView();
 
-  Color _parseColor(String? hexColor) {
-    if (hexColor == null) return AppColors.primary;
+  @override
+  State<_DashboardView> createState() => _DashboardViewState();
+}
+
+class _DashboardViewState extends State<_DashboardView> {
+
+  Color _parseColor(String? hexString) {
+    if (hexString == null || hexString.isEmpty) return AppColors.primary;
     try {
-      final hex = hexColor.replaceAll('#', '');
-      return Color(int.parse('FF$hex', radix: 16));
+      final buffer = StringBuffer();
+      if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
+      buffer.write(hexString.replaceFirst('#', ''));
+      return Color(int.parse(buffer.toString(), radix: 16));
     } catch (_) {
       return AppColors.primary;
     }
@@ -54,13 +66,15 @@ class _DashboardView extends StatelessWidget {
     }
   }
 
+  String _formatAmount(double amount, ExpenseCurrency currency, bool isArabic) {
+    final symbol = currency.symbolForLocale(isArabic ? 'ar' : 'en');
+    return '${amount.toStringAsFixed(2)} $symbol';
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final currencyFormat = NumberFormat.currency(
-      symbol: Localizations.localeOf(context).languageCode == 'ar' ? 'ر.س ' : 'SAR ',
-      decimalDigits: 2,
-    );
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final dateFormat = DateFormat('yyyy/MM/dd');
 
     return Scaffold(
@@ -106,6 +120,7 @@ class _DashboardView extends StatelessWidget {
           if (state is DashboardLoaded) {
             final isAdmin = state.isAdmin;
             final currentPeriod = state.period;
+            final selectedCurrency = state.selectedCurrency;
 
             return RefreshIndicator(
               onRefresh: () async {
@@ -117,29 +132,25 @@ class _DashboardView extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 children: [
-                  // 1. Employee Available Balance Card (For employees & users)
+                  // 1. Dual Available Balance Card (EGP & USD)
                   BlocBuilder<EmployeeBalanceCubit, EmployeeBalanceState>(
                     builder: (context, balanceState) {
                       if (balanceState is EmployeeBalanceLoaded) {
                         final summary = balanceState.summary;
-                        final isZeroOrNegative = summary.availableBalance <= 0;
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 16),
                           padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: isZeroOrNegative
-                                  ? [const Color(0xFF636E72), const Color(0xFF2D3436)]
-                                  : [const Color(0xFF00B894), const Color(0xFF00897B)],
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF00B894), Color(0xFF00897B)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: (isZeroOrNegative ? Colors.grey : const Color(0xFF00B894))
-                                    .withValues(alpha: 0.3),
+                                color: const Color(0xFF00B894).withValues(alpha: 0.3),
                                 blurRadius: 12,
                                 offset: const Offset(0, 5),
                               ),
@@ -181,55 +192,78 @@ class _DashboardView extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 10),
-                              Text(
-                                currencyFormat.format(summary.availableBalance),
-                                style: AppTextStyles.amountLarge.copyWith(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              const Divider(color: Colors.white24, height: 1),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 14),
+
+                              // Side-by-side EGP & USD Available Balances
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        l10n.totalReceived,
-                                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                  // EGP Balance
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        currencyFormat.format(summary.totalReceived),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'EGP (جنيه مصري)',
+                                            style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _formatAmount(summary.availableBalanceEgp, ExpenseCurrency.egp, isArabic),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${l10n.totalReceived}: ${_formatAmount(summary.totalReceivedEgp, ExpenseCurrency.egp, isArabic)}',
+                                            style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                          ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        l10n.totalSpent,
-                                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                  const SizedBox(width: 10),
+
+                                  // USD Balance
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        currencyFormat.format(summary.totalSpent),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'USD (دولار أمريكي)',
+                                            style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _formatAmount(summary.availableBalanceUsd, ExpenseCurrency.usd, isArabic),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${l10n.totalReceived}: ${_formatAmount(summary.totalReceivedUsd, ExpenseCurrency.usd, isArabic)}',
+                                            style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                          ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -241,7 +275,7 @@ class _DashboardView extends StatelessWidget {
                     },
                   ),
 
-                  // 2. Period Selector Controls (Compact & Beautiful)
+                  // 2. Period Selector Controls
                   Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     child: SegmentedButton<ExpenseSummaryPeriod>(
@@ -284,9 +318,9 @@ class _DashboardView extends StatelessWidget {
                     ),
                   ),
 
-                  // 3. Main Banner: Reactive Period Total
+                  // 3. Main Banner: Dual Multi-Currency Period Totals (Never Mixed)
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: isAdmin
@@ -310,42 +344,13 @@ class _DashboardView extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Flexible(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      isAdmin
-                                          ? '${l10n.companyTotalExpenses} (${_getPeriodLabel(context, currentPeriod)})'
-                                          : '${l10n.employeeTotalExpenses} (${_getPeriodLabel(context, currentPeriod)})',
-                                      style: AppTextStyles.subtitle2.copyWith(
-                                        color: Colors.white70,
-                                        fontSize: 13,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  if (isAdmin) ...[
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.secondary,
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        l10n.roleAdmin,
-                                        style: const TextStyle(
-                                          color: Colors.black87,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                            Text(
+                              isAdmin
+                                  ? '${l10n.companyTotalExpenses} (${_getPeriodLabel(context, currentPeriod)})'
+                                  : '${l10n.employeeTotalExpenses} (${_getPeriodLabel(context, currentPeriod)})',
+                              style: AppTextStyles.subtitle2.copyWith(
+                                color: Colors.white70,
+                                fontSize: 13,
                               ),
                             ),
                             Container(
@@ -367,71 +372,69 @@ class _DashboardView extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Text(
-                          currencyFormat.format(state.activePeriodTotal),
-                          style: AppTextStyles.amountLarge.copyWith(
-                            color: Colors.white,
-                            fontSize: 30,
-                          ),
+
+                        // Two distinct currency totals
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('EGP', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _formatAmount(state.activePeriodTotalEgp, ExpenseCurrency.egp, isArabic),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('USD', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _formatAmount(state.activePeriodTotalUsd, ExpenseCurrency.usd, isArabic),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 14),
 
-                  // 4. Mini Stats Row (Today, Active Count, Active Employees)
+                  // 4. Mini Stats Row (Count, Active Employees)
                   Row(
                     children: [
-                      // Today Spending Card
-                      Expanded(
-                        child: Card(
-                          margin: EdgeInsets.zero,
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.secondary.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.today,
-                                        size: 18,
-                                        color: AppColors.secondaryDark,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      child: Text(
-                                        l10n.periodToday,
-                                        style: AppTextStyles.caption,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  currencyFormat.format(state.totalToday),
-                                  style: AppTextStyles.subtitle1.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
                       // Count for Active Period Card
                       Expanded(
                         child: Card(
@@ -532,7 +535,99 @@ class _DashboardView extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // 5. Admin Only: Spending By Employee Section
+                  // Currency breakdown switch (EGP / USD)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.distributionByCategory,
+                          style: AppTextStyles.heading3,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SegmentedButton<ExpenseCurrency>(
+                        segments: const [
+                          ButtonSegment(value: ExpenseCurrency.egp, label: Text('EGP')),
+                          ButtonSegment(value: ExpenseCurrency.usd, label: Text('USD')),
+                        ],
+                        selected: {selectedCurrency},
+                        onSelectionChanged: (set) {
+                          context.read<DashboardCubit>().changeCurrency(set.first);
+                        },
+                        style: SegmentedButton.styleFrom(visualDensity: VisualDensity.compact),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // 5. Category Breakdown Section
+                  if (state.categorySpending.isNotEmpty) ...[
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: state.categorySpending.take(4).map((cat) {
+                            final catColor = _parseColor(cat.color);
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        cat.name,
+                                        style: AppTextStyles.bodyMedium.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${_formatAmount(cat.amount, selectedCurrency, isArabic)} (${cat.percentage.toStringAsFixed(1)}%)',
+                                        style: AppTextStyles.caption.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      value: cat.percentage > 0 ? (cat.percentage / 100).clamp(0.0, 1.0) : 0.0,
+                                      backgroundColor: AppColors.surfaceVariant,
+                                      valueColor: AlwaysStoppedAnimation<Color>(catColor),
+                                      minHeight: 6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ] else ...[
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Center(
+                          child: Text(
+                            '${l10n.noExpensesFound} (${selectedCurrency.code})',
+                            style: AppTextStyles.caption,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // 6. Admin Only: Spending By Employee Section
                   if (isAdmin && state.employeeSpending.isNotEmpty) ...[
                     Text(
                       l10n.distributionByEmployee,
@@ -545,6 +640,7 @@ class _DashboardView extends StatelessWidget {
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           children: state.employeeSpending.map((emp) {
+                            final empAmt = selectedCurrency == ExpenseCurrency.usd ? emp.amountUsd : emp.amountEgp;
                             return InkWell(
                               borderRadius: BorderRadius.circular(8),
                               onTap: () {
@@ -596,7 +692,7 @@ class _DashboardView extends StatelessWidget {
                                         Row(
                                           children: [
                                             Text(
-                                              '${currencyFormat.format(emp.amount)} (${emp.percentage.toStringAsFixed(1)}%)',
+                                              '${_formatAmount(empAmt, selectedCurrency, isArabic)} (${emp.percentage.toStringAsFixed(1)}%)',
                                               style: AppTextStyles.caption.copyWith(
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -630,80 +726,344 @@ class _DashboardView extends StatelessWidget {
                     const SizedBox(height: 20),
                   ],
 
-                  // 6. Category Breakdown Section
-                  if (state.categorySpending.isNotEmpty) ...[
+                  // 7. Travel Activity Section (Inside / Outside Cairo Trips & Top Traveler)
+                  if (state.outsideCairoTripsCount > 0 || state.insideCairoTripsCount > 0) ...[
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        const Icon(Icons.commute, color: AppColors.primary, size: 20),
+                        const SizedBox(width: 8),
                         Text(
-                          l10n.distributionByCategory,
+                          l10n.travelActivity,
                           style: AppTextStyles.heading3,
-                        ),
-                        TextButton(
-                          onPressed: () => context.go(AppRoutes.reports),
-                          child: Text(l10n.viewReports),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Card(
                       margin: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
-                          children: state.categorySpending.take(4).map((cat) {
-                            final catColor = _parseColor(cat.color);
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        cat.name,
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${currencyFormat.format(cat.amount)} (${cat.percentage.toStringAsFixed(1)}%)',
-                                        style: AppTextStyles.caption.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildTravelCountTile(
+                                    label: l10n.insideCairoTrips,
+                                    count: state.insideCairoTripsCount,
+                                    color: const Color(0xFF0984E3),
+                                    icon: Icons.location_city,
                                   ),
-                                  const SizedBox(height: 6),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: cat.percentage > 0 ? (cat.percentage / 100).clamp(0.0, 1.0) : 0.0,
-                                      backgroundColor: AppColors.surfaceVariant,
-                                      valueColor: AlwaysStoppedAnimation<Color>(catColor),
-                                      minHeight: 6,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildTravelCountTile(
+                                    label: l10n.outsideCairoTrips,
+                                    count: state.outsideCairoTripsCount,
+                                    color: const Color(0xFFE17055),
+                                    icon: Icons.flight_takeoff,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (state.topTravelerName != null && state.topTravelerOutsideTrips > 0) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppColors.secondary.withValues(alpha: 0.25)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.star, size: 16, color: AppColors.secondaryDark),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '${l10n.topTraveler}: ${state.topTravelerName}',
+                                          style: AppTextStyles.caption.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.secondaryDark,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
+                                    Text(
+                                      '${state.topTravelerOutsideTrips} ${l10n.tripsCountUnit}',
+                                      style: AppTextStyles.caption.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.secondaryDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            );
-                          }).toList(),
+                            ],
+                          ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 20),
                   ],
 
-                  // 7. Recent Expenses Section
+                  // 8. Salaries & Advances Overview (Admin Only)
+                  if (state.isAdmin && (state.totalSalariesEgp > 0 || state.totalSalaryAdvancesEgp > 0)) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.account_balance, color: Color(0xFF6C5CE7), size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.salariesOverview,
+                          style: AppTextStyles.heading3,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(l10n.totalSalaries, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatAmount(state.totalSalariesEgp, ExpenseCurrency.egp, isArabic),
+                                    style: AppTextStyles.subtitle2.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF6C5CE7)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(width: 1, height: 36, color: AppColors.divider),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(l10n.totalAdvances, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _formatAmount(state.totalSalaryAdvancesEgp, ExpenseCurrency.egp, isArabic),
+                                      style: AppTextStyles.subtitle2.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFFE17055)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Container(width: 1, height: 36, color: AppColors.divider),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(l10n.totalRemainingSalaries, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatAmount(state.totalRemainingSalariesEgp, ExpenseCurrency.egp, isArabic),
+                                    style: AppTextStyles.subtitle2.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF00B894)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  // 9. Weekly Work Budget Overview Section (This Week - Admin only)
+                  if (isAdmin) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.date_range, size: 18, color: Color(0xFF0984E3)),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${l10n.weeklyWorkBudget} (${l10n.thisWeek})',
+                                style: AppTextStyles.heading3,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Card(
+                        margin: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              // EGP Row
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text('EGP', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(l10n.totalReceivedWeekly, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _formatAmount(state.weeklyReceivedEgp, ExpenseCurrency.egp, isArabic),
+                                              style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            Text(l10n.totalSpentWeekly, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _formatAmount(state.weeklySpentEgp, ExpenseCurrency.egp, isArabic),
+                                              style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.error),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+                                            Text(l10n.totalRemainingWeekly, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _formatAmount(state.weeklyRemainingEgp, ExpenseCurrency.egp, isArabic),
+                                              style: AppTextStyles.caption.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: state.weeklyRemainingEgp >= 0 ? const Color(0xFF00B894) : AppColors.error,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              if (state.weeklyReceivedUsd > 0 || state.weeklySpentUsd > 0) ...[
+                                const Divider(height: 16),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.secondary.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Text('USD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.secondaryDark)),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(l10n.totalReceivedWeekly, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                _formatAmount(state.weeklyReceivedUsd, ExpenseCurrency.usd, isArabic),
+                                                style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                            children: [
+                                              Text(l10n.totalSpentWeekly, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                _formatAmount(state.weeklySpentUsd, ExpenseCurrency.usd, isArabic),
+                                                style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.error),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              Text(l10n.totalRemainingWeekly, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                _formatAmount(state.weeklyRemainingUsd, ExpenseCurrency.usd, isArabic),
+                                                style: AppTextStyles.caption.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: state.weeklyRemainingUsd >= 0 ? const Color(0xFF00B894) : AppColors.error,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    // 10. Recent Expenses Section
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        isAdmin
-                            ? '${l10n.recentExpenses} (${l10n.navEmployees})'
-                            : l10n.recentExpenses,
-                        style: AppTextStyles.heading3,
+                      Expanded(
+                        child: Text(
+                          isAdmin
+                              ? '${l10n.recentExpenses} (${l10n.navEmployees})'
+                              : l10n.recentExpenses,
+                          style: AppTextStyles.heading3,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       TextButton(
                         onPressed: () => context.go(AppRoutes.expenses),
@@ -789,13 +1149,13 @@ class _DashboardView extends StatelessWidget {
                             ],
                           ),
                           subtitle: Text(
-                            '${dateFormat.format(expense.expenseDate)} • $paymentLabel',
+                            '${dateFormat.format(expense.expenseDate)} • $paymentLabel • ${expense.currency.code}',
                             style: AppTextStyles.caption,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           trailing: Text(
-                            currencyFormat.format(expense.amount),
+                            _formatAmount(expense.amount, expense.currency, isArabic),
                             style: AppTextStyles.subtitle1.copyWith(
                               fontWeight: FontWeight.w700,
                               color: AppColors.primary,
@@ -816,4 +1176,58 @@ class _DashboardView extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildTravelCountTile({
+    required String label,
+    required int count,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+

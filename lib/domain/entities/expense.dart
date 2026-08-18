@@ -1,7 +1,9 @@
 import 'package:equatable/equatable.dart';
 import 'category.dart';
 import 'expense_currency.dart';
+import 'governorate.dart';
 import 'profile.dart';
+import 'trip_location_type.dart';
 
 /// Represents synchronization status of an expense record.
 enum SyncStatus {
@@ -38,6 +40,8 @@ class Expense extends Equatable {
     this.title = '',
     required this.amount,
     this.currency = ExpenseCurrency.egp,
+    this.tripLocationType = TripLocationType.cairo,
+    this.governorate = Governorate.cairo,
     required this.paymentMethod,
     required this.expenseDate,
     this.notes,
@@ -55,6 +59,8 @@ class Expense extends Equatable {
   final String title;
   final double amount;
   final ExpenseCurrency currency;
+  final TripLocationType tripLocationType;
+  final Governorate governorate;
   final String paymentMethod;
   final DateTime expenseDate;
   final String? notes;
@@ -62,6 +68,8 @@ class Expense extends Equatable {
   final SyncStatus syncStatus;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  bool get isOutsideCairo => tripLocationType == TripLocationType.outsideCairo;
 
   /// Returns the title if non-empty, otherwise falls back to category name or generic label.
   String get displayTitle {
@@ -85,6 +93,8 @@ class Expense extends Equatable {
     String? title,
     double? amount,
     ExpenseCurrency? currency,
+    TripLocationType? tripLocationType,
+    Governorate? governorate,
     String? paymentMethod,
     DateTime? expenseDate,
     String? notes,
@@ -102,6 +112,8 @@ class Expense extends Equatable {
       title: title ?? this.title,
       amount: amount ?? this.amount,
       currency: currency ?? this.currency,
+      tripLocationType: tripLocationType ?? this.tripLocationType,
+      governorate: governorate ?? this.governorate,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       expenseDate: expenseDate ?? this.expenseDate,
       notes: notes ?? this.notes,
@@ -122,6 +134,8 @@ class Expense extends Equatable {
         title,
         amount,
         currency,
+        tripLocationType,
+        governorate,
         paymentMethod,
         expenseDate,
         notes,

@@ -1,4 +1,7 @@
 import '../../domain/entities/expense.dart';
+import '../../domain/entities/expense_currency.dart';
+import '../../domain/entities/governorate.dart';
+import '../../domain/entities/trip_location_type.dart';
 import 'category_model.dart';
 import 'profile_model.dart';
 
@@ -11,6 +14,9 @@ class ExpenseModel extends Expense {
     super.profile,
     super.title = '',
     required super.amount,
+    super.currency = ExpenseCurrency.egp,
+    super.tripLocationType = TripLocationType.cairo,
+    super.governorate = Governorate.cairo,
     required super.paymentMethod,
     required super.expenseDate,
     super.notes,
@@ -39,6 +45,15 @@ class ExpenseModel extends Expense {
     final rawSync = json['sync_status'] as String?;
     final syncStatus = SyncStatus.fromString(rawSync);
 
+    final rawCurrency = json['currency'] as String?;
+    final currency = ExpenseCurrency.fromString(rawCurrency);
+
+    final rawTripLocation = json['trip_location_type'] as String?;
+    final tripLocationType = TripLocationType.fromString(rawTripLocation);
+
+    final rawGovernorate = json['governorate'] as String?;
+    final governorate = Governorate.fromString(rawGovernorate);
+
     return ExpenseModel(
       id: json['id'] as String,
       userId: json['user_id'] as String,
@@ -47,6 +62,9 @@ class ExpenseModel extends Expense {
       profile: prof,
       title: json['title'] as String? ?? json['description'] as String? ?? '',
       amount: parsedAmount,
+      currency: currency,
+      tripLocationType: tripLocationType,
+      governorate: tripLocationType == TripLocationType.cairo ? Governorate.cairo : governorate,
       paymentMethod: json['payment_method'] as String? ?? 'cash',
       expenseDate: json['expense_date'] != null
           ? DateTime.parse(json['expense_date'] as String)
@@ -65,6 +83,10 @@ class ExpenseModel extends Expense {
 
   /// JSON payload for Supabase INSERT / UPSERT
   Map<String, dynamic> toJson({bool includeId = true}) {
+    final effectiveGov = tripLocationType == TripLocationType.cairo
+        ? Governorate.cairo
+        : governorate;
+
     return {
       if (includeId) 'id': id,
       'user_id': userId,
@@ -72,6 +94,9 @@ class ExpenseModel extends Expense {
       'title': title,
       'description': (notes != null && notes!.isNotEmpty) ? notes : title,
       'amount': amount,
+      'currency': currency.toDbString(),
+      'trip_location_type': tripLocationType.toDbString(),
+      'governorate': effectiveGov.toDbString(),
       'payment_method': paymentMethod,
       'expense_date':
           '${expenseDate.year.toString().padLeft(4, '0')}-${expenseDate.month.toString().padLeft(2, '0')}-${expenseDate.day.toString().padLeft(2, '0')}',
@@ -82,6 +107,10 @@ class ExpenseModel extends Expense {
 
   /// Full JSON serialization for local persistent queue
   Map<String, dynamic> toLocalJson() {
+    final effectiveGov = tripLocationType == TripLocationType.cairo
+        ? Governorate.cairo
+        : governorate;
+
     return {
       'id': id,
       'user_id': userId,
@@ -107,6 +136,9 @@ class ExpenseModel extends Expense {
               },
       'title': title,
       'amount': amount,
+      'currency': currency.toDbString(),
+      'trip_location_type': tripLocationType.toDbString(),
+      'governorate': effectiveGov.toDbString(),
       'payment_method': paymentMethod,
       'expense_date':
           '${expenseDate.year.toString().padLeft(4, '0')}-${expenseDate.month.toString().padLeft(2, '0')}-${expenseDate.day.toString().padLeft(2, '0')}',
@@ -127,6 +159,9 @@ class ExpenseModel extends Expense {
       profile: expense.profile,
       title: expense.title,
       amount: expense.amount,
+      currency: expense.currency,
+      tripLocationType: expense.tripLocationType,
+      governorate: expense.governorate,
       paymentMethod: expense.paymentMethod,
       expenseDate: expense.expenseDate,
       notes: expense.notes,

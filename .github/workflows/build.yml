@@ -48,7 +48,7 @@ jobs:
         run: flutter analyze
 
       - name: Run Unit Tests
-        run: flutter test --no-pub --coverage test/admin_user_management_test.dart
+        run: flutter test --no-pub
 
   # ────────────────────────────────────────────────────────────────────────────
   # 2. Android Build Job (APK & AAB)

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/balance_transaction.dart';
 import '../../domain/entities/employee_balance_summary.dart';
+import '../../domain/entities/expense_currency.dart';
 import '../../domain/entities/financial_history_item.dart';
 import '../../domain/repositories/balance_repository.dart';
 import '../../domain/repositories/expense_repository.dart';
@@ -22,12 +23,14 @@ class BalanceRepositoryImpl implements BalanceRepository {
   Future<BalanceTransaction> addBalance({
     required String userId,
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
     DateTime? transactionDate,
     String? note,
   }) async {
     return remoteDataSource.addBalance(
       userId: userId,
       amount: amount,
+      currency: currency,
       transactionDate: transactionDate,
       note: note,
     );
@@ -37,31 +40,45 @@ class BalanceRepositoryImpl implements BalanceRepository {
   Future<EmployeeBalanceSummary> getEmployeeBalanceSummary(String userId) async {
     try {
       final summary = await remoteDataSource.getEmployeeBalanceSummary(userId);
-      // Incorporate pending offline expenses that haven't synced yet
+      // Incorporate pending offline expenses that haven't synced yet, per currency
       final pendingOffline = await localExpenseDataSource.getPendingExpenses(userId: userId);
-      double pendingTotal = 0.0;
+      double egpPending = 0.0;
+      double usdPending = 0.0;
       for (final exp in pendingOffline) {
-        pendingTotal += exp.amount;
+        if (exp.currency == ExpenseCurrency.usd) {
+          usdPending += exp.amount;
+        } else {
+          egpPending += exp.amount;
+        }
       }
 
-      final adjustedAvailable = summary.availableBalance - pendingTotal;
       return summary.copyWith(
-        availableBalance: adjustedAvailable,
-        totalSpent: summary.totalSpent + pendingTotal,
+        availableBalanceEgp: summary.availableBalanceEgp - egpPending,
+        totalSpentEgp: summary.totalSpentEgp + egpPending,
+        availableBalanceUsd: summary.availableBalanceUsd - usdPending,
+        totalSpentUsd: summary.totalSpentUsd + usdPending,
       );
     } catch (e) {
       debugPrint('⚠️ [BalanceRepositoryImpl] Error in getEmployeeBalanceSummary ($e), calculating offline.');
       final localAll = await localExpenseDataSource.getExpenses(userId: userId);
-      double totalSpent = 0.0;
+      double egpSpent = 0.0;
+      double usdSpent = 0.0;
       for (final exp in localAll) {
-        totalSpent += exp.amount;
+        if (exp.currency == ExpenseCurrency.usd) {
+          usdSpent += exp.amount;
+        } else {
+          egpSpent += exp.amount;
+        }
       }
       return EmployeeBalanceSummary(
         userId: userId,
         name: 'موظف',
-        totalReceived: 0.0,
-        totalSpent: totalSpent,
-        availableBalance: -totalSpent,
+        totalReceivedEgp: 0.0,
+        totalSpentEgp: egpSpent,
+        availableBalanceEgp: -egpSpent,
+        totalReceivedUsd: 0.0,
+        totalSpentUsd: usdSpent,
+        availableBalanceUsd: -usdSpent,
       );
     }
   }

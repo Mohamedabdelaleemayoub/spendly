@@ -905,7 +905,7 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                     ),
                                   ],
                                 ),
-                                // Financial Allowance / Balance Row
+                                // Financial Allowance / Balance Rows (Multi-currency: EGP & USD)
                                 BlocBuilder<AdminBalanceCubit, AdminBalanceState>(
                                   builder: (context, balanceState) {
                                     if (balanceState is AdminBalanceLoaded) {
@@ -915,31 +915,61 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                       if (summary != null) {
                                         return Container(
                                           margin: const EdgeInsets.only(top: 10),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                           decoration: BoxDecoration(
                                             color: AppColors.surfaceVariant,
                                             borderRadius: BorderRadius.circular(8),
                                           ),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          child: Column(
                                             children: [
-                                              Text(
-                                                '${l10n.givenAmount}: ${currencyFormat.format(summary.totalReceived)}',
-                                                style: AppTextStyles.caption.copyWith(fontSize: 11),
+                                              // EGP Row
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    'EGP: ${l10n.givenAmount}: ${summary.totalReceivedEgp.toStringAsFixed(0)}',
+                                                    style: AppTextStyles.caption.copyWith(fontSize: 10),
+                                                  ),
+                                                  Text(
+                                                    '${l10n.spentAmount}: ${summary.totalSpentEgp.toStringAsFixed(0)}',
+                                                    style: AppTextStyles.caption.copyWith(fontSize: 10),
+                                                  ),
+                                                  Text(
+                                                    '${l10n.remainingBalance}: ${summary.availableBalanceEgp.toStringAsFixed(0)} ج.م',
+                                                    style: AppTextStyles.caption.copyWith(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: summary.availableBalanceEgp > 0
+                                                          ? AppColors.success
+                                                          : AppColors.error,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                              Text(
-                                                '${l10n.spentAmount}: ${currencyFormat.format(summary.totalSpent)}',
-                                                style: AppTextStyles.caption.copyWith(fontSize: 11),
-                                              ),
-                                              Text(
-                                                '${l10n.remainingBalance}: ${currencyFormat.format(summary.availableBalance)}',
-                                                style: AppTextStyles.caption.copyWith(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: summary.availableBalance > 0
-                                                      ? AppColors.success
-                                                      : AppColors.error,
-                                                ),
+                                              const SizedBox(height: 4),
+                                              // USD Row
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    'USD: ${l10n.givenAmount}: ${summary.totalReceivedUsd.toStringAsFixed(0)}',
+                                                    style: AppTextStyles.caption.copyWith(fontSize: 10),
+                                                  ),
+                                                  Text(
+                                                    '${l10n.spentAmount}: ${summary.totalSpentUsd.toStringAsFixed(0)}',
+                                                    style: AppTextStyles.caption.copyWith(fontSize: 10),
+                                                  ),
+                                                  Text(
+                                                    '${l10n.remainingBalance}: \$${summary.availableBalanceUsd.toStringAsFixed(0)}',
+                                                    style: AppTextStyles.caption.copyWith(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: summary.availableBalanceUsd > 0
+                                                          ? AppColors.success
+                                                          : AppColors.error,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
@@ -949,6 +979,99 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                     return const SizedBox.shrink();
                                   },
                                 ),
+                                // Salary & Advances Row (Separated from expense allowance)
+                                if (profile.salaryAmount > 0 || emp.totalAdvances > 0)
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 6),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF6C5CE7).withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: const Color(0xFF6C5CE7).withValues(alpha: 0.2)),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          '${l10n.salary}: ${profile.salaryAmount.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
+                                          style: AppTextStyles.caption.copyWith(fontSize: 10, fontWeight: FontWeight.w600),
+                                        ),
+                                        Text(
+                                          '${l10n.salaryAdvances}: ${emp.totalAdvances.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
+                                          style: AppTextStyles.caption.copyWith(fontSize: 10, color: const Color(0xFFE17055), fontWeight: FontWeight.w600),
+                                        ),
+                                        Text(
+                                          '${l10n.remainingSalary}: ${emp.remainingSalary.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
+                                          style: AppTextStyles.caption.copyWith(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF6C5CE7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                // Weekly Work Budget Row (This Week)
+                                if (emp.weeklyReceivedEgp > 0 || emp.weeklySpentEgp > 0 || emp.weeklyReceivedUsd > 0 || emp.weeklySpentUsd > 0)
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 6),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0984E3).withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: const Color(0xFF0984E3).withValues(alpha: 0.2)),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        if (emp.weeklyReceivedEgp > 0 || emp.weeklySpentEgp > 0)
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                '${l10n.thisWeek} (EGP): ${l10n.receivedThisWeek.split(' ').first}: ${emp.weeklyReceivedEgp.toStringAsFixed(0)}',
+                                                style: AppTextStyles.caption.copyWith(fontSize: 10, fontWeight: FontWeight.w600),
+                                              ),
+                                              Text(
+                                                '${l10n.spentThisWeek.split(' ').first}: ${emp.weeklySpentEgp.toStringAsFixed(0)}',
+                                                style: AppTextStyles.caption.copyWith(fontSize: 10),
+                                              ),
+                                              Text(
+                                                '${l10n.remainingThisWeek.split(' ').first}: ${emp.weeklyRemainingEgp.toStringAsFixed(0)} ج.م',
+                                                style: AppTextStyles.caption.copyWith(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: emp.weeklyRemainingEgp >= 0 ? const Color(0xFF00B894) : AppColors.error,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        if (emp.weeklyReceivedUsd > 0 || emp.weeklySpentUsd > 0) ...[
+                                          if (emp.weeklyReceivedEgp > 0 || emp.weeklySpentEgp > 0) const SizedBox(height: 3),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                '${l10n.thisWeek} (USD): ${l10n.receivedThisWeek.split(' ').first}: ${emp.weeklyReceivedUsd.toStringAsFixed(0)}',
+                                                style: AppTextStyles.caption.copyWith(fontSize: 10, fontWeight: FontWeight.w600),
+                                              ),
+                                              Text(
+                                                '${l10n.spentThisWeek.split(' ').first}: ${emp.weeklySpentUsd.toStringAsFixed(0)}',
+                                                style: AppTextStyles.caption.copyWith(fontSize: 10),
+                                              ),
+                                              Text(
+                                                '${l10n.remainingThisWeek.split(' ').first}: \$${emp.weeklyRemainingUsd.toStringAsFixed(0)}',
+                                                style: AppTextStyles.caption.copyWith(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: emp.weeklyRemainingUsd >= 0 ? const Color(0xFF00B894) : AppColors.error,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
                               ],
                             ),
                           ),

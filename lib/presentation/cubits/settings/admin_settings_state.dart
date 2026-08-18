@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../domain/entities/travel_bonus_settings.dart';
 
 sealed class AdminSettingsState extends Equatable {
   const AdminSettingsState();
@@ -18,24 +19,28 @@ class AdminSettingsLoading extends AdminSettingsState {
 class AdminSettingsLoaded extends AdminSettingsState {
   const AdminSettingsLoaded({
     required this.requireAdminApproval,
+    this.travelBonusSettings = const TravelBonusSettings(),
     this.isUpdating = false,
   });
 
   final bool requireAdminApproval;
+  final TravelBonusSettings travelBonusSettings;
   final bool isUpdating;
 
   AdminSettingsLoaded copyWith({
     bool? requireAdminApproval,
+    TravelBonusSettings? travelBonusSettings,
     bool? isUpdating,
   }) {
     return AdminSettingsLoaded(
       requireAdminApproval: requireAdminApproval ?? this.requireAdminApproval,
+      travelBonusSettings: travelBonusSettings ?? this.travelBonusSettings,
       isUpdating: isUpdating ?? this.isUpdating,
     );
   }
 
   @override
-  List<Object?> get props => [requireAdminApproval, isUpdating];
+  List<Object?> get props => [requireAdminApproval, travelBonusSettings, isUpdating];
 }
 
 class AdminSettingsError extends AdminSettingsState {

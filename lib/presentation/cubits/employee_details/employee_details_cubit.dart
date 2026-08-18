@@ -1,9 +1,15 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../domain/entities/employee_travel_stats.dart';
 import '../../../domain/entities/expense.dart';
+import '../../../domain/entities/expense_currency.dart';
+import '../../../domain/entities/governorate.dart';
 import '../../../domain/entities/profile.dart';
+import '../../../domain/entities/travel_bonus_settings.dart';
+import '../../../domain/entities/trip_location_type.dart';
 import '../../../domain/repositories/expense_repository.dart';
 import '../../../domain/repositories/profile_repository.dart';
+import '../../../domain/repositories/settings_repository.dart';
 import '../dashboard/dashboard_state.dart';
 import 'employee_details_state.dart';
 
@@ -11,10 +17,12 @@ class EmployeeDetailsCubit extends Cubit<EmployeeDetailsState> {
   EmployeeDetailsCubit({
     required this.expenseRepository,
     required this.profileRepository,
+    this.settingsRepository,
   }) : super(const EmployeeDetailsInitial());
 
   final ExpenseRepository expenseRepository;
   final ProfileRepository profileRepository;
+  final SettingsRepository? settingsRepository;
 
   @override
   void emit(EmployeeDetailsState state) {
@@ -25,8 +33,12 @@ class EmployeeDetailsCubit extends Cubit<EmployeeDetailsState> {
 
   List<Expense> _allEmployeeExpenses = [];
   Profile? _profile;
+  TravelBonusSettings _bonusSettings = const TravelBonusSettings();
 
   String _searchQuery = '';
+  ExpenseCurrency? _selectedCurrency;
+  TripLocationType? _selectedTripLocationType;
+  Governorate? _selectedGovernorate;
   String? _selectedCategory;
   String? _selectedPaymentMethod;
   DateTime? _startDate;
@@ -45,40 +57,69 @@ class EmployeeDetailsCubit extends Cubit<EmployeeDetailsState> {
       }
       _profile = profile;
 
-      // 2. Fetch all expenses for this employee
+      // 2. Fetch travel bonus settings
+      if (settingsRepository != null) {
+        try {
+          _bonusSettings = await settingsRepository!.getTravelBonusSettings();
+        } catch (_) {}
+      }
+
+      // 3. Fetch all expenses for this employee
       final expenses = await expenseRepository.getExpenses(
         userId: employeeId,
         pageSize: 500,
       );
       _allEmployeeExpenses = expenses;
 
-      // 3. Compute Summary Statistics
+      // 4. Compute Multi-Currency Summary Statistics
       final now = DateTime.now();
-      double total = 0.0;
-      double thisMonth = 0.0;
-      double today = 0.0;
+      double totalEgp = 0.0;
+      double totalUsd = 0.0;
+      double thisMonthEgp = 0.0;
+      double thisMonthUsd = 0.0;
+      double todayEgp = 0.0;
+      double todayUsd = 0.0;
 
       for (final exp in expenses) {
-        total += exp.amount;
-        if (exp.expenseDate.year == now.year && exp.expenseDate.month == now.month) {
-          thisMonth += exp.amount;
-          if (exp.expenseDate.day == now.day) {
-            today += exp.amount;
+        if (exp.currency == ExpenseCurrency.usd) {
+          totalUsd += exp.amount;
+          if (exp.expenseDate.year == now.year && exp.expenseDate.month == now.month) {
+            thisMonthUsd += exp.amount;
+            if (exp.expenseDate.day == now.day) {
+              todayUsd += exp.amount;
+            }
+          }
+        } else {
+          totalEgp += exp.amount;
+          if (exp.expenseDate.year == now.year && exp.expenseDate.month == now.month) {
+            thisMonthEgp += exp.amount;
+            if (exp.expenseDate.day == now.day) {
+              todayEgp += exp.amount;
+            }
           }
         }
       }
 
-      // 4. Apply current filters
+      // 5. Apply current filters and compute Travel Stats
       final filtered = _applyFilters();
+      final travelStats = EmployeeTravelStats.fromExpenses(filtered);
 
       emit(EmployeeDetailsLoaded(
         profile: _profile!,
         expenses: filtered,
-        totalExpenses: total,
+        totalExpensesEgp: totalEgp,
+        totalExpensesUsd: totalUsd,
         expensesCount: expenses.length,
-        thisMonthExpenses: thisMonth,
-        todayExpenses: today,
+        thisMonthExpensesEgp: thisMonthEgp,
+        thisMonthExpensesUsd: thisMonthUsd,
+        todayExpensesEgp: todayEgp,
+        todayExpensesUsd: todayUsd,
+        travelStats: travelStats,
+        travelBonusSettings: _bonusSettings,
         searchQuery: _searchQuery,
+        selectedCurrency: _selectedCurrency,
+        selectedTripLocationType: _selectedTripLocationType,
+        selectedGovernorate: _selectedGovernorate,
         selectedCategoryId: _selectedCategory,
         selectedPaymentMethod: _selectedPaymentMethod,
         selectedStartDate: _startDate,
@@ -93,6 +134,24 @@ class EmployeeDetailsCubit extends Cubit<EmployeeDetailsState> {
 
   void searchExpenses(String query) {
     _searchQuery = query;
+    _reemitFiltered();
+  }
+
+  void filterByCurrency(ExpenseCurrency? currency) {
+    _selectedCurrency = currency;
+    _reemitFiltered();
+  }
+
+  void filterByTripLocation(TripLocationType? type) {
+    _selectedTripLocationType = type;
+    if (type == TripLocationType.cairo) {
+      _selectedGovernorate = null;
+    }
+    _reemitFiltered();
+  }
+
+  void filterByGovernorate(Governorate? gov) {
+    _selectedGovernorate = gov;
     _reemitFiltered();
   }
 
@@ -140,6 +199,9 @@ class EmployeeDetailsCubit extends Cubit<EmployeeDetailsState> {
 
   void resetFilters() {
     _searchQuery = '';
+    _selectedCurrency = null;
+    _selectedTripLocationType = null;
+    _selectedGovernorate = null;
     _selectedCategory = null;
     _selectedPaymentMethod = null;
     _startDate = null;
@@ -152,10 +214,15 @@ class EmployeeDetailsCubit extends Cubit<EmployeeDetailsState> {
     if (currentState is! EmployeeDetailsLoaded) return;
 
     final filtered = _applyFilters();
+    final travelStats = EmployeeTravelStats.fromExpenses(filtered);
 
     emit(currentState.copyWith(
       expenses: filtered,
+      travelStats: travelStats,
       searchQuery: _searchQuery,
+      selectedCurrency: _selectedCurrency,
+      selectedTripLocationType: _selectedTripLocationType,
+      selectedGovernorate: _selectedGovernorate,
       selectedCategoryId: _selectedCategory,
       selectedPaymentMethod: _selectedPaymentMethod,
       selectedStartDate: _startDate,
@@ -174,24 +241,39 @@ class EmployeeDetailsCubit extends Cubit<EmployeeDetailsState> {
         if (!titleMatches && !notesMatches) return false;
       }
 
-      // 2. Category
+      // 2. Currency
+      if (_selectedCurrency != null && exp.currency != _selectedCurrency) {
+        return false;
+      }
+
+      // 3. Trip Location Type
+      if (_selectedTripLocationType != null && exp.tripLocationType != _selectedTripLocationType) {
+        return false;
+      }
+
+      // 4. Governorate
+      if (_selectedGovernorate != null && exp.governorate != _selectedGovernorate) {
+        return false;
+      }
+
+      // 5. Category
       if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
         if (exp.categoryId != _selectedCategory) return false;
       }
 
-      // 3. Payment Method
+      // 6. Payment Method
       if (_selectedPaymentMethod != null && _selectedPaymentMethod!.isNotEmpty) {
         if (exp.paymentMethod != _selectedPaymentMethod) return false;
       }
 
-      // 4. Start Date
+      // 7. Start Date
       if (_startDate != null) {
         final expDateOnly = DateTime(exp.expenseDate.year, exp.expenseDate.month, exp.expenseDate.day);
         final startDateOnly = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
         if (expDateOnly.isBefore(startDateOnly)) return false;
       }
 
-      // 5. End Date
+      // 8. End Date
       if (_endDate != null) {
         final expDateOnly = DateTime(exp.expenseDate.year, exp.expenseDate.month, exp.expenseDate.day);
         final endDateOnly = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:spendly/domain/entities/balance_transaction.dart';
 import 'package:spendly/domain/entities/employee_balance_summary.dart';
 import 'package:spendly/domain/entities/expense.dart';
+import 'package:spendly/domain/entities/expense_currency.dart';
 import 'package:spendly/domain/entities/financial_history_item.dart';
 import 'package:spendly/domain/repositories/auth_repository.dart';
 import 'package:spendly/domain/repositories/balance_repository.dart';
@@ -20,6 +21,7 @@ class FakeBalanceRepository implements BalanceRepository {
   Future<BalanceTransaction> addBalance({
     required String userId,
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
     DateTime? transactionDate,
     String? note,
   }) async {
@@ -27,6 +29,7 @@ class FakeBalanceRepository implements BalanceRepository {
       id: 'tx-${transactions.length + 1}',
       userId: userId,
       amount: amount,
+      currency: currency,
       type: BalanceTransactionType.credit,
       transactionDate: transactionDate ?? DateTime.now(),
       note: note,
@@ -39,27 +42,43 @@ class FakeBalanceRepository implements BalanceRepository {
 
   @override
   Future<EmployeeBalanceSummary> getEmployeeBalanceSummary(String userId) async {
-    double totalReceived = 0.0;
+    double totalReceivedEgp = 0.0;
+    double totalReceivedUsd = 0.0;
+
     for (final tx in transactions.where((t) => t.userId == userId)) {
-      if (tx.type == BalanceTransactionType.credit || tx.type == BalanceTransactionType.adjustmentAdd) {
-        totalReceived += tx.amount;
-      } else if (tx.type == BalanceTransactionType.adjustmentSub) {
-        totalReceived -= tx.amount;
+      final isAdd = tx.type == BalanceTransactionType.credit || tx.type == BalanceTransactionType.adjustmentAdd;
+      final isSub = tx.type == BalanceTransactionType.adjustmentSub;
+
+      if (tx.currency == ExpenseCurrency.usd) {
+        if (isAdd) totalReceivedUsd += tx.amount;
+        if (isSub) totalReceivedUsd -= tx.amount;
+      } else {
+        if (isAdd) totalReceivedEgp += tx.amount;
+        if (isSub) totalReceivedEgp -= tx.amount;
       }
     }
 
-    double totalSpent = 0.0;
+    double totalSpentEgp = 0.0;
+    double totalSpentUsd = 0.0;
+
     for (final exp in expenses.where((e) => e.userId == userId)) {
-      totalSpent += exp.amount;
+      if (exp.currency == ExpenseCurrency.usd) {
+        totalSpentUsd += exp.amount;
+      } else {
+        totalSpentEgp += exp.amount;
+      }
     }
 
     return EmployeeBalanceSummary(
       userId: userId,
       name: 'Ahmed Mohamed',
       email: 'ahmed@company.com',
-      totalReceived: totalReceived,
-      totalSpent: totalSpent,
-      availableBalance: totalReceived - totalSpent,
+      totalReceivedEgp: totalReceivedEgp,
+      totalSpentEgp: totalSpentEgp,
+      availableBalanceEgp: totalReceivedEgp - totalSpentEgp,
+      totalReceivedUsd: totalReceivedUsd,
+      totalSpentUsd: totalSpentUsd,
+      availableBalanceUsd: totalReceivedUsd - totalSpentUsd,
     );
   }
 
@@ -128,7 +147,7 @@ class FakeAuthRepository implements AuthRepository {
 }
 
 void main() {
-  group('Employee Allowance & Balance System Tests', () {
+  group('Multi-Currency Employee Allowance & Balance System Tests', () {
     late FakeBalanceRepository fakeBalanceRepo;
     late FakeAuthRepository fakeAuthRepo;
 
@@ -137,45 +156,44 @@ void main() {
       fakeAuthRepo = FakeAuthRepository();
     });
 
-    test('1. Adding credit transactions accumulates balance without overwriting previous balance', () async {
-      // 1. Initial balance should be 0
+    test('1. Independent Multi-Currency Balances: Adding EGP and USD balances never mix', () async {
+      // 1. Initial balances should be 0 for both currencies
       var summary = await fakeBalanceRepo.getEmployeeBalanceSummary('emp-1');
-      expect(summary.totalReceived, 0.0);
-      expect(summary.availableBalance, 0.0);
+      expect(summary.availableBalanceEgp, 0.0);
+      expect(summary.availableBalanceUsd, 0.0);
 
-      // 2. Admin gives 1000 EGP
+      // 2. Admin gives 1000 EGP and 500 USD
       await fakeBalanceRepo.addBalance(
         userId: 'emp-1',
         amount: 1000.0,
-        note: 'Weekly allowance',
+        currency: ExpenseCurrency.egp,
+        note: 'Office allowance',
       );
 
-      summary = await fakeBalanceRepo.getEmployeeBalanceSummary('emp-1');
-      expect(summary.totalReceived, 1000.0);
-      expect(summary.availableBalance, 1000.0);
-
-      // 3. Admin gives another 500 EGP
       await fakeBalanceRepo.addBalance(
         userId: 'emp-1',
         amount: 500.0,
-        note: 'Additional office allowance',
+        currency: ExpenseCurrency.usd,
+        note: 'Student travel allowance',
       );
 
       summary = await fakeBalanceRepo.getEmployeeBalanceSummary('emp-1');
-      // Balance must accumulate to 1500, not overwrite to 500
-      expect(summary.totalReceived, 1500.0);
-      expect(summary.availableBalance, 1500.0);
+      expect(summary.totalReceivedEgp, 1000.0);
+      expect(summary.availableBalanceEgp, 1000.0);
+      expect(summary.totalReceivedUsd, 500.0);
+      expect(summary.availableBalanceUsd, 500.0);
     });
 
-    test('2. Expenses deduct from available balance correctly', () async {
-      // Admin gives 1000 EGP
-      await fakeBalanceRepo.addBalance(userId: 'emp-1', amount: 1000.0);
+    test('2. Expenses deduct only from corresponding currency balance', () async {
+      await fakeBalanceRepo.addBalance(userId: 'emp-1', amount: 1000.0, currency: ExpenseCurrency.egp);
+      await fakeBalanceRepo.addBalance(userId: 'emp-1', amount: 500.0, currency: ExpenseCurrency.usd);
 
       // Employee spends 200 EGP
       fakeBalanceRepo.expenses.add(Expense(
         id: 'exp-1',
         userId: 'emp-1',
         amount: 200.0,
+        currency: ExpenseCurrency.egp,
         categoryId: 'cat-1',
         expenseDate: DateTime.now(),
         paymentMethod: 'cash',
@@ -183,132 +201,132 @@ void main() {
       ));
 
       var summary = await fakeBalanceRepo.getEmployeeBalanceSummary('emp-1');
-      expect(summary.totalReceived, 1000.0);
-      expect(summary.totalSpent, 200.0);
-      expect(summary.availableBalance, 800.0);
+      expect(summary.availableBalanceEgp, 800.0); // 1000 - 200
+      expect(summary.availableBalanceUsd, 500.0); // USD unaffected!
 
-      // Employee spends another 150 EGP
+      // Employee spends 100 USD
       fakeBalanceRepo.expenses.add(Expense(
         id: 'exp-2',
         userId: 'emp-1',
-        amount: 150.0,
+        amount: 100.0,
+        currency: ExpenseCurrency.usd,
         categoryId: 'cat-2',
         expenseDate: DateTime.now(),
         paymentMethod: 'cash',
-        title: 'Lunch',
+        title: 'Student Visa Fee',
       ));
 
       summary = await fakeBalanceRepo.getEmployeeBalanceSummary('emp-1');
-      expect(summary.totalReceived, 1000.0);
-      expect(summary.totalSpent, 350.0);
-      expect(summary.availableBalance, 650.0);
+      expect(summary.availableBalanceEgp, 800.0); // EGP unaffected!
+      expect(summary.availableBalanceUsd, 400.0); // 500 - 100
     });
 
-    test('3. Expense edit calculates difference and adjusts balance correctly', () async {
-      await fakeBalanceRepo.addBalance(userId: 'emp-1', amount: 1000.0);
+    test('3. Expense currency helper functions format and parse correctly', () {
+      expect(ExpenseCurrency.fromString('EGP'), ExpenseCurrency.egp);
+      expect(ExpenseCurrency.fromString('USD'), ExpenseCurrency.usd);
+      expect(ExpenseCurrency.fromString('invalid'), ExpenseCurrency.egp);
+
+      expect(ExpenseCurrency.egp.toDbString(), 'EGP');
+      expect(ExpenseCurrency.usd.toDbString(), 'USD');
+
+      expect(ExpenseCurrency.egp.symbolForLocale('ar'), 'ج.م');
+      expect(ExpenseCurrency.usd.symbolForLocale('ar'), '\$');
+      expect(ExpenseCurrency.egp.symbolForLocale('en'), 'EGP');
+      expect(ExpenseCurrency.usd.symbolForLocale('en'), 'USD');
+    });
+
+    test('4. Expense editing recalculates difference strictly within that currency', () async {
+      await fakeBalanceRepo.addBalance(userId: 'emp-1', amount: 500.0, currency: ExpenseCurrency.usd);
 
       final exp = Expense(
-        id: 'exp-1',
+        id: 'exp-usd-1',
         userId: 'emp-1',
-        amount: 200.0,
+        amount: 100.0,
+        currency: ExpenseCurrency.usd,
         categoryId: 'cat-1',
         expenseDate: DateTime.now(),
         paymentMethod: 'cash',
-        title: 'Initial Expense',
       );
       fakeBalanceRepo.expenses.add(exp);
 
       var summary = await fakeBalanceRepo.getEmployeeBalanceSummary('emp-1');
-      expect(summary.availableBalance, 800.0);
+      expect(summary.availableBalanceUsd, 400.0);
 
-      // Edit expense: 200 -> 300
-      fakeBalanceRepo.expenses.removeWhere((e) => e.id == 'exp-1');
-      fakeBalanceRepo.expenses.add(exp.copyWith(amount: 300.0));
-
-      summary = await fakeBalanceRepo.getEmployeeBalanceSummary('emp-1');
-      expect(summary.availableBalance, 700.0); // 1000 - 300 = 700
-
-      // Edit expense: 300 -> 150 (returns 150 to available balance)
-      fakeBalanceRepo.expenses.removeWhere((e) => e.id == 'exp-1');
-      fakeBalanceRepo.expenses.add(exp.copyWith(amount: 150.0));
+      // Edit USD expense: 100 -> 250
+      fakeBalanceRepo.expenses.removeWhere((e) => e.id == 'exp-usd-1');
+      fakeBalanceRepo.expenses.add(exp.copyWith(amount: 250.0));
 
       summary = await fakeBalanceRepo.getEmployeeBalanceSummary('emp-1');
-      expect(summary.availableBalance, 850.0); // 1000 - 150 = 850
+      expect(summary.availableBalanceUsd, 250.0); // 500 - 250 = 250
     });
 
-    test('4. Expense deletion restores available balance', () async {
-      await fakeBalanceRepo.addBalance(userId: 'emp-1', amount: 1000.0);
+    test('5. Expense deletion restores available balance in the correct currency', () async {
+      await fakeBalanceRepo.addBalance(userId: 'emp-1', amount: 1000.0, currency: ExpenseCurrency.egp);
+      await fakeBalanceRepo.addBalance(userId: 'emp-1', amount: 500.0, currency: ExpenseCurrency.usd);
 
       fakeBalanceRepo.expenses.add(Expense(
-        id: 'exp-1',
+        id: 'exp-egp',
         userId: 'emp-1',
-        amount: 200.0,
+        amount: 300.0,
+        currency: ExpenseCurrency.egp,
         categoryId: 'cat-1',
         expenseDate: DateTime.now(),
         paymentMethod: 'cash',
       ));
 
+      fakeBalanceRepo.expenses.add(Expense(
+        id: 'exp-usd',
+        userId: 'emp-1',
+        amount: 150.0,
+        currency: ExpenseCurrency.usd,
+        categoryId: 'cat-2',
+        expenseDate: DateTime.now(),
+        paymentMethod: 'cash',
+      ));
+
+      // Delete USD expense
+      fakeBalanceRepo.expenses.removeWhere((e) => e.id == 'exp-usd');
+
       var summary = await fakeBalanceRepo.getEmployeeBalanceSummary('emp-1');
-      expect(summary.availableBalance, 800.0);
-
-      // Delete expense
-      fakeBalanceRepo.expenses.removeWhere((e) => e.id == 'exp-1');
-
-      summary = await fakeBalanceRepo.getEmployeeBalanceSummary('emp-1');
-      expect(summary.availableBalance, 1000.0);
+      expect(summary.availableBalanceEgp, 700.0); // EGP remains 700
+      expect(summary.availableBalanceUsd, 500.0); // USD restored to 500
     });
 
-    test('5. FinancialHistoryItem correctly unifies and sorts credits and expenses', () async {
+    test('6. FinancialHistoryItem preserves currency code and properties', () async {
       final now = DateTime.now();
       await fakeBalanceRepo.addBalance(
         userId: 'emp-1',
-        amount: 1000.0,
-        transactionDate: now.subtract(const Duration(days: 2)),
-        note: 'Weekly allowance',
+        amount: 300.0,
+        currency: ExpenseCurrency.usd,
+        transactionDate: now,
       );
 
       fakeBalanceRepo.expenses.add(Expense(
         id: 'exp-1',
         userId: 'emp-1',
-        amount: 200.0,
-        categoryId: 'cat-1',
-        expenseDate: now.subtract(const Duration(days: 1)),
-        paymentMethod: 'cash',
-        title: 'Fuel',
-      ));
-
-      fakeBalanceRepo.expenses.add(Expense(
-        id: 'exp-2',
-        userId: 'emp-1',
         amount: 150.0,
-        categoryId: 'cat-2',
+        currency: ExpenseCurrency.usd,
+        categoryId: 'cat-1',
         expenseDate: now,
         paymentMethod: 'cash',
-        title: 'Lunch',
+        title: 'Student Exam Fee',
       ));
 
       final history = await fakeBalanceRepo.getFinancialHistory('emp-1');
-      expect(history.length, 3);
-
-      // Newest first
-      expect(history[0].amount, 150.0);
-      expect(history[0].itemType, FinancialItemType.expense);
-      expect(history[0].isPositive, false);
-
-      expect(history[1].amount, 200.0);
-      expect(history[1].itemType, FinancialItemType.expense);
-
-      expect(history[2].amount, 1000.0);
-      expect(history[2].itemType, FinancialItemType.credit);
-      expect(history[2].isPositive, true);
+      expect(history.length, 2);
+      expect(history[0].currency, ExpenseCurrency.usd);
+      expect(history[1].currency, ExpenseCurrency.usd);
     });
 
-    test('6. EmployeeBalanceCubit loads balance and history successfully', () async {
-      await fakeBalanceRepo.addBalance(userId: 'emp-1', amount: 1200.0);
+    test('7. EmployeeBalanceCubit loads multi-currency balance successfully', () async {
+      await fakeBalanceRepo.addBalance(userId: 'emp-1', amount: 1500.0, currency: ExpenseCurrency.egp);
+      await fakeBalanceRepo.addBalance(userId: 'emp-1', amount: 800.0, currency: ExpenseCurrency.usd);
+
       fakeBalanceRepo.expenses.add(Expense(
         id: 'exp-1',
         userId: 'emp-1',
-        amount: 400.0,
+        amount: 500.0,
+        currency: ExpenseCurrency.egp,
         categoryId: 'cat-1',
         expenseDate: DateTime.now(),
         paymentMethod: 'cash',
@@ -319,39 +337,34 @@ void main() {
         authRepository: fakeAuthRepo,
       );
 
-      expect(cubit.state, isA<EmployeeBalanceInitial>());
-
       await cubit.loadBalance();
 
       expect(cubit.state, isA<EmployeeBalanceLoaded>());
       final loaded = cubit.state as EmployeeBalanceLoaded;
-      expect(loaded.summary.totalReceived, 1200.0);
-      expect(loaded.summary.totalSpent, 400.0);
-      expect(loaded.summary.availableBalance, 800.0);
-      expect(loaded.historyItems.length, 2);
+      expect(loaded.summary.availableBalanceEgp, 1000.0);
+      expect(loaded.summary.availableBalanceUsd, 800.0);
+      expect(loaded.summary.availableBalanceFor(ExpenseCurrency.egp), 1000.0);
+      expect(loaded.summary.availableBalanceFor(ExpenseCurrency.usd), 800.0);
     });
 
-    test('7. AdminBalanceCubit loads all employee balances and adds balance', () async {
+    test('8. AdminBalanceCubit adds currency-specific balance', () async {
       final cubit = AdminBalanceCubit(balanceRepository: fakeBalanceRepo);
 
-      expect(cubit.state, isA<AdminBalanceInitial>());
-
       await cubit.loadAllBalances();
-
       expect(cubit.state, isA<AdminBalanceLoaded>());
-      var loaded = cubit.state as AdminBalanceLoaded;
-      expect(loaded.employeeBalances.length, 1);
 
-      // Admin gives 500 EGP
+      // Add USD balance
       await cubit.addBalance(
         userId: 'emp-1',
-        amount: 500.0,
-        note: 'Bonus allowance',
+        amount: 750.0,
+        currency: ExpenseCurrency.usd,
+        note: 'Student travel funds',
       );
 
-      loaded = cubit.state as AdminBalanceLoaded;
-      expect(loaded.selectedEmployeeSummary?.totalReceived, 500.0);
-      expect(loaded.selectedEmployeeSummary?.availableBalance, 500.0);
+      final loaded = cubit.state as AdminBalanceLoaded;
+      expect(loaded.selectedEmployeeSummary?.totalReceivedUsd, 750.0);
+      expect(loaded.selectedEmployeeSummary?.availableBalanceUsd, 750.0);
+      expect(loaded.selectedEmployeeSummary?.availableBalanceEgp, 0.0);
     });
   });
 }

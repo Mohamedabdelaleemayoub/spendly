@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'expense_currency.dart';
 
 class EmployeeBalanceSummary extends Equatable {
   const EmployeeBalanceSummary({
@@ -8,9 +9,12 @@ class EmployeeBalanceSummary extends Equatable {
     this.role = 'employee',
     this.status = 'active',
     this.avatarUrl,
-    required this.totalReceived,
-    required this.totalSpent,
-    required this.availableBalance,
+    required this.totalReceivedEgp,
+    required this.totalSpentEgp,
+    required this.availableBalanceEgp,
+    required this.totalReceivedUsd,
+    required this.totalSpentUsd,
+    required this.availableBalanceUsd,
     this.lastAllowanceDate,
   });
 
@@ -20,14 +24,49 @@ class EmployeeBalanceSummary extends Equatable {
   final String role;
   final String status;
   final String? avatarUrl;
-  final double totalReceived;
-  final double totalSpent;
-  final double availableBalance;
+  final double totalReceivedEgp;
+  final double totalSpentEgp;
+  final double availableBalanceEgp;
+  final double totalReceivedUsd;
+  final double totalSpentUsd;
+  final double availableBalanceUsd;
   final DateTime? lastAllowanceDate;
+
+  // Backward compatibility getters (mapping to EGP by default)
+  double get totalReceived => totalReceivedEgp;
+  double get totalSpent => totalSpentEgp;
+  double get availableBalance => availableBalanceEgp;
+
+  double availableBalanceFor(ExpenseCurrency currency) {
+    switch (currency) {
+      case ExpenseCurrency.egp:
+        return availableBalanceEgp;
+      case ExpenseCurrency.usd:
+        return availableBalanceUsd;
+    }
+  }
+
+  double totalReceivedFor(ExpenseCurrency currency) {
+    switch (currency) {
+      case ExpenseCurrency.egp:
+        return totalReceivedEgp;
+      case ExpenseCurrency.usd:
+        return totalReceivedUsd;
+    }
+  }
+
+  double totalSpentFor(ExpenseCurrency currency) {
+    switch (currency) {
+      case ExpenseCurrency.egp:
+        return totalSpentEgp;
+      case ExpenseCurrency.usd:
+        return totalSpentUsd;
+    }
+  }
 
   bool get isAdmin => role == 'admin';
   bool get isActive => status == 'active';
-  bool get hasRemainingBalance => availableBalance > 0;
+  bool get hasRemainingBalance => availableBalanceEgp > 0 || availableBalanceUsd > 0;
 
   EmployeeBalanceSummary copyWith({
     String? userId,
@@ -36,9 +75,12 @@ class EmployeeBalanceSummary extends Equatable {
     String? role,
     String? status,
     String? avatarUrl,
-    double? totalReceived,
-    double? totalSpent,
-    double? availableBalance,
+    double? totalReceivedEgp,
+    double? totalSpentEgp,
+    double? availableBalanceEgp,
+    double? totalReceivedUsd,
+    double? totalSpentUsd,
+    double? availableBalanceUsd,
     DateTime? lastAllowanceDate,
   }) {
     return EmployeeBalanceSummary(
@@ -48,9 +90,12 @@ class EmployeeBalanceSummary extends Equatable {
       role: role ?? this.role,
       status: status ?? this.status,
       avatarUrl: avatarUrl ?? this.avatarUrl,
-      totalReceived: totalReceived ?? this.totalReceived,
-      totalSpent: totalSpent ?? this.totalSpent,
-      availableBalance: availableBalance ?? this.availableBalance,
+      totalReceivedEgp: totalReceivedEgp ?? this.totalReceivedEgp,
+      totalSpentEgp: totalSpentEgp ?? this.totalSpentEgp,
+      availableBalanceEgp: availableBalanceEgp ?? this.availableBalanceEgp,
+      totalReceivedUsd: totalReceivedUsd ?? this.totalReceivedUsd,
+      totalSpentUsd: totalSpentUsd ?? this.totalSpentUsd,
+      availableBalanceUsd: availableBalanceUsd ?? this.availableBalanceUsd,
       lastAllowanceDate: lastAllowanceDate ?? this.lastAllowanceDate,
     );
   }
@@ -63,9 +108,12 @@ class EmployeeBalanceSummary extends Equatable {
         role,
         status,
         avatarUrl,
-        totalReceived,
-        totalSpent,
-        availableBalance,
+        totalReceivedEgp,
+        totalSpentEgp,
+        availableBalanceEgp,
+        totalReceivedUsd,
+        totalSpentUsd,
+        availableBalanceUsd,
         lastAllowanceDate,
       ];
 }

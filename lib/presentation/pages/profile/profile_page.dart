@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../domain/entities/admin_notification.dart';
+import '../../../domain/entities/expense_currency.dart';
 import '../../../domain/entities/profile.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
@@ -252,6 +253,122 @@ class _ProfileView extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showTravelBonusDialog(BuildContext context, AdminSettingsLoaded settingsState) {
+    final l10n = AppLocalizations.of(context)!;
+    final cubit = context.read<AdminSettingsCubit>();
+    final currentBonus = settingsState.travelBonusSettings;
+    bool enabled = currentBonus.enabled;
+    ExpenseCurrency currency = currentBonus.currency;
+    final bonusController = TextEditingController(
+      text: currentBonus.bonusPerTrip > 0 ? currentBonus.bonusPerTrip.toStringAsFixed(0) : '100',
+    );
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.flight_takeoff, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Flexible(child: Text(l10n.travelBonusSettings, style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold))),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      l10n.travelBonus,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    subtitle: Text(
+                      l10n.travelBonusSettingsDesc,
+                      style: AppTextStyles.caption,
+                    ),
+                    value: enabled,
+                    onChanged: (val) {
+                      setDialogState(() => enabled = val);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.currencyLabel,
+                    style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  SegmentedButton<ExpenseCurrency>(
+                    segments: [
+                      ButtonSegment(
+                        value: ExpenseCurrency.egp,
+                        label: Text(l10n.currencyEgpShort, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                      ButtonSegment(
+                        value: ExpenseCurrency.usd,
+                        label: Text(l10n.currencyUsdShort, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                    ],
+                    selected: {currency},
+                    onSelectionChanged: enabled
+                        ? (newSel) {
+                            setDialogState(() => currency = newSel.first);
+                          }
+                        : null,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: bonusController,
+                    enabled: enabled,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: l10n.bonusPerTrip,
+                      hintText: '100',
+                      prefixIcon: const Icon(Icons.card_giftcard),
+                      suffixText: currency.code,
+                    ),
+                    validator: (val) {
+                      if (!enabled) return null;
+                      if (val == null || val.trim().isEmpty) return l10n.amountMustBeGreaterThanZero;
+                      final amt = double.tryParse(val.trim());
+                      if (amt == null || amt < 0) return l10n.amountMustBeGreaterThanZero;
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  final bonusAmount = double.tryParse(bonusController.text.trim()) ?? 100.0;
+                  cubit.updateTravelBonusSettings(
+                    enabled: enabled,
+                    bonusPerTrip: bonusAmount,
+                    currency: currency,
+                  );
+                  Navigator.pop(dialogCtx);
+                }
+              },
+              child: Text(l10n.save),
+            ),
+          ],
         ),
       ),
     );
@@ -605,22 +722,48 @@ class _ProfileView extends StatelessWidget {
                           ? adminSettingsState.isUpdating
                           : false;
 
-                      return SwitchListTile(
-                        secondary: const Icon(Icons.admin_panel_settings_outlined, color: AppColors.primary),
-                        title: Text(
-                          l10n.requireAdminApproval,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                        ),
-                        subtitle: Text(
-                          l10n.requireAdminApprovalDesc,
-                          style: AppTextStyles.caption,
-                        ),
-                        value: isRequireApproval,
-                        onChanged: isUpdatingApproval
-                            ? null
-                            : (val) {
-                                context.read<AdminSettingsCubit>().toggleRequireAdminApproval(val);
-                              },
+                      final travelBonus = (adminSettingsState is AdminSettingsLoaded)
+                          ? adminSettingsState.travelBonusSettings
+                          : null;
+
+                      return Column(
+                        children: [
+                          SwitchListTile(
+                            secondary: const Icon(Icons.admin_panel_settings_outlined, color: AppColors.primary),
+                            title: Text(
+                              l10n.requireAdminApproval,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
+                            subtitle: Text(
+                              l10n.requireAdminApprovalDesc,
+                              style: AppTextStyles.caption,
+                            ),
+                            value: isRequireApproval,
+                            onChanged: isUpdatingApproval
+                                ? null
+                                : (val) {
+                                    context.read<AdminSettingsCubit>().toggleRequireAdminApproval(val);
+                                  },
+                          ),
+                          const Divider(height: 1),
+                          ListTile(
+                            leading: const Icon(Icons.flight_takeoff, color: AppColors.primary),
+                            title: Text(
+                              l10n.travelBonusSettings,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
+                            subtitle: Text(
+                              travelBonus != null && travelBonus.enabled
+                                  ? '${l10n.statusActive} • ${travelBonus.bonusPerTrip.toStringAsFixed(0)} ${travelBonus.currency.code}/${l10n.outsideCairo}'
+                                  : l10n.statusInactive,
+                              style: AppTextStyles.caption,
+                            ),
+                            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+                            onTap: (adminSettingsState is AdminSettingsLoaded)
+                                ? () => _showTravelBonusDialog(context, adminSettingsState)
+                                : null,
+                          ),
+                        ],
                       );
                     },
                   ),

@@ -2,7 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:spendly/domain/entities/category.dart';
 import 'package:spendly/domain/entities/employee_summary.dart';
 import 'package:spendly/domain/entities/expense.dart';
+import 'package:spendly/domain/entities/expense_currency.dart';
+import 'package:spendly/domain/entities/governorate.dart';
 import 'package:spendly/domain/entities/profile.dart';
+import 'package:spendly/domain/entities/trip_location_type.dart';
 import 'package:spendly/domain/repositories/expense_repository.dart';
 import 'package:spendly/presentation/cubits/employee_details/employee_details_cubit.dart';
 import 'package:spendly/presentation/cubits/employee_details/employee_details_state.dart';
@@ -121,11 +124,17 @@ class MockExpenseRepository implements ExpenseRepository {
     DateTime? endDate,
     String? categoryId,
     String? userId,
+    ExpenseCurrency? currency,
+    TripLocationType? tripLocationType,
+    Governorate? governorate,
     String? paymentMethod,
     String? searchQuery,
   }) async {
     return mockExpenses.where((e) {
       if (userId != null && e.userId != userId) return false;
+      if (currency != null && e.currency != currency) return false;
+      if (tripLocationType != null && e.tripLocationType != tripLocationType) return false;
+      if (governorate != null && e.governorate != governorate) return false;
       if (categoryId != null && e.categoryId != categoryId) return false;
       if (paymentMethod != null && e.paymentMethod != paymentMethod) return false;
       if (startDate != null && e.expenseDate.isBefore(startDate)) return false;
@@ -146,6 +155,9 @@ class MockExpenseRepository implements ExpenseRepository {
   Future<Expense> createExpense({
     String title = '',
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
+    TripLocationType tripLocationType = TripLocationType.cairo,
+    Governorate governorate = Governorate.cairo,
     required String paymentMethod,
     required DateTime expenseDate,
     String? categoryId,
@@ -160,6 +172,9 @@ class MockExpenseRepository implements ExpenseRepository {
     required String id,
     String title = '',
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
+    TripLocationType tripLocationType = TripLocationType.cairo,
+    Governorate governorate = Governorate.cairo,
     required String paymentMethod,
     required DateTime expenseDate,
     String? categoryId,
@@ -176,7 +191,7 @@ class MockExpenseRepository implements ExpenseRepository {
   }
 
   @override
-  Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId}) async {
+  Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId, ExpenseCurrency? currency}) async {
     return mockExpenses;
   }
 

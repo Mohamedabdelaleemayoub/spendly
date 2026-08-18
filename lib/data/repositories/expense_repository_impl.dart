@@ -4,6 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/sync_service.dart';
 import '../../core/services/uuid_generator.dart';
 import '../../domain/entities/expense.dart';
+import '../../domain/entities/expense_currency.dart';
+import '../../domain/entities/governorate.dart';
+import '../../domain/entities/trip_location_type.dart';
 import '../../domain/repositories/expense_repository.dart';
 import '../datasources/expense_remote_datasource.dart';
 import '../datasources/local_expense_datasource.dart';
@@ -31,6 +34,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     String? categoryId,
     String? userId,
     String? paymentMethod,
+    ExpenseCurrency? currency,
+    TripLocationType? tripLocationType,
+    Governorate? governorate,
     String? searchQuery,
   }) async {
     final currentUserId = userId ?? supabaseClient.auth.currentUser?.id;
@@ -45,6 +51,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         categoryId: categoryId,
         userId: userId,
         paymentMethod: paymentMethod,
+        currency: currency,
+        tripLocationType: tripLocationType,
+        governorate: governorate,
         searchQuery: searchQuery,
       );
 
@@ -62,6 +71,15 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
           return false;
         }
         if (paymentMethod != null && paymentMethod.isNotEmpty && exp.paymentMethod != paymentMethod) {
+          return false;
+        }
+        if (currency != null && exp.currency != currency) {
+          return false;
+        }
+        if (tripLocationType != null && exp.tripLocationType != tripLocationType) {
+          return false;
+        }
+        if (governorate != null && exp.governorate != governorate) {
           return false;
         }
         if (searchQuery != null && searchQuery.trim().isNotEmpty) {
@@ -112,6 +130,15 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         if (paymentMethod != null && paymentMethod.isNotEmpty && exp.paymentMethod != paymentMethod) {
           return false;
         }
+        if (currency != null && exp.currency != currency) {
+          return false;
+        }
+        if (tripLocationType != null && exp.tripLocationType != tripLocationType) {
+          return false;
+        }
+        if (governorate != null && exp.governorate != governorate) {
+          return false;
+        }
         if (searchQuery != null && searchQuery.trim().isNotEmpty) {
           final query = searchQuery.trim().toLowerCase();
           final matchesTitle = exp.title.toLowerCase().contains(query);
@@ -150,6 +177,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   Future<Expense> createExpense({
     String title = '',
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
+    TripLocationType tripLocationType = TripLocationType.cairo,
+    Governorate governorate = Governorate.cairo,
     required String paymentMethod,
     required DateTime expenseDate,
     String? categoryId,
@@ -165,6 +195,10 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     final clientExpenseId = UuidGenerator.generate();
     final now = DateTime.now();
 
+    final effectiveGov = tripLocationType == TripLocationType.cairo
+        ? Governorate.cairo
+        : governorate;
+
     // 2. Build local expense entity with pending sync status
     final localExpense = ExpenseModel(
       id: clientExpenseId,
@@ -172,6 +206,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       categoryId: categoryId,
       title: title.trim(),
       amount: amount,
+      currency: currency,
+      tripLocationType: tripLocationType,
+      governorate: effectiveGov,
       paymentMethod: paymentMethod,
       expenseDate: expenseDate,
       notes: notes?.trim(),
@@ -190,6 +227,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         id: clientExpenseId,
         title: title.trim(),
         amount: amount,
+        currency: currency,
+        tripLocationType: tripLocationType,
+        governorate: effectiveGov,
         paymentMethod: paymentMethod,
         expenseDate: expenseDate,
         categoryId: categoryId,
@@ -203,7 +243,6 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       return syncedModel;
     } catch (e) {
       debugPrint('📱 [ExpenseRepositoryImpl] Network unavailable/failed: $e. Remaining in persistent local queue.');
-      // Return the saved local pending expense so user flow continues seamlessly
       return localExpense;
     }
   }
@@ -213,6 +252,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     required String id,
     String title = '',
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
+    TripLocationType tripLocationType = TripLocationType.cairo,
+    Governorate governorate = Governorate.cairo,
     required String paymentMethod,
     required DateTime expenseDate,
     String? categoryId,
@@ -220,16 +262,26 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     File? receiptFile,
     String? existingReceiptUrl,
   }) async {
+    final effectiveGov = tripLocationType == TripLocationType.cairo
+        ? Governorate.cairo
+        : governorate;
+
     final existing = await localDataSource.getExpenseById(id);
     final updatedLocal = (existing ?? ExpenseModel(
       id: id,
       userId: supabaseClient.auth.currentUser?.id ?? '',
       amount: amount,
+      currency: currency,
+      tripLocationType: tripLocationType,
+      governorate: effectiveGov,
       paymentMethod: paymentMethod,
       expenseDate: expenseDate,
     )).copyWith(
       title: title.trim(),
       amount: amount,
+      currency: currency,
+      tripLocationType: tripLocationType,
+      governorate: effectiveGov,
       paymentMethod: paymentMethod,
       expenseDate: expenseDate,
       categoryId: categoryId,
@@ -246,6 +298,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         id: id,
         title: title.trim(),
         amount: amount,
+        currency: currency,
+        tripLocationType: tripLocationType,
+        governorate: effectiveGov,
         paymentMethod: paymentMethod,
         expenseDate: expenseDate,
         categoryId: categoryId,
@@ -274,12 +329,14 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   }
 
   @override
-  Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId}) async {
+  Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId, ExpenseCurrency? currency}) async {
     try {
-      final remoteList = await remoteDataSource.getExpensesForMonth(month, userId: userId);
+      final remoteList = await remoteDataSource.getExpensesForMonth(month, userId: userId, currency: currency);
       final localPending = await localDataSource.getPendingExpenses(userId: userId);
       final monthPending = localPending.where((exp) {
-        return exp.expenseDate.year == month.year && exp.expenseDate.month == month.month;
+        final matchesMonth = exp.expenseDate.year == month.year && exp.expenseDate.month == month.month;
+        final matchesCurr = currency == null || exp.currency == currency;
+        return matchesMonth && matchesCurr;
       });
       final remoteIds = remoteList.map((e) => e.id).toSet();
       return [...remoteList, ...monthPending.where((e) => !remoteIds.contains(e.id))];
@@ -287,7 +344,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       debugPrint('⚠️ [ExpenseRepositoryImpl] Remote getExpensesForMonth failed ($e), calculating from local store.');
       final localAll = await localDataSource.getExpenses(userId: userId);
       return localAll.where((exp) {
-        return exp.expenseDate.year == month.year && exp.expenseDate.month == month.month;
+        final matchesMonth = exp.expenseDate.year == month.year && exp.expenseDate.month == month.month;
+        final matchesCurr = currency == null || exp.currency == currency;
+        return matchesMonth && matchesCurr;
       }).toList();
     }
   }

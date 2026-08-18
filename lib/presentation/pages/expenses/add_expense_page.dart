@@ -5,12 +5,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../domain/entities/category.dart';
 import '../../../domain/entities/expense.dart';
+import '../../../domain/entities/expense_currency.dart';
+import '../../../domain/entities/governorate.dart';
+import '../../../domain/entities/trip_location_type.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../cubits/balance/employee_balance_cubit.dart';
@@ -21,7 +23,10 @@ import '../../cubits/expense/expense_cubit.dart';
 import '../../cubits/expense/expense_state.dart';
 
 class AddExpensePage extends StatelessWidget {
-  const AddExpensePage({this.initialExpense, super.key});
+  const AddExpensePage({
+    super.key,
+    this.initialExpense,
+  });
 
   final Expense? initialExpense;
 
@@ -29,9 +34,15 @@ class AddExpensePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => sl<ExpenseCubit>()),
-        BlocProvider(create: (context) => sl<CategoryCubit>()..loadCategories()),
-        BlocProvider(create: (context) => sl<EmployeeBalanceCubit>()..loadBalance()),
+        BlocProvider<ExpenseCubit>(
+          create: (_) => sl<ExpenseCubit>(),
+        ),
+        BlocProvider<CategoryCubit>(
+          create: (_) => sl<CategoryCubit>()..loadCategories(),
+        ),
+        BlocProvider<EmployeeBalanceCubit>(
+          create: (_) => sl<EmployeeBalanceCubit>()..loadBalance(),
+        ),
       ],
       child: _AddExpenseForm(initialExpense: initialExpense),
     );
@@ -53,6 +64,9 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
   late final TextEditingController _amountController;
   late final TextEditingController _notesController;
 
+  ExpenseCurrency _selectedCurrency = ExpenseCurrency.egp;
+  TripLocationType _selectedTripLocation = TripLocationType.cairo;
+  Governorate? _selectedGovernorate;
   String? _selectedCategoryId;
   String _selectedPaymentMethod = AppConstants.paymentCash;
   DateTime _selectedDate = DateTime.now();
@@ -66,6 +80,11 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
   void initState() {
     super.initState();
     final e = widget.initialExpense;
+    _selectedCurrency = e?.currency ?? ExpenseCurrency.egp;
+    _selectedTripLocation = e?.tripLocationType ?? TripLocationType.cairo;
+    _selectedGovernorate = (e != null && e.tripLocationType == TripLocationType.outsideCairo)
+        ? e.governorate
+        : null;
     _titleController = TextEditingController(text: e?.title ?? '');
     _amountController = TextEditingController(
       text: e != null ? e.amount.toStringAsFixed(2) : '',
@@ -115,10 +134,11 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => SafeArea(
-        child: Wrap(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
@@ -180,6 +200,20 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
       return;
     }
 
+    if (_selectedTripLocation == TripLocationType.outsideCairo && _selectedGovernorate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.governorateRequired),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final effectiveGov = _selectedTripLocation == TripLocationType.cairo
+        ? Governorate.cairo
+        : _selectedGovernorate!;
+
     final title = _titleController.text.trim();
     final notes = _notesController.text.trim();
 
@@ -188,6 +222,9 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
             id: widget.initialExpense!.id,
             title: title,
             amount: amount,
+            currency: _selectedCurrency,
+            tripLocationType: _selectedTripLocation,
+            governorate: effectiveGov,
             categoryId: _selectedCategoryId,
             paymentMethod: _selectedPaymentMethod,
             expenseDate: _selectedDate,
@@ -198,6 +235,9 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
     } else {
       context.read<ExpenseCubit>().createExpense(
             amount: amount,
+            currency: _selectedCurrency,
+            tripLocationType: _selectedTripLocation,
+            governorate: effectiveGov,
             categoryId: _selectedCategoryId,
             expenseDate: _selectedDate,
             paymentMethod: _selectedPaymentMethod,
@@ -211,10 +251,7 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final currencyFormat = NumberFormat.currency(
-      symbol: Localizations.localeOf(context).languageCode == 'ar' ? 'ر.س ' : 'SAR ',
-      decimalDigits: 2,
-    );
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final dateFormat = DateFormat('yyyy/MM/dd');
 
     return Scaffold(
@@ -233,8 +270,11 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
             context.pop(true);
           } else if (state is ExpenseError) {
             String errorMsg = state.message;
-            if (errorMsg.contains('INSUFFICIENT_BALANCE') ||
-                errorMsg.contains('exceeds available balance')) {
+            final isBalanceErr = errorMsg.toLowerCase().contains('balance') ||
+                errorMsg.toLowerCase().contains('allowance') ||
+                errorMsg.contains('رصيد');
+
+            if (isBalanceErr) {
               errorMsg = l10n.insufficientBalance;
             }
 
@@ -254,13 +294,65 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                // 1. Available Balance Indicator Banner
+                // 1. Currency Selector (EGP / USD)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.currency_exchange, size: 18, color: AppColors.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              l10n.currencyLabel,
+                              style: AppTextStyles.subtitle2.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        SegmentedButton<ExpenseCurrency>(
+                          segments: [
+                            ButtonSegment(
+                              value: ExpenseCurrency.egp,
+                              label: Text(
+                                l10n.currencyEgp,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              icon: const Icon(Icons.money),
+                            ),
+                            ButtonSegment(
+                              value: ExpenseCurrency.usd,
+                              label: Text(
+                                l10n.currencyUsd,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              icon: const Icon(Icons.attach_money),
+                            ),
+                          ],
+                          selected: {_selectedCurrency},
+                          onSelectionChanged: (Set<ExpenseCurrency> newSelection) {
+                            setState(() {
+                              _selectedCurrency = newSelection.first;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 2. Available Balance Indicator Banner for Selected Currency
                 BlocBuilder<EmployeeBalanceCubit, EmployeeBalanceState>(
                   builder: (context, balanceState) {
                     if (balanceState is EmployeeBalanceLoaded) {
                       final summary = balanceState.summary;
-                      final available = summary.availableBalance;
+                      final available = summary.availableBalanceFor(_selectedCurrency);
                       final isLow = available <= 0;
+                      final symbol = _selectedCurrency.symbolForLocale(isArabic ? 'ar' : 'en');
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 18),
@@ -286,13 +378,13 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  l10n.availableBalance,
+                                  '${l10n.availableBalance} (${_selectedCurrency.code})',
                                   style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
                             Text(
-                              currencyFormat.format(available),
+                              '${available.toStringAsFixed(2)} $symbol',
                               style: AppTextStyles.subtitle1.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: isLow ? AppColors.error : AppColors.success,
@@ -306,13 +398,95 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                   },
                 ),
 
-                // 2. Amount (Required)
+                // 3. Trip Location Section (Inside Cairo / Outside Cairo)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.place_outlined, size: 18, color: AppColors.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              l10n.tripLocationLabel,
+                              style: AppTextStyles.subtitle2.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        SegmentedButton<TripLocationType>(
+                          segments: [
+                            ButtonSegment(
+                              value: TripLocationType.cairo,
+                              label: Text(
+                                l10n.insideCairo,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              icon: const Icon(Icons.location_city),
+                            ),
+                            ButtonSegment(
+                              value: TripLocationType.outsideCairo,
+                              label: Text(
+                                l10n.outsideCairo,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              icon: const Icon(Icons.commute),
+                            ),
+                          ],
+                          selected: {_selectedTripLocation},
+                          onSelectionChanged: (Set<TripLocationType> newSelection) {
+                            setState(() {
+                              _selectedTripLocation = newSelection.first;
+                              if (_selectedTripLocation == TripLocationType.cairo) {
+                                _selectedGovernorate = null;
+                              }
+                            });
+                          },
+                        ),
+                        if (_selectedTripLocation == TripLocationType.outsideCairo) ...[
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<Governorate>(
+                            initialValue: _selectedGovernorate,
+                            decoration: InputDecoration(
+                              labelText: l10n.governorateLabel,
+                              hintText: l10n.selectGovernorate,
+                              prefixIcon: const Icon(Icons.map_outlined),
+                            ),
+                            items: Governorate.outsideCairoGovernorates.map((gov) {
+                              return DropdownMenuItem<Governorate>(
+                                value: gov,
+                                child: Text(gov.localizedName(isArabic ? 'ar' : 'en')),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedGovernorate = val;
+                              });
+                            },
+                            validator: (val) {
+                              if (_selectedTripLocation == TripLocationType.outsideCairo && val == null) {
+                                return l10n.governorateRequired;
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 4. Amount (Required)
                 BlocBuilder<EmployeeBalanceCubit, EmployeeBalanceState>(
                   builder: (context, balanceState) {
                     double? availableBalance;
                     if (balanceState is EmployeeBalanceLoaded) {
-                      availableBalance = balanceState.summary.availableBalance;
-                      if (_isEditing && widget.initialExpense != null) {
+                      availableBalance = balanceState.summary.availableBalanceFor(_selectedCurrency);
+                      if (_isEditing && widget.initialExpense != null && widget.initialExpense!.currency == _selectedCurrency) {
                         availableBalance += widget.initialExpense!.amount;
                       }
                     }
@@ -321,23 +495,24 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                       controller: _amountController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                       ],
                       decoration: InputDecoration(
-                        labelText: '${l10n.expenseAmountLabel} *',
+                        labelText: l10n.expenseAmountLabel,
                         hintText: '0.00',
                         prefixIcon: const Icon(Icons.attach_money),
+                        suffixText: _selectedCurrency.code,
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
                           return l10n.amountMustBeGreaterThanZero;
                         }
-                        final parsed = double.tryParse(value);
-                        if (parsed == null || parsed <= 0) {
+                        final amount = double.tryParse(val.trim());
+                        if (amount == null || amount <= 0) {
                           return l10n.amountMustBeGreaterThanZero;
                         }
-                        if (availableBalance != null && parsed > availableBalance) {
-                          return l10n.insufficientBalance;
+                        if (availableBalance != null && amount > availableBalance) {
+                          return '${l10n.insufficientBalance} (${l10n.availableBalance}: ${availableBalance.toStringAsFixed(2)} ${_selectedCurrency.code})';
                         }
                         return null;
                       },
@@ -346,25 +521,33 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                 ),
                 const SizedBox(height: 16),
 
-                // 3. Category Dropdown (REQUIRED)
+                // 5. Title (Optional)
+                TextFormField(
+                  controller: _titleController,
+                  decoration: InputDecoration(
+                    labelText: l10n.expenseTitleOptional,
+                    hintText: l10n.defaultExpenseTitle,
+                    prefixIcon: const Icon(Icons.title_outlined),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 6. Category (Required)
                 BlocBuilder<CategoryCubit, CategoryState>(
-                  builder: (context, catState) {
-                    final categories = context.read<CategoryCubit>().categories;
+                  builder: (context, state) {
+                    List<Category> categories = [];
+                    if (state is CategoryLoaded) {
+                      categories = state.categories;
+                    }
 
                     return DropdownButtonFormField<String>(
                       initialValue: _selectedCategoryId,
                       decoration: InputDecoration(
                         labelText: l10n.expenseCategoryRequiredLabel,
+                        hintText: l10n.categoryRequired,
                         prefixIcon: const Icon(Icons.category_outlined),
                       ),
-                      hint: Text(l10n.filterAllCategories),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return l10n.categoryRequired;
-                        }
-                        return null;
-                      },
-                      items: categories.map((Category cat) {
+                      items: categories.map((cat) {
                         return DropdownMenuItem<String>(
                           value: cat.id,
                           child: Text(cat.name),
@@ -373,69 +556,75 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                       onChanged: (val) {
                         setState(() => _selectedCategoryId = val);
                       },
+                      validator: (val) {
+                        if (val == null || val.isEmpty) {
+                          return l10n.categoryRequired;
+                        }
+                        return null;
+                      },
                     );
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // 4. Title (OPTIONAL)
-                TextFormField(
-                  controller: _titleController,
-                  decoration: InputDecoration(
-                    labelText: l10n.expenseTitleOptional,
-                    hintText: 'مثلاً: غداء عمل، وقود، صيانة...',
-                    prefixIcon: const Icon(Icons.edit_outlined),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // 5. Date Picker
-                InkWell(
-                  onTap: _pickDate,
-                  borderRadius: BorderRadius.circular(12),
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: l10n.expenseDateLabel,
-                      prefixIcon: const Icon(Icons.calendar_today_outlined),
-                      suffixIcon: const Icon(Icons.arrow_drop_down),
-                    ),
-                    child: Text(
-                      dateFormat.format(_selectedDate),
-                      style: AppTextStyles.bodyLarge,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // 6. Payment Method Dropdown
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedPaymentMethod,
-                  decoration: InputDecoration(
-                    labelText: l10n.paymentMethodLabel,
-                    prefixIcon: const Icon(Icons.payment_outlined),
-                  ),
-                  items: AppConstants.paymentMethods.map((method) {
-                    return DropdownMenuItem<String>(
-                      value: method,
-                      child: Text(
-                        AppConstants.paymentMethodLabels[method] ?? method,
+                // 7. Payment Method & Date
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _selectedPaymentMethod,
+                        decoration: InputDecoration(
+                          labelText: l10n.paymentMethodLabel,
+                          prefixIcon: const Icon(Icons.payment_outlined),
+                        ),
+                        items: [
+                          DropdownMenuItem(
+                            value: AppConstants.paymentCash,
+                            child: Text(l10n.cashPayment),
+                          ),
+                          DropdownMenuItem(
+                            value: AppConstants.paymentBank,
+                            child: Text(l10n.creditCardPayment),
+                          ),
+                          DropdownMenuItem(
+                            value: AppConstants.paymentTransfer,
+                            child: Text(l10n.bankTransferPayment),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() => _selectedPaymentMethod = val);
+                          }
+                        },
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _selectedPaymentMethod = val);
-                    }
-                  },
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InkWell(
+                        onTap: _pickDate,
+                        borderRadius: BorderRadius.circular(12),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: l10n.expenseDateLabel,
+                            prefixIcon: const Icon(Icons.calendar_today_outlined),
+                          ),
+                          child: Text(
+                            dateFormat.format(_selectedDate),
+                            style: AppTextStyles.bodyMedium,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
-                // 7. Notes
+                // 8. Notes (Optional)
                 TextFormField(
                   controller: _notesController,
                   maxLines: 3,
                   decoration: InputDecoration(
-                    labelText: l10n.notesLabel,
+                    labelText: l10n.expenseNotesLabel,
                     hintText: l10n.notesHint,
                     prefixIcon: const Padding(
                       padding: EdgeInsets.only(bottom: 48),
@@ -446,7 +635,7 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                 ),
                 const SizedBox(height: 16),
 
-                // 8. Receipt Image Picker
+                // 9. Receipt Image Picker
                 Card(
                   margin: EdgeInsets.zero,
                   child: Padding(
@@ -518,43 +707,37 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                           onPressed: _showImageSourceDialog,
                           icon: const Icon(Icons.add_a_photo_outlined),
                           label: Text(
-                            _receiptFile != null ||
-                                    (_existingReceiptUrl != null &&
-                                        _existingReceiptUrl!.isNotEmpty)
+                            _receiptFile != null || _existingReceiptUrl != null
                                 ? l10n.changePhoto
                                 : l10n.addPhoto,
                           ),
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(48),
+                            minimumSize: const Size(double.infinity, 44),
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
 
-                // 9. Submit Button
+                // 10. Submit Button
                 ElevatedButton(
                   onPressed: isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: isLoading
                       ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : Text(
                           _isEditing ? l10n.saveChanges : l10n.addExpenseTitle,
                           style: AppTextStyles.button,
                         ),
                 ),
-                const SizedBox(height: 16),
               ],
             ),
           );

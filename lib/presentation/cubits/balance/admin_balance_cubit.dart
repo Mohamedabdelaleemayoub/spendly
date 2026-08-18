@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../domain/entities/expense_currency.dart';
 import '../../../domain/repositories/balance_repository.dart';
 import 'admin_balance_state.dart';
 
@@ -57,6 +58,7 @@ class AdminBalanceCubit extends Cubit<AdminBalanceState> {
   Future<void> addBalance({
     required String userId,
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
     DateTime? transactionDate,
     String? note,
   }) async {
@@ -69,6 +71,7 @@ class AdminBalanceCubit extends Cubit<AdminBalanceState> {
       final tx = await balanceRepository.addBalance(
         userId: userId,
         amount: amount,
+        currency: currency,
         transactionDate: transactionDate,
         note: note,
       );

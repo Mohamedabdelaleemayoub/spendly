@@ -191,14 +191,34 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
           .map((json) => ProfileModel.fromJson(json as Map<String, dynamic>))
           .toList();
 
-      // 2. Fetch all expenses in bulk to aggregate
-      final expensesResponse = await client
-          .from(AppConstants.expensesTable)
-          .select('user_id, amount, expense_date');
+      // 2. Fetch all expenses in bulk to aggregate lifetime and weekly stats
+      dynamic expensesResponse;
+      try {
+        expensesResponse = await client
+            .from(AppConstants.expensesTable)
+            .select('user_id, amount, currency, expense_date');
+      } catch (_) {
+        // Fallback if currency column doesn't exist yet
+        try {
+          expensesResponse = await client
+              .from(AppConstants.expensesTable)
+              .select('user_id, amount, expense_date');
+        } catch (_) {
+          expensesResponse = [];
+        }
+      }
 
       final userTotals = <String, double>{};
       final userCounts = <String, int>{};
       final userLastDate = <String, DateTime>{};
+      final userWeeklySpentEgp = <String, double>{};
+      final userWeeklySpentUsd = <String, double>{};
+
+      // Determine this week range (Monday to Sunday)
+      final now = DateTime.now();
+      final monday = DateTime(now.year, now.month, now.day)
+          .subtract(Duration(days: now.weekday - DateTime.monday));
+      final sunday = monday.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
 
       for (final item in (expensesResponse as List<dynamic>)) {
         final userId = item['user_id'] as String?;
@@ -208,6 +228,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         final amount = rawAmount is num
             ? rawAmount.toDouble()
             : double.tryParse(rawAmount?.toString() ?? '0') ?? 0.0;
+        final curr = item['currency'] as String? ?? 'EGP';
 
         userTotals[userId] = (userTotals[userId] ?? 0.0) + amount;
         userCounts[userId] = (userCounts[userId] ?? 0) + 1;
@@ -220,8 +241,76 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
             if (currentLast == null || parsedDate.isAfter(currentLast)) {
               userLastDate[userId] = parsedDate;
             }
+
+            final expDay = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+            final mDay = DateTime(monday.year, monday.month, monday.day);
+            final sDay = DateTime(sunday.year, sunday.month, sunday.day);
+            if (!expDay.isBefore(mDay) && !expDay.isAfter(sDay)) {
+              if (curr == 'USD') {
+                userWeeklySpentUsd[userId] = (userWeeklySpentUsd[userId] ?? 0.0) + amount;
+              } else {
+                userWeeklySpentEgp[userId] = (userWeeklySpentEgp[userId] ?? 0.0) + amount;
+              }
+            }
           }
         }
+      }
+
+      // 3. Fetch all salary advances to aggregate advances per employee
+      final userAdvances = <String, double>{};
+      try {
+        final advancesResponse = await client
+            .from(AppConstants.salaryAdvancesTable)
+            .select('user_id, amount');
+
+        for (final item in (advancesResponse as List<dynamic>)) {
+          final userId = item['user_id'] as String?;
+          if (userId == null) continue;
+
+          final rawAmount = item['amount'];
+          final amount = rawAmount is num
+              ? rawAmount.toDouble()
+              : double.tryParse(rawAmount?.toString() ?? '0') ?? 0.0;
+
+          userAdvances[userId] = (userAdvances[userId] ?? 0.0) + amount;
+        }
+      } catch (_) {
+        // Table might not exist yet during migration tests
+      }
+
+      // 4. Fetch this week allowance transactions to aggregate weekly received
+      final userWeeklyReceivedEgp = <String, double>{};
+      final userWeeklyReceivedUsd = <String, double>{};
+      try {
+        final monStr =
+            '${monday.year.toString().padLeft(4, '0')}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
+        final sunStr =
+            '${sunday.year.toString().padLeft(4, '0')}-${sunday.month.toString().padLeft(2, '0')}-${sunday.day.toString().padLeft(2, '0')}';
+
+        final allowanceResponse = await client
+            .from(AppConstants.allowanceTransactionsTable)
+            .select('user_id, amount, currency, transaction_date')
+            .gte('transaction_date', monStr)
+            .lte('transaction_date', sunStr);
+
+        for (final item in (allowanceResponse as List<dynamic>)) {
+          final userId = item['user_id'] as String?;
+          if (userId == null) continue;
+
+          final rawAmount = item['amount'];
+          final amount = rawAmount is num
+              ? rawAmount.toDouble()
+              : double.tryParse(rawAmount?.toString() ?? '0') ?? 0.0;
+          final curr = item['currency'] as String? ?? 'EGP';
+
+          if (curr == 'USD') {
+            userWeeklyReceivedUsd[userId] = (userWeeklyReceivedUsd[userId] ?? 0.0) + amount;
+          } else {
+            userWeeklyReceivedEgp[userId] = (userWeeklyReceivedEgp[userId] ?? 0.0) + amount;
+          }
+        }
+      } catch (_) {
+        // Table might not exist yet
       }
 
       return profiles.map((profile) {
@@ -230,6 +319,11 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
           totalExpenses: userTotals[profile.id] ?? 0.0,
           expensesCount: userCounts[profile.id] ?? 0,
           lastExpenseDate: userLastDate[profile.id],
+          totalAdvances: userAdvances[profile.id] ?? 0.0,
+          weeklyReceivedEgp: userWeeklyReceivedEgp[profile.id] ?? 0.0,
+          weeklySpentEgp: userWeeklySpentEgp[profile.id] ?? 0.0,
+          weeklyReceivedUsd: userWeeklyReceivedUsd[profile.id] ?? 0.0,
+          weeklySpentUsd: userWeeklySpentUsd[profile.id] ?? 0.0,
         );
       }).toList();
     } catch (e) {

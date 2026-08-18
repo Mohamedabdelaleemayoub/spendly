@@ -708,4 +708,247 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filterDateRange => 'Custom Date Range';
+
+  @override
+  String get currencyLabel => 'Currency';
+
+  @override
+  String get currencyEgp => 'Egyptian Pound (EGP)';
+
+  @override
+  String get currencyUsd => 'US Dollar (USD)';
+
+  @override
+  String get currencyEgpShort => 'EGP';
+
+  @override
+  String get currencyUsdShort => 'USD';
+
+  @override
+  String get availableBalanceEgp => 'Available Balance (EGP)';
+
+  @override
+  String get availableBalanceUsd => 'Available Balance (USD)';
+
+  @override
+  String get totalReceivedEgp => 'Received (EGP)';
+
+  @override
+  String get totalReceivedUsd => 'Received (USD)';
+
+  @override
+  String get totalSpentEgp => 'Spent (EGP)';
+
+  @override
+  String get totalSpentUsd => 'Spent (USD)';
+
+  @override
+  String get tripLocationLabel => 'Trip Location';
+
+  @override
+  String get insideCairo => 'Inside Cairo';
+
+  @override
+  String get outsideCairo => 'Outside Cairo';
+
+  @override
+  String get governorateLabel => 'Governorate';
+
+  @override
+  String get selectGovernorate => 'Select Governorate';
+
+  @override
+  String get governorateRequired =>
+      'Governorate is required for trips outside Cairo.';
+
+  @override
+  String get travelStatistics => 'Travel & Trip Statistics';
+
+  @override
+  String get totalTrips => 'Total Trips';
+
+  @override
+  String get insideCairoTrips => 'Inside Cairo Trips';
+
+  @override
+  String get outsideCairoTrips => 'Outside Cairo Trips';
+
+  @override
+  String get governorateBreakdown => 'Governorate Breakdown';
+
+  @override
+  String get travelBonus => 'Travel Bonus';
+
+  @override
+  String get travelBonusSettings => 'Travel Bonus Settings';
+
+  @override
+  String get travelBonusSettingsDesc =>
+      'Configure bonus for employee trips outside Cairo';
+
+  @override
+  String get bonusPerTrip => 'Bonus per Trip';
+
+  @override
+  String get potentialBonus => 'Potential Bonus';
+
+  @override
+  String get travelActivity => 'Travel Activity';
+
+  @override
+  String get topTraveler => 'Top Outside-Cairo Traveler';
+
+  @override
+  String get tripsCountUnit => 'trips';
+
+  @override
+  String get noTravelActivity => 'No travel activity recorded for this period';
+
+  @override
+  String get salary => 'Salary';
+
+  @override
+  String get monthlySalary => 'Monthly Salary';
+
+  @override
+  String get salaryAdvance => 'Salary Advance';
+
+  @override
+  String get salaryAdvances => 'Salary Advances';
+
+  @override
+  String get totalAdvances => 'Total Advances';
+
+  @override
+  String get remainingSalary => 'Remaining Salary';
+
+  @override
+  String get addSalaryAdvance => 'Add Advance';
+
+  @override
+  String get editSalaryAdvance => 'Edit Advance';
+
+  @override
+  String get deleteSalaryAdvance => 'Delete Advance';
+
+  @override
+  String get deleteSalaryAdvanceConfirm =>
+      'Are you sure you want to delete this salary advance?';
+
+  @override
+  String get advanceDate => 'Advance Date';
+
+  @override
+  String get advanceReason => 'Reason';
+
+  @override
+  String get advanceReasonHint => 'e.g., Emergency, Personal expense...';
+
+  @override
+  String get editSalary => 'Edit Salary';
+
+  @override
+  String get salaryAmount => 'Salary Amount';
+
+  @override
+  String get salaryUpdatedSuccess => 'Employee salary updated successfully';
+
+  @override
+  String get advanceAddedSuccess => 'Salary advance recorded successfully';
+
+  @override
+  String get advanceUpdatedSuccess => 'Salary advance updated successfully';
+
+  @override
+  String get advanceDeletedSuccess => 'Salary advance deleted successfully';
+
+  @override
+  String get salariesOverview => 'Salaries & Advances Overview';
+
+  @override
+  String get totalSalaries => 'Total Salaries';
+
+  @override
+  String get totalRemainingSalaries => 'Total Remaining';
+
+  @override
+  String get noSalaryAdvancesYet => 'No salary advances recorded yet';
+
+  @override
+  String get advanceCreatedBy => 'Recorded by';
+
+  @override
+  String get weeklyWorkBudget => 'Weekly Work Budget';
+
+  @override
+  String get weeklyAllowance => 'Weekly Allowance';
+
+  @override
+  String get workAllowance => 'Work Allowance';
+
+  @override
+  String get receivedThisWeek => 'Received This Week';
+
+  @override
+  String get spentThisWeek => 'Spent This Week';
+
+  @override
+  String get remainingThisWeek => 'Remaining This Week';
+
+  @override
+  String get addAllowance => 'Add Allowance';
+
+  @override
+  String get editAllowance => 'Edit Allowance';
+
+  @override
+  String get deleteAllowance => 'Delete Allowance';
+
+  @override
+  String get deleteAllowanceConfirm =>
+      'Are you sure you want to delete this allowance transaction?';
+
+  @override
+  String get allowanceDateLabel => 'Allowance Date';
+
+  @override
+  String get allowanceReasonLabel => 'Reason';
+
+  @override
+  String get allowanceReasonHint =>
+      'e.g., Weekly work budget, Project expenses...';
+
+  @override
+  String get thisWeek => 'This Week';
+
+  @override
+  String get previousWeek => 'Previous Week';
+
+  @override
+  String get nextWeek => 'Next Week';
+
+  @override
+  String get totalReceivedWeekly => 'Total Received';
+
+  @override
+  String get totalSpentWeekly => 'Total Spent';
+
+  @override
+  String get totalRemainingWeekly => 'Total Remaining';
+
+  @override
+  String get allowanceAddedSuccess => 'Work allowance recorded successfully';
+
+  @override
+  String get allowanceUpdatedSuccess => 'Work allowance updated successfully';
+
+  @override
+  String get allowanceDeletedSuccess => 'Work allowance deleted successfully';
+
+  @override
+  String get noAllowanceTransactionsYet =>
+      'No allowance transactions recorded for this period';
+
+  @override
+  String get weeklyAllowanceTransactions => 'Allowance Transactions';
 }

@@ -9,7 +9,11 @@ import 'package:spendly/domain/entities/admin_notification.dart';
 import 'package:spendly/domain/entities/category.dart';
 import 'package:spendly/domain/entities/employee_summary.dart';
 import 'package:spendly/domain/entities/expense.dart';
+import 'package:spendly/domain/entities/expense_currency.dart';
+import 'package:spendly/domain/entities/governorate.dart';
 import 'package:spendly/domain/entities/profile.dart';
+import 'package:spendly/domain/entities/travel_bonus_settings.dart';
+import 'package:spendly/domain/entities/trip_location_type.dart';
 import 'package:spendly/domain/repositories/auth_repository.dart';
 import 'package:spendly/domain/repositories/category_repository.dart';
 import 'package:spendly/domain/repositories/expense_repository.dart';
@@ -64,6 +68,7 @@ class MockAuthRepository implements AuthRepository {
 
 class MockSettingsRepository implements SettingsRepository {
   bool requireApproval = false;
+  TravelBonusSettings travelBonus = const TravelBonusSettings();
 
   @override
   Future<bool> getRequireAdminApproval() async => requireApproval;
@@ -71,6 +76,14 @@ class MockSettingsRepository implements SettingsRepository {
   @override
   Future<void> setRequireAdminApproval(bool enabled) async {
     requireApproval = enabled;
+  }
+
+  @override
+  Future<TravelBonusSettings> getTravelBonusSettings() async => travelBonus;
+
+  @override
+  Future<void> setTravelBonusSettings(TravelBonusSettings settings) async {
+    travelBonus = settings;
   }
 }
 
@@ -157,6 +170,9 @@ class MockDashboardExpenseRepository implements ExpenseRepository {
     DateTime? endDate,
     String? categoryId,
     String? userId,
+    ExpenseCurrency? currency,
+    TripLocationType? tripLocationType,
+    Governorate? governorate,
     String? paymentMethod,
     String? searchQuery,
   }) async => monthExpenses;
@@ -168,6 +184,9 @@ class MockDashboardExpenseRepository implements ExpenseRepository {
   Future<Expense> createExpense({
     String title = '',
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
+    TripLocationType tripLocationType = TripLocationType.cairo,
+    Governorate governorate = Governorate.cairo,
     required String paymentMethod,
     required DateTime expenseDate,
     String? categoryId,
@@ -180,6 +199,9 @@ class MockDashboardExpenseRepository implements ExpenseRepository {
     required String id,
     String title = '',
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
+    TripLocationType tripLocationType = TripLocationType.cairo,
+    Governorate governorate = Governorate.cairo,
     required String paymentMethod,
     required DateTime expenseDate,
     String? categoryId,
@@ -192,7 +214,7 @@ class MockDashboardExpenseRepository implements ExpenseRepository {
   Future<void> deleteExpense(String id) async {}
 
   @override
-  Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId}) async => monthExpenses;
+  Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId, ExpenseCurrency? currency}) async => monthExpenses;
 
   @override
   Future<int> syncPendingExpenses({String? userId}) async => 0;

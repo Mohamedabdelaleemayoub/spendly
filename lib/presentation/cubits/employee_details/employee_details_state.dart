@@ -1,6 +1,11 @@
 import 'package:equatable/equatable.dart';
+import '../../../domain/entities/employee_travel_stats.dart';
 import '../../../domain/entities/expense.dart';
+import '../../../domain/entities/expense_currency.dart';
+import '../../../domain/entities/governorate.dart';
 import '../../../domain/entities/profile.dart';
+import '../../../domain/entities/travel_bonus_settings.dart';
+import '../../../domain/entities/trip_location_type.dart';
 
 sealed class EmployeeDetailsState extends Equatable {
   const EmployeeDetailsState();
@@ -21,11 +26,19 @@ class EmployeeDetailsLoaded extends EmployeeDetailsState {
   const EmployeeDetailsLoaded({
     required this.profile,
     required this.expenses,
-    required this.totalExpenses,
+    required this.totalExpensesEgp,
+    required this.totalExpensesUsd,
     required this.expensesCount,
-    required this.thisMonthExpenses,
-    required this.todayExpenses,
+    required this.thisMonthExpensesEgp,
+    required this.thisMonthExpensesUsd,
+    required this.todayExpensesEgp,
+    required this.todayExpensesUsd,
+    required this.travelStats,
+    this.travelBonusSettings = const TravelBonusSettings(),
     this.searchQuery = '',
+    this.selectedCurrency,
+    this.selectedTripLocationType,
+    this.selectedGovernorate,
     this.selectedCategoryId,
     this.selectedPaymentMethod,
     this.selectedStartDate,
@@ -35,13 +48,26 @@ class EmployeeDetailsLoaded extends EmployeeDetailsState {
 
   final Profile profile;
   final List<Expense> expenses;
-  final double totalExpenses;
+  final double totalExpensesEgp;
+  final double totalExpensesUsd;
   final int expensesCount;
-  final double thisMonthExpenses;
-  final double todayExpenses;
+  final double thisMonthExpensesEgp;
+  final double thisMonthExpensesUsd;
+  final double todayExpensesEgp;
+  final double todayExpensesUsd;
+  final EmployeeTravelStats travelStats;
+  final TravelBonusSettings travelBonusSettings;
+
+  // Backward-compatibility getters (defaulting to EGP)
+  double get totalExpenses => totalExpensesEgp;
+  double get thisMonthExpenses => thisMonthExpensesEgp;
+  double get todayExpenses => todayExpensesEgp;
 
   // Filter state
   final String searchQuery;
+  final ExpenseCurrency? selectedCurrency;
+  final TripLocationType? selectedTripLocationType;
+  final Governorate? selectedGovernorate;
   final String? selectedCategoryId;
   final String? selectedPaymentMethod;
   final DateTime? selectedStartDate;
@@ -50,6 +76,9 @@ class EmployeeDetailsLoaded extends EmployeeDetailsState {
 
   bool get hasActiveFilters =>
       searchQuery.isNotEmpty ||
+      selectedCurrency != null ||
+      selectedTripLocationType != null ||
+      selectedGovernorate != null ||
       selectedCategoryId != null ||
       selectedPaymentMethod != null ||
       selectedStartDate != null ||
@@ -58,11 +87,19 @@ class EmployeeDetailsLoaded extends EmployeeDetailsState {
   EmployeeDetailsLoaded copyWith({
     Profile? profile,
     List<Expense>? expenses,
-    double? totalExpenses,
+    double? totalExpensesEgp,
+    double? totalExpensesUsd,
     int? expensesCount,
-    double? thisMonthExpenses,
-    double? todayExpenses,
+    double? thisMonthExpensesEgp,
+    double? thisMonthExpensesUsd,
+    double? todayExpensesEgp,
+    double? todayExpensesUsd,
+    EmployeeTravelStats? travelStats,
+    TravelBonusSettings? travelBonusSettings,
     String? searchQuery,
+    ExpenseCurrency? selectedCurrency,
+    TripLocationType? selectedTripLocationType,
+    Governorate? selectedGovernorate,
     String? selectedCategoryId,
     String? selectedPaymentMethod,
     DateTime? selectedStartDate,
@@ -72,11 +109,19 @@ class EmployeeDetailsLoaded extends EmployeeDetailsState {
     return EmployeeDetailsLoaded(
       profile: profile ?? this.profile,
       expenses: expenses ?? this.expenses,
-      totalExpenses: totalExpenses ?? this.totalExpenses,
+      totalExpensesEgp: totalExpensesEgp ?? this.totalExpensesEgp,
+      totalExpensesUsd: totalExpensesUsd ?? this.totalExpensesUsd,
       expensesCount: expensesCount ?? this.expensesCount,
-      thisMonthExpenses: thisMonthExpenses ?? this.thisMonthExpenses,
-      todayExpenses: todayExpenses ?? this.todayExpenses,
+      thisMonthExpensesEgp: thisMonthExpensesEgp ?? this.thisMonthExpensesEgp,
+      thisMonthExpensesUsd: thisMonthExpensesUsd ?? this.thisMonthExpensesUsd,
+      todayExpensesEgp: todayExpensesEgp ?? this.todayExpensesEgp,
+      todayExpensesUsd: todayExpensesUsd ?? this.todayExpensesUsd,
+      travelStats: travelStats ?? this.travelStats,
+      travelBonusSettings: travelBonusSettings ?? this.travelBonusSettings,
       searchQuery: searchQuery ?? this.searchQuery,
+      selectedCurrency: selectedCurrency,
+      selectedTripLocationType: selectedTripLocationType,
+      selectedGovernorate: selectedGovernorate,
       selectedCategoryId: selectedCategoryId,
       selectedPaymentMethod: selectedPaymentMethod,
       selectedStartDate: selectedStartDate,
@@ -89,11 +134,19 @@ class EmployeeDetailsLoaded extends EmployeeDetailsState {
   List<Object?> get props => [
         profile,
         expenses,
-        totalExpenses,
+        totalExpensesEgp,
+        totalExpensesUsd,
         expensesCount,
-        thisMonthExpenses,
-        todayExpenses,
+        thisMonthExpensesEgp,
+        thisMonthExpensesUsd,
+        todayExpensesEgp,
+        todayExpensesUsd,
+        travelStats,
+        travelBonusSettings,
         searchQuery,
+        selectedCurrency,
+        selectedTripLocationType,
+        selectedGovernorate,
         selectedCategoryId,
         selectedPaymentMethod,
         selectedStartDate,

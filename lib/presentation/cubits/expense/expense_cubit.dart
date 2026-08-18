@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/errors/app_failure.dart';
 import '../../../domain/entities/expense.dart';
+import '../../../domain/entities/expense_currency.dart';
+import '../../../domain/entities/governorate.dart';
+import '../../../domain/entities/trip_location_type.dart';
 import '../../../domain/repositories/expense_repository.dart';
 import 'expense_state.dart';
 
@@ -24,6 +27,9 @@ class ExpenseCubit extends Cubit<ExpenseState> {
   bool _hasMore = true;
   String? _selectedCategory;
   String? _selectedUserId;
+  ExpenseCurrency? _selectedCurrency;
+  TripLocationType? _selectedTripLocationType;
+  Governorate? _selectedGovernorate;
   String? _searchQuery;
   DateTime? _startDate;
   DateTime? _endDate;
@@ -32,6 +38,9 @@ class ExpenseCubit extends Cubit<ExpenseState> {
     bool refresh = false,
     String? categoryId,
     String? userId,
+    ExpenseCurrency? currency,
+    TripLocationType? tripLocationType,
+    Governorate? governorate,
     String? searchQuery,
     DateTime? startDate,
     DateTime? endDate,
@@ -42,6 +51,9 @@ class ExpenseCubit extends Cubit<ExpenseState> {
       _hasMore = true;
       _selectedCategory = categoryId;
       _selectedUserId = userId;
+      _selectedCurrency = currency;
+      _selectedTripLocationType = tripLocationType;
+      _selectedGovernorate = governorate;
       _searchQuery = searchQuery;
       _startDate = startDate;
       _endDate = endDate;
@@ -60,6 +72,9 @@ class ExpenseCubit extends Cubit<ExpenseState> {
         pageSize: AppConstants.pageSize,
         categoryId: _selectedCategory,
         userId: _selectedUserId,
+        currency: _selectedCurrency,
+        tripLocationType: _selectedTripLocationType,
+        governorate: _selectedGovernorate,
         searchQuery: _searchQuery,
         startDate: _startDate,
         endDate: _endDate,
@@ -112,6 +127,9 @@ class ExpenseCubit extends Cubit<ExpenseState> {
   Future<bool> createExpense({
     String title = '',
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
+    TripLocationType tripLocationType = TripLocationType.cairo,
+    Governorate governorate = Governorate.cairo,
     required String paymentMethod,
     required DateTime expenseDate,
     String? categoryId,
@@ -123,6 +141,9 @@ class ExpenseCubit extends Cubit<ExpenseState> {
       final newExpense = await expenseRepository.createExpense(
         title: title,
         amount: amount,
+        currency: currency,
+        tripLocationType: tripLocationType,
+        governorate: governorate,
         paymentMethod: paymentMethod,
         expenseDate: expenseDate,
         categoryId: categoryId,
@@ -169,6 +190,9 @@ class ExpenseCubit extends Cubit<ExpenseState> {
     required String id,
     String title = '',
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
+    TripLocationType tripLocationType = TripLocationType.cairo,
+    Governorate governorate = Governorate.cairo,
     required String paymentMethod,
     required DateTime expenseDate,
     String? categoryId,
@@ -182,6 +206,9 @@ class ExpenseCubit extends Cubit<ExpenseState> {
         id: id,
         title: title,
         amount: amount,
+        currency: currency,
+        tripLocationType: tripLocationType,
+        governorate: governorate,
         paymentMethod: paymentMethod,
         expenseDate: expenseDate,
         categoryId: categoryId,

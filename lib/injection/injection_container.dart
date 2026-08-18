@@ -11,21 +11,27 @@ import '../data/datasources/expense_remote_datasource.dart';
 import '../data/datasources/local_expense_datasource.dart';
 import '../data/datasources/notification_remote_datasource.dart';
 import '../data/datasources/profile_remote_datasource.dart';
+import '../data/datasources/salary_advance_remote_datasource.dart';
 import '../data/datasources/settings_remote_datasource.dart';
+import '../data/datasources/weekly_allowance_remote_datasource.dart';
 import '../data/repositories/auth_repository_impl.dart';
 import '../data/repositories/balance_repository_impl.dart';
 import '../data/repositories/category_repository_impl.dart';
 import '../data/repositories/expense_repository_impl.dart';
 import '../data/repositories/notification_repository_impl.dart';
 import '../data/repositories/profile_repository_impl.dart';
+import '../data/repositories/salary_advance_repository_impl.dart';
 import '../data/repositories/settings_repository_impl.dart';
+import '../data/repositories/weekly_allowance_repository_impl.dart';
 import '../domain/repositories/auth_repository.dart';
 import '../domain/repositories/balance_repository.dart';
 import '../domain/repositories/category_repository.dart';
 import '../domain/repositories/expense_repository.dart';
 import '../domain/repositories/notification_repository.dart';
 import '../domain/repositories/profile_repository.dart';
+import '../domain/repositories/salary_advance_repository.dart';
 import '../domain/repositories/settings_repository.dart';
+import '../domain/repositories/weekly_allowance_repository.dart';
 import '../presentation/cubits/auth/auth_cubit.dart';
 import '../presentation/cubits/balance/admin_balance_cubit.dart';
 import '../presentation/cubits/balance/employee_balance_cubit.dart';
@@ -37,8 +43,10 @@ import '../presentation/cubits/expense/expense_cubit.dart';
 import '../presentation/cubits/notifications/admin_notification_cubit.dart';
 import '../presentation/cubits/profile/profile_cubit.dart';
 import '../presentation/cubits/report/report_cubit.dart';
+import '../presentation/cubits/salary_advances/salary_advances_cubit.dart';
 import '../presentation/cubits/settings/admin_settings_cubit.dart';
 import '../presentation/cubits/settings/settings_cubit.dart';
+import '../presentation/cubits/weekly_allowance/weekly_allowance_cubit.dart';
 
 /// Global service locator instance.
 final GetIt sl = GetIt.instance;
@@ -120,6 +128,18 @@ Future<void> initDependencies() async {
       expenseRepository: sl(),
     ),
   );
+  sl.registerLazySingleton<SalaryAdvanceRemoteDataSource>(
+    () => SalaryAdvanceRemoteDataSourceImpl(client: sl()),
+  );
+  sl.registerLazySingleton<SalaryAdvanceRepository>(
+    () => SalaryAdvanceRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton<WeeklyAllowanceRemoteDataSource>(
+    () => WeeklyAllowanceRemoteDataSourceImpl(client: sl()),
+  );
+  sl.registerLazySingleton<WeeklyAllowanceRepository>(
+    () => WeeklyAllowanceRepositoryImpl(remoteDataSource: sl()),
+  );
 
   // ── Cubits / State Management ─────────────────────────────────────────
   sl.registerLazySingleton<SettingsCubit>(
@@ -139,6 +159,17 @@ Future<void> initDependencies() async {
   );
   sl.registerFactory<AdminBalanceCubit>(
     () => AdminBalanceCubit(balanceRepository: sl()),
+  );
+  sl.registerFactory<SalaryAdvancesCubit>(
+    () => SalaryAdvancesCubit(
+      salaryAdvanceRepository: sl(),
+      profileRepository: sl(),
+    ),
+  );
+  sl.registerFactory<WeeklyAllowanceCubit>(
+    () => WeeklyAllowanceCubit(
+      weeklyAllowanceRepository: sl(),
+    ),
   );
   sl.registerLazySingleton<AuthCubit>(
     () => AuthCubit(
@@ -180,6 +211,7 @@ Future<void> initDependencies() async {
     () => EmployeeDetailsCubit(
       expenseRepository: sl(),
       profileRepository: sl(),
+      settingsRepository: sl(),
     ),
   );
 }

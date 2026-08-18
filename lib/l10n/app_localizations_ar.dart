@@ -701,4 +701,246 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get filterDateRange => 'تحديد فترة';
+
+  @override
+  String get currencyLabel => 'العملة';
+
+  @override
+  String get currencyEgp => 'جنيه مصري (EGP)';
+
+  @override
+  String get currencyUsd => 'دولار أمريكي (USD)';
+
+  @override
+  String get currencyEgpShort => 'ج.م';
+
+  @override
+  String get currencyUsdShort => '\$';
+
+  @override
+  String get availableBalanceEgp => 'الرصيد المتاح (EGP)';
+
+  @override
+  String get availableBalanceUsd => 'الرصيد المتاح (USD)';
+
+  @override
+  String get totalReceivedEgp => 'المستلم (EGP)';
+
+  @override
+  String get totalReceivedUsd => 'المستلم (USD)';
+
+  @override
+  String get totalSpentEgp => 'المصروف (EGP)';
+
+  @override
+  String get totalSpentUsd => 'المصروف (USD)';
+
+  @override
+  String get tripLocationLabel => 'موقع المشوار';
+
+  @override
+  String get insideCairo => 'داخل القاهرة';
+
+  @override
+  String get outsideCairo => 'خارج القاهرة';
+
+  @override
+  String get governorateLabel => 'المحافظة';
+
+  @override
+  String get selectGovernorate => 'اختر المحافظة';
+
+  @override
+  String get governorateRequired =>
+      'يجب اختيار المحافظة للمشاوير خارج القاهرة.';
+
+  @override
+  String get travelStatistics => 'إحصائيات المشاوير والسفر';
+
+  @override
+  String get totalTrips => 'إجمالي المشاوير';
+
+  @override
+  String get insideCairoTrips => 'مشاوير داخل القاهرة';
+
+  @override
+  String get outsideCairoTrips => 'مشاوير خارج القاهرة';
+
+  @override
+  String get governorateBreakdown => 'توزيع المحافظات';
+
+  @override
+  String get travelBonus => 'بدل السفر والمشاوير';
+
+  @override
+  String get travelBonusSettings => 'إعدادات بدل السفر';
+
+  @override
+  String get travelBonusSettingsDesc =>
+      'ضبط مكافأة وبدل المشاوير خارج القاهرة للموظفين';
+
+  @override
+  String get bonusPerTrip => 'المكافأة لكل مشوار';
+
+  @override
+  String get potentialBonus => 'المكافأة المستحقة التقديرية';
+
+  @override
+  String get travelActivity => 'نشاط المشاوير والسفر';
+
+  @override
+  String get topTraveler => 'الأكثر سفراً خارج القاهرة';
+
+  @override
+  String get tripsCountUnit => 'مشاوير';
+
+  @override
+  String get noTravelActivity => 'لا يوجد نشاط مشاوير مسجل لهذه الفترة';
+
+  @override
+  String get salary => 'المرتب';
+
+  @override
+  String get monthlySalary => 'المرتب الشهري';
+
+  @override
+  String get salaryAdvance => 'السلفة';
+
+  @override
+  String get salaryAdvances => 'السلف';
+
+  @override
+  String get totalAdvances => 'إجمالي السلف';
+
+  @override
+  String get remainingSalary => 'المتبقي من المرتب';
+
+  @override
+  String get addSalaryAdvance => 'إضافة سلفة';
+
+  @override
+  String get editSalaryAdvance => 'تعديل السلفة';
+
+  @override
+  String get deleteSalaryAdvance => 'حذف السلفة';
+
+  @override
+  String get deleteSalaryAdvanceConfirm =>
+      'هل أنت متأكد من رغبتك في حذف هذه السلفة؟';
+
+  @override
+  String get advanceDate => 'تاريخ السلفة';
+
+  @override
+  String get advanceReason => 'سبب السلفة';
+
+  @override
+  String get advanceReasonHint => 'مثال: مصاريف طارئة، شخصية...';
+
+  @override
+  String get editSalary => 'تعديل المرتب';
+
+  @override
+  String get salaryAmount => 'قيمة المرتب';
+
+  @override
+  String get salaryUpdatedSuccess => 'تم تحديث راتب الموظف بنجاح';
+
+  @override
+  String get advanceAddedSuccess => 'تمت إضافة السلفة بنجاح';
+
+  @override
+  String get advanceUpdatedSuccess => 'تم تعديل السلفة بنجاح';
+
+  @override
+  String get advanceDeletedSuccess => 'تم حذف السلفة بنجاح';
+
+  @override
+  String get salariesOverview => 'نظرة عامة على المرتبات والسلف';
+
+  @override
+  String get totalSalaries => 'إجمالي المرتبات';
+
+  @override
+  String get totalRemainingSalaries => 'إجمالي المتبقي';
+
+  @override
+  String get noSalaryAdvancesYet => 'لا توجد سلف مسجلة حتى الآن';
+
+  @override
+  String get advanceCreatedBy => 'سجلت بواسطة';
+
+  @override
+  String get weeklyWorkBudget => 'ميزانية العمل الأسبوعية';
+
+  @override
+  String get weeklyAllowance => 'العهدة الأسبوعية';
+
+  @override
+  String get workAllowance => 'بدل العمل';
+
+  @override
+  String get receivedThisWeek => 'المستلم هذا الأسبوع';
+
+  @override
+  String get spentThisWeek => 'المصروف هذا الأسبوع';
+
+  @override
+  String get remainingThisWeek => 'المتبقي هذا الأسبوع';
+
+  @override
+  String get addAllowance => 'إضافة عهدة';
+
+  @override
+  String get editAllowance => 'تعديل العهدة';
+
+  @override
+  String get deleteAllowance => 'حذف العهدة';
+
+  @override
+  String get deleteAllowanceConfirm =>
+      'هل أنت متأكد من رغبتك في حذف حركة العهدة هذه؟';
+
+  @override
+  String get allowanceDateLabel => 'تاريخ العهدة';
+
+  @override
+  String get allowanceReasonLabel => 'سبب العهدة';
+
+  @override
+  String get allowanceReasonHint => 'مثال: عهدة أسبوعية، مصروفات عمل...';
+
+  @override
+  String get thisWeek => 'هذا الأسبوع';
+
+  @override
+  String get previousWeek => 'الأسبوع السابق';
+
+  @override
+  String get nextWeek => 'الأسبوع القادم';
+
+  @override
+  String get totalReceivedWeekly => 'إجمالي المستلم';
+
+  @override
+  String get totalSpentWeekly => 'إجمالي المصروف';
+
+  @override
+  String get totalRemainingWeekly => 'إجمالي المتبقي';
+
+  @override
+  String get allowanceAddedSuccess => 'تم تسجيل العهدة بنجاح';
+
+  @override
+  String get allowanceUpdatedSuccess => 'تم تعديل العهدة بنجاح';
+
+  @override
+  String get allowanceDeletedSuccess => 'تم حذف العهدة بنجاح';
+
+  @override
+  String get noAllowanceTransactionsYet =>
+      'لا توجد حركات عهد مسجلة لهذه الفترة';
+
+  @override
+  String get weeklyAllowanceTransactions => 'حركات العهد';
 }

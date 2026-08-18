@@ -1,3 +1,4 @@
+import '../../domain/entities/expense_currency.dart';
 import '../../domain/entities/profile.dart';
 
 class ProfileModel extends Profile {
@@ -8,11 +9,21 @@ class ProfileModel extends Profile {
     super.role = 'employee',
     super.status = 'active',
     super.avatarUrl,
+    super.salaryAmount = 0.0,
+    super.salaryCurrency = ExpenseCurrency.egp,
     super.createdAt,
     super.updatedAt,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    final rawSalary = json['salary_amount'];
+    final salary = rawSalary is num
+        ? rawSalary.toDouble()
+        : double.tryParse(rawSalary?.toString() ?? '0') ?? 0.0;
+
+    final currencyStr = json['salary_currency'] as String? ?? 'EGP';
+    final currency = ExpenseCurrency.fromString(currencyStr);
+
     return ProfileModel(
       id: json['id'] as String,
       name: json['full_name'] as String? ?? json['name'] as String? ?? 'مستخدم',
@@ -20,6 +31,8 @@ class ProfileModel extends Profile {
       role: json['role'] as String? ?? 'employee',
       status: json['status'] as String? ?? 'active',
       avatarUrl: json['avatar_url'] as String?,
+      salaryAmount: salary,
+      salaryCurrency: currency,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)?.toLocal()
           : null,
@@ -37,6 +50,8 @@ class ProfileModel extends Profile {
       'role': role,
       'status': status,
       'avatar_url': avatarUrl,
+      'salary_amount': salaryAmount,
+      'salary_currency': salaryCurrency.code,
     };
   }
 
@@ -48,6 +63,8 @@ class ProfileModel extends Profile {
       role: profile.role,
       status: profile.status,
       avatarUrl: profile.avatarUrl,
+      salaryAmount: profile.salaryAmount,
+      salaryCurrency: profile.salaryCurrency,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt,
     );

@@ -1,6 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/errors/app_failure.dart';
 import '../../../domain/entities/expense.dart';
+import '../../../domain/entities/expense_currency.dart';
+import '../../../domain/entities/profile.dart';
+import '../../../domain/entities/trip_location_type.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import '../../../domain/repositories/category_repository.dart';
 import '../../../domain/repositories/expense_repository.dart';
@@ -21,6 +24,7 @@ class DashboardCubit extends Cubit<DashboardState> {
   final AuthRepository authRepository;
 
   ExpenseSummaryPeriod _currentPeriod = ExpenseSummaryPeriod.month;
+  ExpenseCurrency _currentCurrency = ExpenseCurrency.egp;
 
   @override
   void emit(DashboardState state) {
@@ -36,11 +40,40 @@ class DashboardCubit extends Cubit<DashboardState> {
       final (categorySpending, employeeSpending) = _calculateBreakdown(
         expenses: currentState.allMonthExpenses,
         period: period,
+        currency: _currentCurrency,
         isAdmin: currentState.isAdmin,
+      );
+
+      final travelActivity = _calculateTravelActivity(
+        expenses: currentState.allMonthExpenses,
+        period: period,
       );
 
       emit(currentState.copyWith(
         period: period,
+        categorySpending: categorySpending,
+        employeeSpending: employeeSpending,
+        outsideCairoTripsCount: travelActivity.outsideCairoCount,
+        insideCairoTripsCount: travelActivity.insideCairoCount,
+        topTravelerName: travelActivity.topTravelerName,
+        topTravelerOutsideTrips: travelActivity.topTravelerCount,
+      ));
+    }
+  }
+
+  void changeCurrency(ExpenseCurrency currency) {
+    _currentCurrency = currency;
+    final currentState = state;
+    if (currentState is DashboardLoaded) {
+      final (categorySpending, employeeSpending) = _calculateBreakdown(
+        expenses: currentState.allMonthExpenses,
+        period: _currentPeriod,
+        currency: currency,
+        isAdmin: currentState.isAdmin,
+      );
+
+      emit(currentState.copyWith(
+        selectedCurrency: currency,
         categorySpending: categorySpending,
         employeeSpending: employeeSpending,
       ));
@@ -48,22 +81,19 @@ class DashboardCubit extends Cubit<DashboardState> {
   }
 
   DateTime _getStartOfWeek(DateTime date) {
-    // Saudi / Arab week starts Saturday (weekday 6 in ISO)
-    // Days since Saturday: (date.weekday + 1) % 7
     final daysSinceSaturday = (date.weekday + 1) % 7;
     return DateTime(date.year, date.month, date.day).subtract(Duration(days: daysSinceSaturday));
   }
 
-  (List<CategorySpending>, List<EmployeeSpending>) _calculateBreakdown({
+  _TravelSummary _calculateTravelActivity({
     required List<Expense> expenses,
     required ExpenseSummaryPeriod period,
-    required bool isAdmin,
   }) {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
     final weekStart = _getStartOfWeek(now);
 
-    final filtered = expenses.where((exp) {
+    final periodExpenses = expenses.where((exp) {
       final expDate = DateTime(exp.expenseDate.year, exp.expenseDate.month, exp.expenseDate.day);
       switch (period) {
         case ExpenseSummaryPeriod.today:
@@ -73,6 +103,65 @@ class DashboardCubit extends Cubit<DashboardState> {
         case ExpenseSummaryPeriod.month:
           return exp.expenseDate.year == now.year && exp.expenseDate.month == now.month;
       }
+    }).toList();
+
+    int inside = 0;
+    int outside = 0;
+    final Map<String, _TravelerCount> travelerMap = {};
+
+    for (final exp in periodExpenses) {
+      if (exp.tripLocationType == TripLocationType.outsideCairo) {
+        outside++;
+        final name = exp.profile?.name ?? 'موظف';
+        final traveler = travelerMap.putIfAbsent(exp.userId, () => _TravelerCount(name: name, count: 0));
+        traveler.count++;
+      } else {
+        inside++;
+      }
+    }
+
+    String? topName;
+    int topCount = 0;
+    for (final t in travelerMap.values) {
+      if (t.count > topCount) {
+        topCount = t.count;
+        topName = t.name;
+      }
+    }
+
+    return _TravelSummary(
+      insideCairoCount: inside,
+      outsideCairoCount: outside,
+      topTravelerName: topName,
+      topTravelerCount: topCount,
+    );
+  }
+
+  (List<CategorySpending>, List<EmployeeSpending>) _calculateBreakdown({
+    required List<Expense> expenses,
+    required ExpenseSummaryPeriod period,
+    required ExpenseCurrency currency,
+    required bool isAdmin,
+  }) {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final weekStart = _getStartOfWeek(now);
+
+    final filtered = expenses.where((exp) {
+      final expDate = DateTime(exp.expenseDate.year, exp.expenseDate.month, exp.expenseDate.day);
+      final bool dateMatches;
+      switch (period) {
+        case ExpenseSummaryPeriod.today:
+          dateMatches = expDate.isAtSameMomentAs(todayStart);
+          break;
+        case ExpenseSummaryPeriod.week:
+          dateMatches = !expDate.isBefore(weekStart) && !expDate.isAfter(todayStart);
+          break;
+        case ExpenseSummaryPeriod.month:
+          dateMatches = exp.expenseDate.year == now.year && exp.expenseDate.month == now.month;
+          break;
+      }
+      return dateMatches && exp.currency == currency;
     }).toList();
 
     double totalAmount = 0.0;
@@ -105,14 +194,19 @@ class DashboardCubit extends Cubit<DashboardState> {
         final empEmail = exp.profile?.email;
 
         if (empMap.containsKey(empId)) {
-          empMap[empId]!.amount += exp.amount;
+          if (exp.currency == ExpenseCurrency.usd) {
+            empMap[empId]!.amountUsd += exp.amount;
+          } else {
+            empMap[empId]!.amountEgp += exp.amount;
+          }
           empMap[empId]!.count += 1;
         } else {
           empMap[empId] = _EmployeeAggregate(
             userId: empId,
             name: empName,
             email: empEmail,
-            amount: exp.amount,
+            amountEgp: exp.currency == ExpenseCurrency.egp ? exp.amount : 0.0,
+            amountUsd: exp.currency == ExpenseCurrency.usd ? exp.amount : 0.0,
             count: 1,
           );
         }
@@ -124,6 +218,7 @@ class DashboardCubit extends Cubit<DashboardState> {
       return CategorySpending(
         name: aggr.name,
         amount: aggr.amount,
+        currency: currency,
         color: aggr.color,
         icon: aggr.icon,
         percentage: percentage,
@@ -131,18 +226,27 @@ class DashboardCubit extends Cubit<DashboardState> {
     }).toList()
       ..sort((a, b) => b.amount.compareTo(a.amount));
 
-    final employeeSpending = empMap.values.map((aggr) {
-      final percentage = totalAmount > 0 ? (aggr.amount / totalAmount) * 100 : 0.0;
-      return EmployeeSpending(
-        userId: aggr.userId,
-        name: aggr.name,
-        email: aggr.email,
-        amount: aggr.amount,
-        count: aggr.count,
-        percentage: percentage,
-      );
-    }).toList()
-      ..sort((a, b) => b.amount.compareTo(a.amount));
+    List<EmployeeSpending> employeeSpending = [];
+    if (isAdmin) {
+      employeeSpending = empMap.values.map((aggr) {
+        final relevantAmount = currency == ExpenseCurrency.usd ? aggr.amountUsd : aggr.amountEgp;
+        final percentage = totalAmount > 0 ? (relevantAmount / totalAmount) * 100 : 0.0;
+        return EmployeeSpending(
+          userId: aggr.userId,
+          name: aggr.name,
+          email: aggr.email,
+          amountEgp: aggr.amountEgp,
+          amountUsd: aggr.amountUsd,
+          count: aggr.count,
+          percentage: percentage,
+        );
+      }).toList()
+        ..sort((a, b) {
+          final amtA = currency == ExpenseCurrency.usd ? a.amountUsd : a.amountEgp;
+          final amtB = currency == ExpenseCurrency.usd ? b.amountUsd : b.amountEgp;
+          return amtB.compareTo(amtA);
+        });
+    }
 
     return (categorySpending, employeeSpending);
   }
@@ -151,20 +255,22 @@ class DashboardCubit extends Cubit<DashboardState> {
     emit(const DashboardLoading());
     try {
       final user = authRepository.currentUser;
-      if (user == null) {
-        emit(const DashboardError('المستخدم غير مسجل'));
-        return;
+      Profile? profile;
+      if (user != null) {
+        profile = await profileRepository.getProfile(user.id);
       }
-
-      final profile = await profileRepository.getProfile(user.id);
-      final bool isAdmin = profile?.isAdmin ?? false;
+      final isAdmin = profile?.isAdmin ?? false;
 
       final now = DateTime.now();
       final monthExpenses = await expenseRepository.getExpensesForMonth(now);
 
-      double totalThisMonth = 0.0;
-      double totalThisWeek = 0.0;
-      double totalToday = 0.0;
+      double totalThisMonthEgp = 0.0;
+      double totalThisWeekEgp = 0.0;
+      double totalTodayEgp = 0.0;
+
+      double totalThisMonthUsd = 0.0;
+      double totalThisWeekUsd = 0.0;
+      double totalTodayUsd = 0.0;
 
       int countThisMonth = 0;
       int countThisWeek = 0;
@@ -173,50 +279,84 @@ class DashboardCubit extends Cubit<DashboardState> {
       final todayStart = DateTime(now.year, now.month, now.day);
       final weekStart = _getStartOfWeek(now);
 
-      final Map<String, _EmployeeAggregate> empCountMap = {};
+      final Map<String, bool> empCountMap = {};
 
       for (final exp in monthExpenses) {
         final expDate = DateTime(exp.expenseDate.year, exp.expenseDate.month, exp.expenseDate.day);
+        final isEgp = exp.currency == ExpenseCurrency.egp;
 
         // Monthly
-        totalThisMonth += exp.amount;
+        if (isEgp) {
+          totalThisMonthEgp += exp.amount;
+        } else {
+          totalThisMonthUsd += exp.amount;
+        }
         countThisMonth++;
 
         // Today
         if (expDate.isAtSameMomentAs(todayStart)) {
-          totalToday += exp.amount;
+          if (isEgp) {
+            totalTodayEgp += exp.amount;
+          } else {
+            totalTodayUsd += exp.amount;
+          }
           countToday++;
         }
 
         // Week
         if (!expDate.isBefore(weekStart) && !expDate.isAfter(todayStart)) {
-          totalThisWeek += exp.amount;
+          if (isEgp) {
+            totalThisWeekEgp += exp.amount;
+          } else {
+            totalThisWeekUsd += exp.amount;
+          }
           countThisWeek++;
         }
 
         if (isAdmin) {
-          empCountMap[exp.userId] = _EmployeeAggregate(
-            userId: exp.userId,
-            name: exp.profile?.name ?? 'موظف',
-            email: exp.profile?.email,
-            amount: 0,
-            count: 0,
-          );
+          empCountMap[exp.userId] = true;
         }
       }
+
+      double totalSalariesEgp = 0.0;
+      double totalSalaryAdvancesEgp = 0.0;
+      double totalRemainingSalariesEgp = 0.0;
+
+      double weeklyReceivedEgp = 0.0;
+      double weeklySpentEgp = 0.0;
+      double weeklyReceivedUsd = 0.0;
+      double weeklySpentUsd = 0.0;
 
       int employeeCount = empCountMap.length;
       if (isAdmin) {
         try {
-          final allProfiles = await profileRepository.getEmployees();
-          employeeCount = allProfiles.length;
+          final empsWithStats = await profileRepository.getEmployeesWithStats();
+          employeeCount = empsWithStats.length;
+          for (final e in empsWithStats) {
+            if (e.profile.isActive) {
+              totalSalariesEgp += e.profile.salaryAmount;
+              totalSalaryAdvancesEgp += e.totalAdvances;
+              totalRemainingSalariesEgp += e.remainingSalary;
+
+              weeklyReceivedEgp += e.weeklyReceivedEgp;
+              weeklySpentEgp += e.weeklySpentEgp;
+              weeklyReceivedUsd += e.weeklyReceivedUsd;
+              weeklySpentUsd += e.weeklySpentUsd;
+            }
+          }
         } catch (_) {}
       }
 
       final (categorySpending, employeeSpending) = _calculateBreakdown(
         expenses: monthExpenses,
         period: _currentPeriod,
+        currency: _currentCurrency,
         isAdmin: isAdmin,
+      );
+
+      final travelActivity = _calculateTravelActivity(
+        expenses: monthExpenses,
+        period: _currentPeriod,
       );
 
       // Get recent 5 expenses
@@ -228,9 +368,13 @@ class DashboardCubit extends Cubit<DashboardState> {
       emit(DashboardLoaded(
         isAdmin: isAdmin,
         period: _currentPeriod,
-        totalToday: totalToday,
-        totalThisWeek: totalThisWeek,
-        totalThisMonth: totalThisMonth,
+        selectedCurrency: _currentCurrency,
+        totalTodayEgp: totalTodayEgp,
+        totalTodayUsd: totalTodayUsd,
+        totalThisWeekEgp: totalThisWeekEgp,
+        totalThisWeekUsd: totalThisWeekUsd,
+        totalThisMonthEgp: totalThisMonthEgp,
+        totalThisMonthUsd: totalThisMonthUsd,
         countToday: countToday,
         countThisWeek: countThisWeek,
         countThisMonth: countThisMonth,
@@ -239,6 +383,17 @@ class DashboardCubit extends Cubit<DashboardState> {
         categorySpending: categorySpending,
         employeeSpending: employeeSpending,
         allMonthExpenses: monthExpenses,
+        outsideCairoTripsCount: travelActivity.outsideCairoCount,
+        insideCairoTripsCount: travelActivity.insideCairoCount,
+        topTravelerName: travelActivity.topTravelerName,
+        topTravelerOutsideTrips: travelActivity.topTravelerCount,
+        totalSalariesEgp: totalSalariesEgp,
+        totalSalaryAdvancesEgp: totalSalaryAdvancesEgp,
+        totalRemainingSalariesEgp: totalRemainingSalariesEgp,
+        weeklyReceivedEgp: weeklyReceivedEgp,
+        weeklySpentEgp: weeklySpentEgp,
+        weeklyReceivedUsd: weeklyReceivedUsd,
+        weeklySpentUsd: weeklySpentUsd,
       ));
     } on Failure catch (e) {
       emit(DashboardError(e.message));
@@ -246,6 +401,26 @@ class DashboardCubit extends Cubit<DashboardState> {
       emit(DashboardError('فشل تحميل لوحة المعلومات: $e'));
     }
   }
+}
+
+class _TravelSummary {
+  _TravelSummary({
+    required this.insideCairoCount,
+    required this.outsideCairoCount,
+    this.topTravelerName,
+    required this.topTravelerCount,
+  });
+
+  final int insideCairoCount;
+  final int outsideCairoCount;
+  final String? topTravelerName;
+  final int topTravelerCount;
+}
+
+class _TravelerCount {
+  _TravelerCount({required this.name, required this.count});
+  final String name;
+  int count;
 }
 
 class _CatAggregate {
@@ -267,13 +442,15 @@ class _EmployeeAggregate {
     required this.userId,
     required this.name,
     required this.email,
-    required this.amount,
+    required this.amountEgp,
+    required this.amountUsd,
     required this.count,
   });
 
   final String userId;
   final String name;
   final String? email;
-  double amount;
+  double amountEgp;
+  double amountUsd;
   int count;
 }

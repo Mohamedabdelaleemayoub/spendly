@@ -222,40 +222,47 @@ class _ReportsViewState extends State<_ReportsView> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Row(
-                                            children: [
-                                              CircleAvatar(
-                                                radius: 12,
-                                                backgroundColor:
-                                                    AppColors.primary.withValues(alpha: 0.15),
-                                                child: Text(
-                                                  emp.name.isNotEmpty
-                                                      ? emp.name.characters.first.toUpperCase()
-                                                      : 'U',
-                                                  style: const TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: AppColors.primary,
+                                          Expanded(
+                                            child: Row(
+                                              children: [
+                                                CircleAvatar(
+                                                  radius: 12,
+                                                  backgroundColor:
+                                                      AppColors.primary.withValues(alpha: 0.15),
+                                                  child: Text(
+                                                    emp.name.isNotEmpty
+                                                        ? emp.name.characters.first.toUpperCase()
+                                                        : 'U',
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: AppColors.primary,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                emp.name,
-                                                style: AppTextStyles.bodyMedium.copyWith(
-                                                  fontWeight: FontWeight.w600,
+                                                const SizedBox(width: 8),
+                                                Flexible(
+                                                  child: Text(
+                                                    emp.name,
+                                                    style: AppTextStyles.bodyMedium.copyWith(
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
                                                 ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '(${emp.count} عملية)',
-                                                style: AppTextStyles.caption,
-                                              ),
-                                            ],
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '(${emp.count} عملية)',
+                                                  style: AppTextStyles.caption,
+                                                ),
+                                              ],
+                                            ),
                                           ),
+                                          const SizedBox(width: 8),
                                           Row(
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Text(
                                                 '${currencyFormat.format(emp.amount)} (${emp.percentage.toStringAsFixed(1)}%)',
@@ -406,14 +413,18 @@ class _ReportsViewState extends State<_ReportsView> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        pay.label,
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          fontWeight: FontWeight.w600,
+                                      Expanded(
+                                        child: Text(
+                                          pay.label,
+                                          style: AppTextStyles.bodyMedium.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
                                       Text(
                                         '${currencyFormat.format(pay.amount)} (${pay.percentage.toStringAsFixed(1)}%)',
                                         style: AppTextStyles.caption.copyWith(

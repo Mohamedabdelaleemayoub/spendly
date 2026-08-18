@@ -1453,6 +1453,480 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Custom Date Range'**
   String get filterDateRange;
+
+  /// No description provided for @currencyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get currencyLabel;
+
+  /// No description provided for @currencyEgp.
+  ///
+  /// In en, this message translates to:
+  /// **'Egyptian Pound (EGP)'**
+  String get currencyEgp;
+
+  /// No description provided for @currencyUsd.
+  ///
+  /// In en, this message translates to:
+  /// **'US Dollar (USD)'**
+  String get currencyUsd;
+
+  /// No description provided for @currencyEgpShort.
+  ///
+  /// In en, this message translates to:
+  /// **'EGP'**
+  String get currencyEgpShort;
+
+  /// No description provided for @currencyUsdShort.
+  ///
+  /// In en, this message translates to:
+  /// **'USD'**
+  String get currencyUsdShort;
+
+  /// No description provided for @availableBalanceEgp.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Balance (EGP)'**
+  String get availableBalanceEgp;
+
+  /// No description provided for @availableBalanceUsd.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Balance (USD)'**
+  String get availableBalanceUsd;
+
+  /// No description provided for @totalReceivedEgp.
+  ///
+  /// In en, this message translates to:
+  /// **'Received (EGP)'**
+  String get totalReceivedEgp;
+
+  /// No description provided for @totalReceivedUsd.
+  ///
+  /// In en, this message translates to:
+  /// **'Received (USD)'**
+  String get totalReceivedUsd;
+
+  /// No description provided for @totalSpentEgp.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent (EGP)'**
+  String get totalSpentEgp;
+
+  /// No description provided for @totalSpentUsd.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent (USD)'**
+  String get totalSpentUsd;
+
+  /// No description provided for @tripLocationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip Location'**
+  String get tripLocationLabel;
+
+  /// No description provided for @insideCairo.
+  ///
+  /// In en, this message translates to:
+  /// **'Inside Cairo'**
+  String get insideCairo;
+
+  /// No description provided for @outsideCairo.
+  ///
+  /// In en, this message translates to:
+  /// **'Outside Cairo'**
+  String get outsideCairo;
+
+  /// No description provided for @governorateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Governorate'**
+  String get governorateLabel;
+
+  /// No description provided for @selectGovernorate.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Governorate'**
+  String get selectGovernorate;
+
+  /// No description provided for @governorateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Governorate is required for trips outside Cairo.'**
+  String get governorateRequired;
+
+  /// No description provided for @travelStatistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel & Trip Statistics'**
+  String get travelStatistics;
+
+  /// No description provided for @totalTrips.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Trips'**
+  String get totalTrips;
+
+  /// No description provided for @insideCairoTrips.
+  ///
+  /// In en, this message translates to:
+  /// **'Inside Cairo Trips'**
+  String get insideCairoTrips;
+
+  /// No description provided for @outsideCairoTrips.
+  ///
+  /// In en, this message translates to:
+  /// **'Outside Cairo Trips'**
+  String get outsideCairoTrips;
+
+  /// No description provided for @governorateBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Governorate Breakdown'**
+  String get governorateBreakdown;
+
+  /// No description provided for @travelBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Bonus'**
+  String get travelBonus;
+
+  /// No description provided for @travelBonusSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Bonus Settings'**
+  String get travelBonusSettings;
+
+  /// No description provided for @travelBonusSettingsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure bonus for employee trips outside Cairo'**
+  String get travelBonusSettingsDesc;
+
+  /// No description provided for @bonusPerTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Bonus per Trip'**
+  String get bonusPerTrip;
+
+  /// No description provided for @potentialBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'Potential Bonus'**
+  String get potentialBonus;
+
+  /// No description provided for @travelActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Activity'**
+  String get travelActivity;
+
+  /// No description provided for @topTraveler.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Outside-Cairo Traveler'**
+  String get topTraveler;
+
+  /// No description provided for @tripsCountUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'trips'**
+  String get tripsCountUnit;
+
+  /// No description provided for @noTravelActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'No travel activity recorded for this period'**
+  String get noTravelActivity;
+
+  /// No description provided for @salary.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary'**
+  String get salary;
+
+  /// No description provided for @monthlySalary.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Salary'**
+  String get monthlySalary;
+
+  /// No description provided for @salaryAdvance.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary Advance'**
+  String get salaryAdvance;
+
+  /// No description provided for @salaryAdvances.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary Advances'**
+  String get salaryAdvances;
+
+  /// No description provided for @totalAdvances.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Advances'**
+  String get totalAdvances;
+
+  /// No description provided for @remainingSalary.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining Salary'**
+  String get remainingSalary;
+
+  /// No description provided for @addSalaryAdvance.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Advance'**
+  String get addSalaryAdvance;
+
+  /// No description provided for @editSalaryAdvance.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Advance'**
+  String get editSalaryAdvance;
+
+  /// No description provided for @deleteSalaryAdvance.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Advance'**
+  String get deleteSalaryAdvance;
+
+  /// No description provided for @deleteSalaryAdvanceConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this salary advance?'**
+  String get deleteSalaryAdvanceConfirm;
+
+  /// No description provided for @advanceDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Advance Date'**
+  String get advanceDate;
+
+  /// No description provided for @advanceReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get advanceReason;
+
+  /// No description provided for @advanceReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., Emergency, Personal expense...'**
+  String get advanceReasonHint;
+
+  /// No description provided for @editSalary.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Salary'**
+  String get editSalary;
+
+  /// No description provided for @salaryAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary Amount'**
+  String get salaryAmount;
+
+  /// No description provided for @salaryUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Employee salary updated successfully'**
+  String get salaryUpdatedSuccess;
+
+  /// No description provided for @advanceAddedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary advance recorded successfully'**
+  String get advanceAddedSuccess;
+
+  /// No description provided for @advanceUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary advance updated successfully'**
+  String get advanceUpdatedSuccess;
+
+  /// No description provided for @advanceDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary advance deleted successfully'**
+  String get advanceDeletedSuccess;
+
+  /// No description provided for @salariesOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Salaries & Advances Overview'**
+  String get salariesOverview;
+
+  /// No description provided for @totalSalaries.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Salaries'**
+  String get totalSalaries;
+
+  /// No description provided for @totalRemainingSalaries.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Remaining'**
+  String get totalRemainingSalaries;
+
+  /// No description provided for @noSalaryAdvancesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No salary advances recorded yet'**
+  String get noSalaryAdvancesYet;
+
+  /// No description provided for @advanceCreatedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded by'**
+  String get advanceCreatedBy;
+
+  /// No description provided for @weeklyWorkBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly Work Budget'**
+  String get weeklyWorkBudget;
+
+  /// No description provided for @weeklyAllowance.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly Allowance'**
+  String get weeklyAllowance;
+
+  /// No description provided for @workAllowance.
+  ///
+  /// In en, this message translates to:
+  /// **'Work Allowance'**
+  String get workAllowance;
+
+  /// No description provided for @receivedThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Received This Week'**
+  String get receivedThisWeek;
+
+  /// No description provided for @spentThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent This Week'**
+  String get spentThisWeek;
+
+  /// No description provided for @remainingThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining This Week'**
+  String get remainingThisWeek;
+
+  /// No description provided for @addAllowance.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Allowance'**
+  String get addAllowance;
+
+  /// No description provided for @editAllowance.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Allowance'**
+  String get editAllowance;
+
+  /// No description provided for @deleteAllowance.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Allowance'**
+  String get deleteAllowance;
+
+  /// No description provided for @deleteAllowanceConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this allowance transaction?'**
+  String get deleteAllowanceConfirm;
+
+  /// No description provided for @allowanceDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowance Date'**
+  String get allowanceDateLabel;
+
+  /// No description provided for @allowanceReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get allowanceReasonLabel;
+
+  /// No description provided for @allowanceReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., Weekly work budget, Project expenses...'**
+  String get allowanceReasonHint;
+
+  /// No description provided for @thisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This Week'**
+  String get thisWeek;
+
+  /// No description provided for @previousWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous Week'**
+  String get previousWeek;
+
+  /// No description provided for @nextWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Week'**
+  String get nextWeek;
+
+  /// No description provided for @totalReceivedWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Received'**
+  String get totalReceivedWeekly;
+
+  /// No description provided for @totalSpentWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Spent'**
+  String get totalSpentWeekly;
+
+  /// No description provided for @totalRemainingWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Remaining'**
+  String get totalRemainingWeekly;
+
+  /// No description provided for @allowanceAddedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Work allowance recorded successfully'**
+  String get allowanceAddedSuccess;
+
+  /// No description provided for @allowanceUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Work allowance updated successfully'**
+  String get allowanceUpdatedSuccess;
+
+  /// No description provided for @allowanceDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Work allowance deleted successfully'**
+  String get allowanceDeletedSuccess;
+
+  /// No description provided for @noAllowanceTransactionsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No allowance transactions recorded for this period'**
+  String get noAllowanceTransactionsYet;
+
+  /// No description provided for @weeklyAllowanceTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowance Transactions'**
+  String get weeklyAllowanceTransactions;
 }
 
 class _AppLocalizationsDelegate

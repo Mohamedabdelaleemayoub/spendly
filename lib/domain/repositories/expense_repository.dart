@@ -1,5 +1,8 @@
 import 'dart:io';
 import '../entities/expense.dart';
+import '../entities/expense_currency.dart';
+import '../entities/governorate.dart';
+import '../entities/trip_location_type.dart';
 
 abstract class ExpenseRepository {
   Future<List<Expense>> getExpenses({
@@ -10,6 +13,9 @@ abstract class ExpenseRepository {
     String? categoryId,
     String? userId,
     String? paymentMethod,
+    ExpenseCurrency? currency,
+    TripLocationType? tripLocationType,
+    Governorate? governorate,
     String? searchQuery,
   });
 
@@ -18,6 +24,9 @@ abstract class ExpenseRepository {
   Future<Expense> createExpense({
     String title = '',
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
+    TripLocationType tripLocationType = TripLocationType.cairo,
+    Governorate governorate = Governorate.cairo,
     required String paymentMethod,
     required DateTime expenseDate,
     String? categoryId,
@@ -29,6 +38,9 @@ abstract class ExpenseRepository {
     required String id,
     String title = '',
     required double amount,
+    ExpenseCurrency currency = ExpenseCurrency.egp,
+    TripLocationType tripLocationType = TripLocationType.cairo,
+    Governorate governorate = Governorate.cairo,
     required String paymentMethod,
     required DateTime expenseDate,
     String? categoryId,
@@ -39,7 +51,7 @@ abstract class ExpenseRepository {
 
   Future<void> deleteExpense(String id);
 
-  Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId});
+  Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId, ExpenseCurrency? currency});
 
   Future<int> syncPendingExpenses({String? userId});
 }

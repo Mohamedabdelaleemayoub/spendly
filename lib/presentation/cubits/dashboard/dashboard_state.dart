@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/expense.dart';
+import '../../../domain/entities/expense_currency.dart';
 
 enum ExpenseSummaryPeriod {
   today,
@@ -11,6 +12,7 @@ class CategorySpending extends Equatable {
   const CategorySpending({
     required this.name,
     required this.amount,
+    this.currency = ExpenseCurrency.egp,
     required this.color,
     required this.icon,
     required this.percentage,
@@ -18,33 +20,41 @@ class CategorySpending extends Equatable {
 
   final String name;
   final double amount;
+  final ExpenseCurrency currency;
   final String color;
   final String icon;
   final double percentage;
 
   @override
-  List<Object?> get props => [name, amount, color, icon, percentage];
+  List<Object?> get props => [name, amount, currency, color, icon, percentage];
 }
 
 class EmployeeSpending extends Equatable {
   const EmployeeSpending({
     required this.userId,
     required this.name,
-    required this.email,
-    required this.amount,
+    this.email,
+    double? amount,
+    double? amountEgp,
+    double? amountUsd,
     required this.count,
     required this.percentage,
-  });
+  })  : amountEgp = amountEgp ?? amount ?? 0.0,
+        amountUsd = amountUsd ?? 0.0;
 
   final String userId;
   final String name;
   final String? email;
-  final double amount;
+  final double amountEgp;
+  final double amountUsd;
   final int count;
   final double percentage;
 
+  // Backward-compatibility getter
+  double get amount => amountEgp;
+
   @override
-  List<Object?> get props => [userId, name, email, amount, count, percentage];
+  List<Object?> get props => [userId, name, email, amountEgp, amountUsd, count, percentage];
 }
 
 sealed class DashboardState extends Equatable {
@@ -66,9 +76,13 @@ class DashboardLoaded extends DashboardState {
   const DashboardLoaded({
     required this.isAdmin,
     this.period = ExpenseSummaryPeriod.month,
-    required this.totalToday,
-    required this.totalThisWeek,
-    required this.totalThisMonth,
+    this.selectedCurrency = ExpenseCurrency.egp,
+    required this.totalTodayEgp,
+    required this.totalTodayUsd,
+    required this.totalThisWeekEgp,
+    required this.totalThisWeekUsd,
+    required this.totalThisMonthEgp,
+    required this.totalThisMonthUsd,
     required this.countToday,
     required this.countThisWeek,
     required this.countThisMonth,
@@ -77,13 +91,28 @@ class DashboardLoaded extends DashboardState {
     required this.categorySpending,
     this.employeeSpending = const [],
     this.allMonthExpenses = const [],
+    this.outsideCairoTripsCount = 0,
+    this.insideCairoTripsCount = 0,
+    this.topTravelerName,
+    this.topTravelerOutsideTrips = 0,
+    this.totalSalariesEgp = 0.0,
+    this.totalSalaryAdvancesEgp = 0.0,
+    this.totalRemainingSalariesEgp = 0.0,
+    this.weeklyReceivedEgp = 0.0,
+    this.weeklySpentEgp = 0.0,
+    this.weeklyReceivedUsd = 0.0,
+    this.weeklySpentUsd = 0.0,
   });
 
   final bool isAdmin;
   final ExpenseSummaryPeriod period;
-  final double totalToday;
-  final double totalThisWeek;
-  final double totalThisMonth;
+  final ExpenseCurrency selectedCurrency;
+  final double totalTodayEgp;
+  final double totalTodayUsd;
+  final double totalThisWeekEgp;
+  final double totalThisWeekUsd;
+  final double totalThisMonthEgp;
+  final double totalThisMonthUsd;
   final int countToday;
   final int countThisWeek;
   final int countThisMonth;
@@ -93,16 +122,54 @@ class DashboardLoaded extends DashboardState {
   final List<EmployeeSpending> employeeSpending;
   final List<Expense> allMonthExpenses;
 
-  double get activePeriodTotal {
+  // Travel Activity fields
+  final int outsideCairoTripsCount;
+  final int insideCairoTripsCount;
+  final String? topTravelerName;
+  final int topTravelerOutsideTrips;
+
+  // Salary & Advances Overview fields (Admin only)
+  final double totalSalariesEgp;
+  final double totalSalaryAdvancesEgp;
+  final double totalRemainingSalariesEgp;
+
+  // Weekly Work Budget Overview fields (This Week)
+  final double weeklyReceivedEgp;
+  final double weeklySpentEgp;
+  final double weeklyReceivedUsd;
+  final double weeklySpentUsd;
+
+  double get weeklyRemainingEgp => weeklyReceivedEgp - weeklySpentEgp;
+  double get weeklyRemainingUsd => weeklyReceivedUsd - weeklySpentUsd;
+
+  // Backward compatibility getters (mapping to EGP by default)
+  double get totalToday => totalTodayEgp;
+  double get totalThisWeek => totalThisWeekEgp;
+  double get totalThisMonth => totalThisMonthEgp;
+
+  double get activePeriodTotalEgp {
     switch (period) {
       case ExpenseSummaryPeriod.today:
-        return totalToday;
+        return totalTodayEgp;
       case ExpenseSummaryPeriod.week:
-        return totalThisWeek;
+        return totalThisWeekEgp;
       case ExpenseSummaryPeriod.month:
-        return totalThisMonth;
+        return totalThisMonthEgp;
     }
   }
+
+  double get activePeriodTotalUsd {
+    switch (period) {
+      case ExpenseSummaryPeriod.today:
+        return totalTodayUsd;
+      case ExpenseSummaryPeriod.week:
+        return totalThisWeekUsd;
+      case ExpenseSummaryPeriod.month:
+        return totalThisMonthUsd;
+    }
+  }
+
+  double get activePeriodTotal => activePeriodTotalEgp;
 
   int get activePeriodCount {
     switch (period) {
@@ -118,9 +185,13 @@ class DashboardLoaded extends DashboardState {
   DashboardLoaded copyWith({
     bool? isAdmin,
     ExpenseSummaryPeriod? period,
-    double? totalToday,
-    double? totalThisWeek,
-    double? totalThisMonth,
+    ExpenseCurrency? selectedCurrency,
+    double? totalTodayEgp,
+    double? totalTodayUsd,
+    double? totalThisWeekEgp,
+    double? totalThisWeekUsd,
+    double? totalThisMonthEgp,
+    double? totalThisMonthUsd,
     int? countToday,
     int? countThisWeek,
     int? countThisMonth,
@@ -129,13 +200,28 @@ class DashboardLoaded extends DashboardState {
     List<CategorySpending>? categorySpending,
     List<EmployeeSpending>? employeeSpending,
     List<Expense>? allMonthExpenses,
+    int? outsideCairoTripsCount,
+    int? insideCairoTripsCount,
+    String? topTravelerName,
+    int? topTravelerOutsideTrips,
+    double? totalSalariesEgp,
+    double? totalSalaryAdvancesEgp,
+    double? totalRemainingSalariesEgp,
+    double? weeklyReceivedEgp,
+    double? weeklySpentEgp,
+    double? weeklyReceivedUsd,
+    double? weeklySpentUsd,
   }) {
     return DashboardLoaded(
       isAdmin: isAdmin ?? this.isAdmin,
       period: period ?? this.period,
-      totalToday: totalToday ?? this.totalToday,
-      totalThisWeek: totalThisWeek ?? this.totalThisWeek,
-      totalThisMonth: totalThisMonth ?? this.totalThisMonth,
+      selectedCurrency: selectedCurrency ?? this.selectedCurrency,
+      totalTodayEgp: totalTodayEgp ?? this.totalTodayEgp,
+      totalTodayUsd: totalTodayUsd ?? this.totalTodayUsd,
+      totalThisWeekEgp: totalThisWeekEgp ?? this.totalThisWeekEgp,
+      totalThisWeekUsd: totalThisWeekUsd ?? this.totalThisWeekUsd,
+      totalThisMonthEgp: totalThisMonthEgp ?? this.totalThisMonthEgp,
+      totalThisMonthUsd: totalThisMonthUsd ?? this.totalThisMonthUsd,
       countToday: countToday ?? this.countToday,
       countThisWeek: countThisWeek ?? this.countThisWeek,
       countThisMonth: countThisMonth ?? this.countThisMonth,
@@ -144,6 +230,17 @@ class DashboardLoaded extends DashboardState {
       categorySpending: categorySpending ?? this.categorySpending,
       employeeSpending: employeeSpending ?? this.employeeSpending,
       allMonthExpenses: allMonthExpenses ?? this.allMonthExpenses,
+      outsideCairoTripsCount: outsideCairoTripsCount ?? this.outsideCairoTripsCount,
+      insideCairoTripsCount: insideCairoTripsCount ?? this.insideCairoTripsCount,
+      topTravelerName: topTravelerName ?? this.topTravelerName,
+      topTravelerOutsideTrips: topTravelerOutsideTrips ?? this.topTravelerOutsideTrips,
+      totalSalariesEgp: totalSalariesEgp ?? this.totalSalariesEgp,
+      totalSalaryAdvancesEgp: totalSalaryAdvancesEgp ?? this.totalSalaryAdvancesEgp,
+      totalRemainingSalariesEgp: totalRemainingSalariesEgp ?? this.totalRemainingSalariesEgp,
+      weeklyReceivedEgp: weeklyReceivedEgp ?? this.weeklyReceivedEgp,
+      weeklySpentEgp: weeklySpentEgp ?? this.weeklySpentEgp,
+      weeklyReceivedUsd: weeklyReceivedUsd ?? this.weeklyReceivedUsd,
+      weeklySpentUsd: weeklySpentUsd ?? this.weeklySpentUsd,
     );
   }
 
@@ -151,9 +248,13 @@ class DashboardLoaded extends DashboardState {
   List<Object?> get props => [
         isAdmin,
         period,
-        totalToday,
-        totalThisWeek,
-        totalThisMonth,
+        selectedCurrency,
+        totalTodayEgp,
+        totalTodayUsd,
+        totalThisWeekEgp,
+        totalThisWeekUsd,
+        totalThisMonthEgp,
+        totalThisMonthUsd,
         countToday,
         countThisWeek,
         countThisMonth,
@@ -162,6 +263,17 @@ class DashboardLoaded extends DashboardState {
         categorySpending,
         employeeSpending,
         allMonthExpenses,
+        outsideCairoTripsCount,
+        insideCairoTripsCount,
+        topTravelerName,
+        topTravelerOutsideTrips,
+        totalSalariesEgp,
+        totalSalaryAdvancesEgp,
+        totalRemainingSalariesEgp,
+        weeklyReceivedEgp,
+        weeklySpentEgp,
+        weeklyReceivedUsd,
+        weeklySpentUsd,
       ];
 }
 

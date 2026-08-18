@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'balance_transaction.dart';
 import 'expense.dart';
+import 'expense_currency.dart';
 
 enum FinancialItemType {
   credit,
@@ -13,6 +14,7 @@ class FinancialHistoryItem extends Equatable {
   const FinancialHistoryItem({
     required this.id,
     required this.amount,
+    this.currency = ExpenseCurrency.egp,
     required this.itemType,
     required this.date,
     required this.title,
@@ -24,6 +26,7 @@ class FinancialHistoryItem extends Equatable {
 
   final String id;
   final double amount;
+  final ExpenseCurrency currency;
   final FinancialItemType itemType;
   final DateTime date;
   final String title;
@@ -48,6 +51,7 @@ class FinancialHistoryItem extends Equatable {
     return FinancialHistoryItem(
       id: tx.id,
       amount: tx.amount,
+      currency: tx.currency,
       itemType: type,
       date: tx.transactionDate,
       title: title,
@@ -61,6 +65,7 @@ class FinancialHistoryItem extends Equatable {
     return FinancialHistoryItem(
       id: exp.id,
       amount: exp.amount,
+      currency: exp.currency,
       itemType: FinancialItemType.expense,
       date: exp.expenseDate,
       title: exp.displayTitle,
@@ -74,6 +79,7 @@ class FinancialHistoryItem extends Equatable {
   List<Object?> get props => [
         id,
         amount,
+        currency,
         itemType,
         date,
         title,
