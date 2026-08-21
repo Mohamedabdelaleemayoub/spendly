@@ -8,6 +8,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../router/app_router.dart';
 import '../../cubits/auth/auth_cubit.dart';
 import '../../cubits/auth/auth_state.dart';
+import '../../widgets/common/sync_status_indicator.dart';
 
 class _TabDestination {
   const _TabDestination({
@@ -131,7 +132,12 @@ class AppShell extends StatelessWidget {
           final index = _currentIndex(context, tabs);
 
           return Scaffold(
-            body: child,
+            body: Column(
+              children: [
+                const SyncStatusIndicator(),
+                Expanded(child: child),
+              ],
+            ),
             bottomNavigationBar: NavigationBar(
               selectedIndex: index,
               onDestinationSelected: (i) => context.go(tabs[i].route),

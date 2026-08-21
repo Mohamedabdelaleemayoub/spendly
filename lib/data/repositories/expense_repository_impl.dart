@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/services/sync_manager.dart';
 import '../../core/services/sync_service.dart';
 import '../../core/services/uuid_generator.dart';
 import '../../domain/entities/expense.dart';
@@ -9,6 +10,7 @@ import '../../domain/entities/governorate.dart';
 import '../../domain/entities/trip_location_type.dart';
 import '../../domain/repositories/expense_repository.dart';
 import '../datasources/expense_remote_datasource.dart';
+import '../datasources/local_database.dart';
 import '../datasources/local_expense_datasource.dart';
 import '../models/expense_model.dart';
 
@@ -18,12 +20,16 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     required this.localDataSource,
     required this.syncService,
     required this.supabaseClient,
+    this.localDatabase,
+    this.syncManager,
   });
 
   final ExpenseRemoteDataSource remoteDataSource;
   final LocalExpenseDataSource localDataSource;
   final SyncService syncService;
   final SupabaseClient supabaseClient;
+  final LocalDatabase? localDatabase;
+  final SyncManager? syncManager;
 
   @override
   Future<List<Expense>> getExpenses({
@@ -101,7 +107,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         return true;
       }).toList();
 
-      // Merge: Local pending on top, remote below (eliminating any duplicate IDs)
+      // Merge: Local pending on top, remote below (eliminating duplicate IDs)
       final seenIds = <String>{};
       final combined = <Expense>[];
 
@@ -120,7 +126,6 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       return combined;
     } catch (e) {
       debugPrint('⚠️ [ExpenseRepositoryImpl] Remote getExpenses failed ($e), falling back to local persistent store.');
-      // Offline fallback: load from persistent local storage
       final localAll = await localDataSource.getExpenses(userId: currentUserId);
 
       return localAll.where((exp) {
@@ -243,6 +248,15 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       return syncedModel;
     } catch (e) {
       debugPrint('📱 [ExpenseRepositoryImpl] Network unavailable/failed: $e. Remaining in persistent local queue.');
+      if (localDatabase != null && localDatabase!.isInitialized) {
+        await localDatabase!.enqueueSyncOperation(
+          operationId: UuidGenerator.generate(),
+          entityType: 'expense',
+          entityId: clientExpenseId,
+          operation: 'INSERT',
+          payload: localExpense.toJson(includeId: true),
+        );
+      }
       return localExpense;
     }
   }
@@ -291,7 +305,8 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       updatedAt: DateTime.now(),
     );
 
-    await localDataSource.saveExpense(ExpenseModel.fromEntity(updatedLocal));
+    final modelToSave = ExpenseModel.fromEntity(updatedLocal);
+    await localDataSource.saveExpense(modelToSave);
 
     try {
       final remoteModel = await remoteDataSource.updateExpense(
@@ -314,6 +329,15 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       return synced;
     } catch (e) {
       debugPrint('⚠️ [ExpenseRepositoryImpl] Remote update failed ($e). Kept pending locally.');
+      if (localDatabase != null && localDatabase!.isInitialized) {
+        await localDatabase!.enqueueSyncOperation(
+          operationId: UuidGenerator.generate(),
+          entityType: 'expense',
+          entityId: id,
+          operation: 'UPDATE',
+          payload: modelToSave.toJson(includeId: true),
+        );
+      }
       return updatedLocal;
     }
   }
@@ -324,7 +348,16 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     try {
       await remoteDataSource.deleteExpense(id);
     } catch (e) {
-      debugPrint('⚠️ [ExpenseRepositoryImpl] Remote delete error ($e), deleted locally.');
+      debugPrint('⚠️ [ExpenseRepositoryImpl] Remote delete error ($e), enqueued delete in sync queue.');
+      if (localDatabase != null && localDatabase!.isInitialized) {
+        await localDatabase!.enqueueSyncOperation(
+          operationId: UuidGenerator.generate(),
+          entityType: 'expense',
+          entityId: id,
+          operation: 'DELETE',
+          payload: {'id': id},
+        );
+      }
     }
   }
 
@@ -353,6 +386,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
 
   @override
   Future<int> syncPendingExpenses({String? userId}) {
+    if (syncManager != null) {
+      return syncManager!.syncAll(userId: userId);
+    }
     return syncService.syncPendingExpenses(userId: userId);
   }
 }

@@ -2,12 +2,15 @@ import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/services/connectivity_service.dart';
 import '../core/services/supabase_service.dart';
+import '../core/services/sync_manager.dart';
 import '../core/services/sync_service.dart';
 import '../data/datasources/auth_remote_datasource.dart';
 import '../data/datasources/balance_remote_datasource.dart';
 import '../data/datasources/category_remote_datasource.dart';
 import '../data/datasources/expense_remote_datasource.dart';
+import '../data/datasources/local_database.dart';
 import '../data/datasources/local_expense_datasource.dart';
 import '../data/datasources/notification_remote_datasource.dart';
 import '../data/datasources/profile_remote_datasource.dart';
@@ -53,7 +56,7 @@ final GetIt sl = GetIt.instance;
 
 /// Registers all dependencies in the service locator.
 ///
-/// Called once during app startup after Supabase has been initialised.
+/// Called once during app startup after Supabase and LocalDatabase have been initialised.
 /// Dependencies are registered bottom-up: clients → data sources →
 /// repositories → cubits.
 Future<void> initDependencies() async {
@@ -62,6 +65,14 @@ Future<void> initDependencies() async {
 
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
+
+  // ── Local Database & Connectivity ─────────────────────────────────────
+  final localDatabase = LocalDatabase();
+  await localDatabase.init();
+  sl.registerLazySingleton<LocalDatabase>(() => localDatabase);
+
+  final connectivityService = ConnectivityServiceImpl();
+  sl.registerLazySingleton<ConnectivityService>(() => connectivityService);
 
   // ── Data Sources ─────────────────────────────────────────────────────
   sl.registerLazySingleton<AuthRemoteDataSource>(
@@ -77,7 +88,10 @@ Future<void> initDependencies() async {
     () => ExpenseRemoteDataSourceImpl(client: sl()),
   );
   sl.registerLazySingleton<LocalExpenseDataSource>(
-    () => LocalExpenseDataSourceImpl(prefs: sl()),
+    () => LocalExpenseDataSourceImpl(
+      prefs: sl(),
+      localDatabase: sl(),
+    ),
   );
   sl.registerLazySingleton<SettingsRemoteDataSource>(
     () => SettingsRemoteDataSourceImpl(client: sl()),
@@ -88,12 +102,27 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<BalanceRemoteDataSource>(
     () => BalanceRemoteDataSourceImpl(client: sl()),
   );
+  sl.registerLazySingleton<SalaryAdvanceRemoteDataSource>(
+    () => SalaryAdvanceRemoteDataSourceImpl(client: sl()),
+  );
+  sl.registerLazySingleton<WeeklyAllowanceRemoteDataSource>(
+    () => WeeklyAllowanceRemoteDataSourceImpl(client: sl()),
+  );
 
   // ── Services ─────────────────────────────────────────────────────────
+  sl.registerLazySingleton<SyncManager>(
+    () => SyncManagerImpl(
+      localDatabase: sl(),
+      supabaseClient: sl(),
+      connectivityService: sl(),
+    ),
+  );
+
   sl.registerLazySingleton<SyncService>(
     () => SyncServiceImpl(
       localDataSource: sl(),
       supabaseClient: sl(),
+      syncManager: sl(),
     ),
   );
 
@@ -102,10 +131,16 @@ Future<void> initDependencies() async {
     () => AuthRepositoryImpl(remoteDataSource: sl()),
   );
   sl.registerLazySingleton<ProfileRepository>(
-    () => ProfileRepositoryImpl(remoteDataSource: sl()),
+    () => ProfileRepositoryImpl(
+      remoteDataSource: sl(),
+      localDatabase: sl(),
+    ),
   );
   sl.registerLazySingleton<CategoryRepository>(
-    () => CategoryRepositoryImpl(remoteDataSource: sl()),
+    () => CategoryRepositoryImpl(
+      remoteDataSource: sl(),
+      localDatabase: sl(),
+    ),
   );
   sl.registerLazySingleton<ExpenseRepository>(
     () => ExpenseRepositoryImpl(
@@ -113,32 +148,41 @@ Future<void> initDependencies() async {
       localDataSource: sl(),
       syncService: sl(),
       supabaseClient: sl(),
+      localDatabase: sl(),
+      syncManager: sl(),
     ),
   );
   sl.registerLazySingleton<SettingsRepository>(
-    () => SettingsRepositoryImpl(remoteDataSource: sl()),
+    () => SettingsRepositoryImpl(
+      remoteDataSource: sl(),
+      localDatabase: sl(),
+    ),
   );
   sl.registerLazySingleton<NotificationRepository>(
-    () => NotificationRepositoryImpl(remoteDataSource: sl()),
+    () => NotificationRepositoryImpl(
+      remoteDataSource: sl(),
+      localDatabase: sl(),
+    ),
   );
   sl.registerLazySingleton<BalanceRepository>(
     () => BalanceRepositoryImpl(
       remoteDataSource: sl(),
       localExpenseDataSource: sl(),
       expenseRepository: sl(),
+      localDatabase: sl(),
     ),
   );
-  sl.registerLazySingleton<SalaryAdvanceRemoteDataSource>(
-    () => SalaryAdvanceRemoteDataSourceImpl(client: sl()),
-  );
   sl.registerLazySingleton<SalaryAdvanceRepository>(
-    () => SalaryAdvanceRepositoryImpl(remoteDataSource: sl()),
-  );
-  sl.registerLazySingleton<WeeklyAllowanceRemoteDataSource>(
-    () => WeeklyAllowanceRemoteDataSourceImpl(client: sl()),
+    () => SalaryAdvanceRepositoryImpl(
+      remoteDataSource: sl(),
+      localDatabase: sl(),
+    ),
   );
   sl.registerLazySingleton<WeeklyAllowanceRepository>(
-    () => WeeklyAllowanceRepositoryImpl(remoteDataSource: sl()),
+    () => WeeklyAllowanceRepositoryImpl(
+      remoteDataSource: sl(),
+      localDatabase: sl(),
+    ),
   );
 
   // ── Cubits / State Management ─────────────────────────────────────────

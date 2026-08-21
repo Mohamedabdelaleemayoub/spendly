@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/datasources/local_expense_datasource.dart';
 import '../../domain/entities/expense.dart';
+import 'sync_manager.dart';
 
 abstract class SyncService {
   Future<int> syncPendingExpenses({String? userId});
@@ -16,37 +17,54 @@ class SyncServiceImpl implements SyncService {
   SyncServiceImpl({
     required this.localDataSource,
     required this.supabaseClient,
+    this.syncManager,
   }) {
-    try {
-      _authSub = supabaseClient.auth.onAuthStateChange.listen((data) {
-        if (data.session != null) {
-          syncPendingExpenses();
+    if (syncManager != null) {
+      _managerSub = syncManager!.syncStatusStream.listen((status) {
+        if (!_syncStatusController.isClosed) {
+          _syncStatusController.add(status);
         }
       });
-    } catch (_) {}
+    } else {
+      try {
+        _authSub = supabaseClient.auth.onAuthStateChange.listen((data) {
+          if (data.session != null) {
+            syncPendingExpenses();
+          }
+        });
+      } catch (_) {}
+    }
   }
 
   final LocalExpenseDataSource localDataSource;
   final SupabaseClient supabaseClient;
+  final SyncManager? syncManager;
+
   StreamSubscription? _authSub;
-
-  @override
-  void dispose() {
-    _authSub?.cancel();
-    _syncStatusController.close();
-  }
-
+  StreamSubscription? _managerSub;
   final _syncStatusController = StreamController<SyncStatus>.broadcast();
   bool _isCurrentlySyncing = false;
 
   @override
-  Stream<SyncStatus> get syncStatusStream => _syncStatusController.stream;
+  void dispose() {
+    _authSub?.cancel();
+    _managerSub?.cancel();
+    _syncStatusController.close();
+  }
 
   @override
-  bool get isSyncing => _isCurrentlySyncing;
+  Stream<SyncStatus> get syncStatusStream =>
+      syncManager != null ? syncManager!.syncStatusStream : _syncStatusController.stream;
+
+  @override
+  bool get isSyncing => syncManager != null ? syncManager!.isSyncing : _isCurrentlySyncing;
 
   @override
   Future<int> syncPendingExpenses({String? userId}) async {
+    if (syncManager != null) {
+      return await syncManager!.syncAll(userId: userId);
+    }
+
     if (_isCurrentlySyncing) {
       debugPrint('⏳ [SyncService] Sync already in progress. Skipping duplicate run.');
       return 0;
@@ -79,10 +97,8 @@ class SyncServiceImpl implements SyncService {
         try {
           await localDataSource.updateSyncStatus(expense.id, SyncStatus.syncing);
 
-          // 1. Prepare idempotent upsert data with stable client UUID
           final upsertData = expense.toJson(includeId: true);
 
-          // 2. Perform idempotent upsert to Supabase
           await supabaseClient
               .from(AppConstants.expensesTable)
               .upsert(
@@ -90,13 +106,11 @@ class SyncServiceImpl implements SyncService {
                 onConflict: 'id',
               );
 
-          // 3. Mark as synced in persistent local storage
           await localDataSource.updateSyncStatus(expense.id, SyncStatus.synced);
           successCount++;
           debugPrint('✅ [SyncService] Successfully synced expense ID: ${expense.id}');
         } catch (e) {
           debugPrint('⚠️ [SyncService] Failed to sync expense ID ${expense.id}: $e');
-          // Keep the expense locally, mark as failed for retry later
           await localDataSource.updateSyncStatus(expense.id, SyncStatus.failed);
         }
       }
