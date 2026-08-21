@@ -3,7 +3,32 @@
 -- Spendly Egyptian Office: Daily expenses (EGP) & Student/Bank payments (USD)
 -- ============================================================================
 
--- 1. Add currency column to public.expenses if not exists
+-- 1. Ensure profiles required columns exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'status'
+    ) THEN
+        ALTER TABLE public.profiles ADD COLUMN status TEXT NOT NULL DEFAULT 'active';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'full_name'
+    ) THEN
+        ALTER TABLE public.profiles ADD COLUMN full_name TEXT NOT NULL DEFAULT 'مستخدم';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'avatar_url'
+    ) THEN
+        ALTER TABLE public.profiles ADD COLUMN avatar_url TEXT;
+    END IF;
+END $$;
+
+-- 2. Add currency column to public.expenses if not exists
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -19,7 +44,7 @@ ALTER TABLE public.expenses ADD CONSTRAINT expenses_currency_check CHECK (curren
 
 CREATE INDEX IF NOT EXISTS idx_expenses_user_currency ON public.expenses(user_id, currency);
 
--- 2. Add currency column to public.employee_balance_transactions if not exists
+-- 3. Add currency column to public.employee_balance_transactions if not exists
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -35,7 +60,7 @@ ALTER TABLE public.employee_balance_transactions ADD CONSTRAINT employee_balance
 
 CREATE INDEX IF NOT EXISTS idx_balance_tx_user_currency ON public.employee_balance_transactions(user_id, currency);
 
--- 3. Calculate Available Balance for an Employee by Currency
+-- 4. Calculate Available Balance for an Employee by Currency
 -- Drop previous signatures to prevent ambiguous function overloads and signature conflicts
 DROP FUNCTION IF EXISTS public.get_employee_available_balance(UUID);
 DROP FUNCTION IF EXISTS public.get_employee_available_balance(UUID, TEXT);
@@ -70,7 +95,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public;
 
--- 4. Get Employee Balance Summary (Both EGP and USD)
+-- 5. Get Employee Balance Summary (Both EGP and USD)
 DROP FUNCTION IF EXISTS public.get_employee_balance_summary(UUID);
 
 CREATE OR REPLACE FUNCTION public.get_employee_balance_summary(p_user_id UUID)
@@ -138,7 +163,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public;
 
--- 5. Get All Employee Balances (Multi-Currency Support)
+-- 6. Get All Employee Balances (Multi-Currency Support)
 -- Explicitly drop old function whose return table structure had 10 columns (now 16 columns) to avoid 42P13
 DROP FUNCTION IF EXISTS public.get_all_employee_balances();
 
@@ -204,7 +229,7 @@ BEGIN
         COALESCE(p.full_name, 'مستخدم') AS name,
         p.email,
         p.role,
-        p.status,
+        COALESCE(p.status, 'active') AS status,
         p.avatar_url,
         COALESCE(etx.total_rec, 0.0) AS egp_received,
         COALESCE(eexp.total_sp, 0.0) AS egp_spent,
@@ -225,7 +250,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public;
 
--- 6. Server-Side Atomic Currency-Aware Balance Enforcement Trigger on public.expenses
+-- Explicitly grant execute permissions on recreated functions to authenticated users
+GRANT EXECUTE ON FUNCTION public.get_employee_available_balance(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_employee_balance_summary(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_all_employee_balances() TO authenticated;
+
+-- 7. Server-Side Atomic Currency-Aware Balance Enforcement Trigger on public.expenses
 CREATE OR REPLACE FUNCTION public.enforce_expense_balance_limit()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -280,5 +310,5 @@ BEFORE INSERT OR UPDATE ON public.expenses
 FOR EACH ROW
 EXECUTE FUNCTION public.enforce_expense_balance_limit();
 
--- 7. Reload PostgREST schema cache
+-- 8. Reload PostgREST schema cache
 NOTIFY pgrst, 'reload schema';

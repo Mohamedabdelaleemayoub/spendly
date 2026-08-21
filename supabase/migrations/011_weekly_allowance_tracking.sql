@@ -83,6 +83,10 @@ CREATE POLICY "Admins can delete allowance transactions"
     USING (public.is_admin());
 
 -- ── 4. Aggregate Weekly Work Budget Function (Zero N+1 Query Optimization) ───
+-- Drop any previous or conflicting parameter orders to prevent overload ambiguities
+DROP FUNCTION IF EXISTS public.get_weekly_work_budget_summary(DATE, DATE, UUID);
+DROP FUNCTION IF EXISTS public.get_weekly_work_budget_summary(UUID, DATE, DATE);
+
 CREATE OR REPLACE FUNCTION public.get_weekly_work_budget_summary(
     p_start_date DATE,
     p_end_date DATE,
@@ -140,6 +144,8 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public;
+
+GRANT EXECUTE ON FUNCTION public.get_weekly_work_budget_summary(DATE, DATE, UUID) TO authenticated;
 
 -- ── 5. Reload PostgREST Schema Cache ─────────────────────────────────────────
 NOTIFY pgrst, 'reload schema';

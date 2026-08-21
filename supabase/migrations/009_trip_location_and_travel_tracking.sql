@@ -34,7 +34,12 @@ BEGIN
     END IF;
 END $$;
 
--- 3. Enforce Location & Governorate consistency rule
+-- 3. Backfill existing null / legacy rows safely before adding check constraint
+UPDATE public.expenses 
+SET trip_location_type = 'cairo', governorate = 'cairo' 
+WHERE trip_location_type IS NULL OR governorate IS NULL;
+
+-- 4. Enforce Location & Governorate consistency rule
 -- If cairo => governorate must be 'cairo'
 -- If outside_cairo => governorate must be non-null and NOT 'cairo'
 ALTER TABLE public.expenses DROP CONSTRAINT IF EXISTS expenses_governorate_consistency_check;
@@ -45,16 +50,49 @@ ALTER TABLE public.expenses ADD CONSTRAINT expenses_governorate_consistency_chec
         (trip_location_type = 'outside_cairo' AND governorate IS NOT NULL AND governorate <> 'cairo')
     );
 
--- 4. Backfill existing null / legacy rows safely
-UPDATE public.expenses 
-SET trip_location_type = 'cairo', governorate = 'cairo' 
-WHERE trip_location_type IS NULL OR governorate IS NULL;
-
 -- 5. Create Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_expenses_user_trip_location ON public.expenses(user_id, trip_location_type);
 CREATE INDEX IF NOT EXISTS idx_expenses_trip_gov ON public.expenses(trip_location_type, governorate);
 
--- 6. Seed default travel_bonus_settings in public.app_settings
+-- 6. Ensure public.app_settings table exists (matches Migration 006 & Flutter contract)
+CREATE TABLE IF NOT EXISTS public.app_settings (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
+);
+
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Authenticated users can read app settings" ON public.app_settings;
+DROP POLICY IF EXISTS "Only admins can modify app settings" ON public.app_settings;
+DROP POLICY IF EXISTS "Only admins can insert app settings" ON public.app_settings;
+DROP POLICY IF EXISTS "Only admins can delete app settings" ON public.app_settings;
+
+CREATE POLICY "Authenticated users can read app settings"
+    ON public.app_settings FOR SELECT TO authenticated
+    USING (true);
+
+CREATE POLICY "Only admins can modify app settings"
+    ON public.app_settings FOR UPDATE TO authenticated
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+CREATE POLICY "Only admins can insert app settings"
+    ON public.app_settings FOR INSERT TO authenticated
+    WITH CHECK (public.is_admin());
+
+CREATE POLICY "Only admins can delete app settings"
+    ON public.app_settings FOR DELETE TO authenticated
+    USING (public.is_admin());
+
+-- Seed default require_admin_approval if not present
+INSERT INTO public.app_settings (key, value, description)
+VALUES ('require_admin_approval', '{"enabled": false}'::jsonb, 'Require admin approval before new users can access the application')
+ON CONFLICT (key) DO NOTHING;
+
+-- Seed default travel_bonus_settings in public.app_settings
 INSERT INTO public.app_settings (key, value, description)
 VALUES (
     'travel_bonus_settings',
@@ -66,3 +104,6 @@ VALUES (
     'Configurable travel bonus settings for outside-Cairo employee trips'
 )
 ON CONFLICT (key) DO NOTHING;
+
+-- 7. Reload PostgREST schema cache
+NOTIFY pgrst, 'reload schema';
