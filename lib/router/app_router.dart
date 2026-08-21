@@ -8,6 +8,7 @@ import '../domain/entities/profile.dart';
 import '../injection/injection_container.dart';
 import '../presentation/cubits/auth/auth_cubit.dart';
 import '../presentation/cubits/auth/auth_state.dart';
+import '../presentation/pages/audit/audit_logs_page.dart';
 import '../presentation/pages/auth/login_page.dart';
 import '../presentation/pages/auth/pending_approval_page.dart';
 import '../presentation/pages/auth/rejected_account_page.dart';
@@ -43,6 +44,7 @@ abstract final class AppRoutes {
   static const profile = '/profile';
   static const changePassword = '/change-password';
   static const employees = '/employees';
+  static const auditLogs = '/audit-logs';
 }
 
 /// Helper class to combine multiple broadcast streams into a Listenable for GoRouter.
@@ -117,10 +119,10 @@ final GoRouter appRouter = GoRouter(
     }
 
     // ── Role Authorization Guard ──────────────────────────────────────
-    if (location.startsWith(AppRoutes.employees)) {
+    if (location.startsWith(AppRoutes.employees) || location.startsWith(AppRoutes.auditLogs)) {
       if (authState is Authenticated) {
         if (!authState.isAdmin) {
-          // Employee attempted to access Admin-only employees page -> redirect to dashboard
+          // Employee attempted to access Admin-only pages -> redirect to dashboard
           return AppRoutes.dashboard;
         }
       }
@@ -165,6 +167,12 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.changePassword,
       builder: (context, state) => const ChangePasswordPage(),
+    ),
+
+    // ── Audit Logs (authenticated Admin) ─────────────────────────────
+    GoRoute(
+      path: AppRoutes.auditLogs,
+      builder: (context, state) => const AuditLogsPage(),
     ),
 
     // ── Main shell with bottom nav ────────────────────────────────────

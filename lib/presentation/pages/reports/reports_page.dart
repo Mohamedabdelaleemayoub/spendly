@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../domain/entities/expense_currency.dart';
 import '../../../injection/injection_container.dart';
 import '../../cubits/report/report_cubit.dart';
 import '../../cubits/report/report_state.dart';
@@ -43,8 +44,6 @@ class _ReportsViewState extends State<_ReportsView> {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat.currency(symbol: 'ر.س ', decimalDigits: 2);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('التقارير المالية'),
@@ -72,6 +71,10 @@ class _ReportsViewState extends State<_ReportsView> {
           }
 
           if (state is ReportLoaded) {
+            final currencyFormat = NumberFormat.currency(
+              symbol: '${state.selectedCurrency.symbol} ',
+              decimalDigits: 2,
+            );
             final monthFormat = DateFormat('MMMM yyyy', 'ar');
             final daysInMonth = DateTime(
               state.selectedMonth.year,
@@ -119,6 +122,29 @@ class _ReportsViewState extends State<_ReportsView> {
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Currency Selector Toggle
+                  SegmentedButton<ExpenseCurrency>(
+                    segments: const [
+                      ButtonSegment(
+                        value: ExpenseCurrency.egp,
+                        label: Text('جنيه مصري (EGP)'),
+                        icon: Icon(Icons.money),
+                      ),
+                      ButtonSegment(
+                        value: ExpenseCurrency.usd,
+                        label: Text('دولار أمريكي (USD)'),
+                        icon: Icon(Icons.attach_money),
+                      ),
+                    ],
+                    selected: {state.selectedCurrency},
+                    onSelectionChanged: (set) {
+                      if (set.isNotEmpty) {
+                        context.read<ReportCubit>().changeCurrency(set.first);
+                      }
+                    },
                   ),
                   const SizedBox(height: 14),
 
@@ -180,30 +206,195 @@ class _ReportsViewState extends State<_ReportsView> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-                  if (state.totalAmount == 0) ...[
+                  if (state.totalCount == 0) ...[
                     Card(
                       margin: EdgeInsets.zero,
                       child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Center(
-                          child: Column(
-                            children: [
-                              Icon(Icons.pie_chart_outline, size: 56, color: AppColors.textHint),
-                              const SizedBox(height: 12),
-                              const Text('لا توجد بيانات لهذا الشهر', style: AppTextStyles.heading3),
-                              const SizedBox(height: 4),
-                              const Text('لم يتم تسجيل أي مصروفات خلال هذا الشهر', style: AppTextStyles.caption),
-                            ],
-                          ),
+                        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                        child: Column(
+                          children: [
+                            Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            Text(
+                              'لا توجد مصروفات مسجلة لهذا الشهر بالعملة المختارة',
+                              style: AppTextStyles.subtitle1.copyWith(color: Colors.grey.shade600),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ] else ...[
-                    // Admin Only: Spending By Employee Section in Reports
+                    // Daily Spending Chart (Bar Chart)
+                    const Text('المصروفات اليومية', style: AppTextStyles.heading3),
+                    const SizedBox(height: 10),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              height: 180,
+                              child: BarChart(
+                                BarChartData(
+                                  alignment: BarChartAlignment.spaceAround,
+                                  maxY: state.dailySpending.map((e) => e.amount).fold<double>(0, (prev, el) => el > prev ? el : prev) * 1.2 + 10,
+                                  barTouchData: BarTouchData(
+                                    touchTooltipData: BarTouchTooltipData(
+                                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                        return BarTooltipItem(
+                                          'يوم ${group.x}\n${currencyFormat.format(rod.toY)}',
+                                          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  titlesData: FlTitlesData(
+                                    show: true,
+                                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, meta) {
+                                          final day = value.toInt();
+                                          if (day % 5 == 0 || day == 1 || day == daysInMonth) {
+                                            return Padding(
+                                              padding: const EdgeInsets.only(top: 4),
+                                              child: Text('$day', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                            );
+                                          }
+                                          return const SizedBox.shrink();
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  borderData: FlBorderData(show: false),
+                                  gridData: const FlGridData(show: false),
+                                  barGroups: state.dailySpending.map((d) {
+                                    return BarChartGroupData(
+                                      x: d.day,
+                                      barRods: [
+                                        BarChartRodData(
+                                          toY: d.amount,
+                                          color: AppColors.primary,
+                                          width: 6,
+                                          borderRadius: BorderRadius.circular(3),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Category Breakdown (Pie Chart)
+                    const Text('توزيع المصروفات حسب الفئة', style: AppTextStyles.heading3),
+                    const SizedBox(height: 10),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            if (state.categorySpending.isNotEmpty) ...[
+                              SizedBox(
+                                height: 200,
+                                child: PieChart(
+                                  PieChartData(
+                                    pieTouchData: PieTouchData(
+                                      touchCallback: (event, pieTouchResponse) {
+                                        setState(() {
+                                          if (!event.isInterestedForInteractions ||
+                                              pieTouchResponse == null ||
+                                              pieTouchResponse.touchedSection == null) {
+                                            _touchedIndex = -1;
+                                            return;
+                                          }
+                                          _touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                        });
+                                      },
+                                    ),
+                                    borderData: FlBorderData(show: false),
+                                    sectionsSpace: 2,
+                                    centerSpaceRadius: 40,
+                                    sections: List.generate(state.categorySpending.length, (i) {
+                                      final isTouched = i == _touchedIndex;
+                                      final cat = state.categorySpending[i];
+                                      final color = _parseColor(cat.color);
+                                      final radius = isTouched ? 60.0 : 50.0;
+                                      return PieChartSectionData(
+                                        color: color,
+                                        value: cat.amount,
+                                        title: '${cat.percentage.toStringAsFixed(0)}%',
+                                        radius: radius,
+                                        titleStyle: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ...state.categorySpending.map((cat) {
+                                final color = _parseColor(cat.color);
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          color: color,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          cat.name,
+                                          style: AppTextStyles.bodyMedium,
+                                        ),
+                                      ),
+                                      Text(
+                                        currencyFormat.format(cat.amount),
+                                        style: AppTextStyles.bodyMedium.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '(${cat.percentage.toStringAsFixed(1)}%)',
+                                        style: AppTextStyles.caption,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Employee Breakdown (For Admin)
                     if (isAdmin && state.employeeSpending.isNotEmpty) ...[
-                      const Text('توزيع المصروفات حسب الموظفين', style: AppTextStyles.heading3),
+                      const Text('توزيع المصروفات حسب الموظف', style: AppTextStyles.heading3),
                       const SizedBox(height: 10),
                       Card(
                         margin: EdgeInsets.zero,
@@ -211,68 +402,31 @@ class _ReportsViewState extends State<_ReportsView> {
                           padding: const EdgeInsets.all(16),
                           child: Column(
                             children: state.employeeSpending.map((emp) {
+                              final amount = state.selectedCurrency == ExpenseCurrency.usd
+                                  ? emp.amountUsd
+                                  : emp.amountEgp;
                               return InkWell(
-                                borderRadius: BorderRadius.circular(8),
-                                onTap: () {
-                                  context.push('/employees/${emp.userId}');
-                                },
+                                onTap: () => context.push('/employees/${emp.userId}'),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
                                           Expanded(
-                                            child: Row(
-                                              children: [
-                                                CircleAvatar(
-                                                  radius: 12,
-                                                  backgroundColor:
-                                                      AppColors.primary.withValues(alpha: 0.15),
-                                                  child: Text(
-                                                    emp.name.isNotEmpty
-                                                        ? emp.name.characters.first.toUpperCase()
-                                                        : 'U',
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: AppColors.primary,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Flexible(
-                                                  child: Text(
-                                                    emp.name,
-                                                    style: AppTextStyles.bodyMedium.copyWith(
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  '(${emp.count} عملية)',
-                                                  style: AppTextStyles.caption,
-                                                ),
-                                              ],
+                                            child: Text(
+                                              emp.name,
+                                              style: AppTextStyles.bodyMedium.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                           ),
-                                          const SizedBox(width: 8),
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                '${currencyFormat.format(emp.amount)} (${emp.percentage.toStringAsFixed(1)}%)',
-                                                style: AppTextStyles.caption.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              const Icon(Icons.chevron_left, size: 16, color: AppColors.textHint),
-                                            ],
+                                          Text(
+                                            '${currencyFormat.format(amount)} (${emp.percentage.toStringAsFixed(1)}%)',
+                                            style: AppTextStyles.caption.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -296,107 +450,8 @@ class _ReportsViewState extends State<_ReportsView> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                     ],
-
-                    // Category Breakdown Pie Chart
-                    const Text('توزيع المصروفات حسب الفئات', style: AppTextStyles.heading3),
-                    const SizedBox(height: 10),
-                    Card(
-                      margin: EdgeInsets.zero,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            SizedBox(
-                              height: 200,
-                              child: PieChart(
-                                PieChartData(
-                                  pieTouchData: PieTouchData(
-                                    touchCallback: (event, pieTouchResponse) {
-                                      setState(() {
-                                        if (!event.isInterestedForInteractions ||
-                                            pieTouchResponse == null ||
-                                            pieTouchResponse.touchedSection == null) {
-                                          _touchedIndex = -1;
-                                          return;
-                                        }
-                                        _touchedIndex = pieTouchResponse
-                                            .touchedSection!.touchedSectionIndex;
-                                      });
-                                    },
-                                  ),
-                                  borderData: FlBorderData(show: false),
-                                  sectionsSpace: 2,
-                                  centerSpaceRadius: 40,
-                                  sections: state.categorySpending.asMap().entries.map((entry) {
-                                    final i = entry.key;
-                                    final cat = entry.value;
-                                    final isTouched = i == _touchedIndex;
-                                    final radius = isTouched ? 55.0 : 45.0;
-
-                                    return PieChartSectionData(
-                                      color: _parseColor(cat.color),
-                                      value: cat.amount,
-                                      title: isTouched
-                                          ? '${cat.percentage.toStringAsFixed(1)}%'
-                                          : (cat.percentage > 5
-                                              ? '${cat.percentage.toStringAsFixed(0)}%'
-                                              : ''),
-                                      radius: radius,
-                                      titleStyle: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            const Divider(),
-                            const SizedBox(height: 8),
-
-                            // Category List
-                            ...state.categorySpending.map((cat) {
-                              final catColor = _parseColor(cat.color);
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 14,
-                                      height: 14,
-                                      decoration: BoxDecoration(
-                                        color: catColor,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        cat.name,
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    Text(
-                                      '${currencyFormat.format(cat.amount)}  (${cat.percentage.toStringAsFixed(1)}%)',
-                                      style: AppTextStyles.caption.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
 
                     // Payment Method Breakdown
                     const Text('توزيع حسب طريقة الدفع', style: AppTextStyles.heading3),

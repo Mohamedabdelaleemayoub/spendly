@@ -763,6 +763,20 @@ class _ProfileView extends StatelessWidget {
                                 ? () => _showTravelBonusDialog(context, adminSettingsState)
                                 : null,
                           ),
+                          const Divider(height: 1),
+                          ListTile(
+                            leading: const Icon(Icons.history, color: AppColors.primary),
+                            title: const Text(
+                              'سجل العمليات والرقابة (Audit Trail)',
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
+                            subtitle: const Text(
+                              'تتبع ومراجعة كافة العمليات المالية والإدارية',
+                              style: AppTextStyles.caption,
+                            ),
+                            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+                            onTap: () => context.push(AppRoutes.auditLogs),
+                          ),
                         ],
                       );
                     },

@@ -6,6 +6,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../domain/entities/expense.dart';
 import '../models/admin_notification_model.dart';
+import '../models/audit_log_model.dart';
 import '../models/balance_transaction_model.dart';
 import '../models/category_model.dart';
 import '../models/expense_model.dart';
@@ -14,7 +15,7 @@ import '../models/salary_advance_model.dart';
 import '../models/weekly_allowance_model.dart';
 
 /// Centralized Local Database for Spendly.
-/// Provides offline storage, caching, and unified sync queue.
+/// Provides offline storage, caching, audit trail, and unified sync queue.
 class LocalDatabase {
   LocalDatabase({Database? db}) {
     _db = db;
@@ -188,6 +189,20 @@ class LocalDatabase {
     ''');
 
     await db.execute('''
+      CREATE TABLE audit_logs (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        user_name TEXT,
+        action TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT,
+        old_value TEXT,
+        new_value TEXT,
+        created_at TEXT NOT NULL
+      );
+    ''');
+
+    await db.execute('''
       CREATE TABLE sync_queue (
         operation_id TEXT PRIMARY KEY,
         entity_type TEXT NOT NULL,
@@ -206,6 +221,8 @@ class LocalDatabase {
     await db.execute('CREATE INDEX idx_allowance_user_date ON allowance_transactions(user_id, transaction_date);');
     await db.execute('CREATE INDEX idx_salary_user_date ON salary_advances(user_id, advance_date);');
     await db.execute('CREATE INDEX idx_balance_user ON balance_transactions(user_id);');
+    await db.execute('CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);');
+    await db.execute('CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);');
     await db.execute('CREATE INDEX idx_sync_queue_status ON sync_queue(status, created_at);');
 
     debugPrint('💾 [LocalDatabase] Tables and indexes created successfully.');
@@ -323,7 +340,17 @@ class LocalDatabase {
   Future<void> saveCategories(List<CategoryModel> categories) async {
     final db = database;
     final batch = db.batch();
+
+    // Check for pending deletions
+    final pendingDel = await db.query(
+      'sync_queue',
+      columns: ['entity_id'],
+      where: "entity_type = 'category' AND operation = 'DELETE'",
+    );
+    final deletedIds = {for (final r in pendingDel) r['entity_id'] as String};
+
     for (final cat in categories) {
+      if (deletedIds.contains(cat.id)) continue;
       batch.insert(
         'categories',
         {
@@ -393,7 +420,7 @@ class LocalDatabase {
     final batch = db.batch();
     final nowStr = DateTime.now().toIso8601String();
 
-    final Set<String> pendingIds = {};
+    final Set<String> preserveIds = {};
     if (preservePending) {
       final pendingRows = await db.query(
         'expenses',
@@ -401,12 +428,22 @@ class LocalDatabase {
         where: "sync_status IN ('pending', 'syncing', 'failed')",
       );
       for (final r in pendingRows) {
-        pendingIds.add(r['id'] as String);
+        preserveIds.add(r['id'] as String);
       }
     }
 
+    // Check for pending deletions so deleted items are not resurrected
+    final pendingDel = await db.query(
+      'sync_queue',
+      columns: ['entity_id'],
+      where: "entity_type = 'expense' AND operation = 'DELETE'",
+    );
+    for (final r in pendingDel) {
+      preserveIds.add(r['entity_id'] as String);
+    }
+
     for (final exp in expenses) {
-      if (preservePending && pendingIds.contains(exp.id)) {
+      if (preserveIds.contains(exp.id)) {
         continue;
       }
       batch.insert(
@@ -617,7 +654,16 @@ class LocalDatabase {
   Future<void> saveAllowanceTransactions(List<WeeklyAllowanceModel> items) async {
     final db = database;
     final batch = db.batch();
+
+    final pendingDel = await db.query(
+      'sync_queue',
+      columns: ['entity_id'],
+      where: "entity_type = 'allowance_transaction' AND operation = 'DELETE'",
+    );
+    final deletedIds = {for (final r in pendingDel) r['entity_id'] as String};
+
     for (final item in items) {
+      if (deletedIds.contains(item.id)) continue;
       batch.insert(
         'allowance_transactions',
         {
@@ -707,7 +753,16 @@ class LocalDatabase {
   Future<void> saveSalaryAdvances(List<SalaryAdvanceModel> items) async {
     final db = database;
     final batch = db.batch();
+
+    final pendingDel = await db.query(
+      'sync_queue',
+      columns: ['entity_id'],
+      where: "entity_type = 'salary_advance' AND operation = 'DELETE'",
+    );
+    final deletedIds = {for (final r in pendingDel) r['entity_id'] as String};
+
     for (final item in items) {
+      if (deletedIds.contains(item.id)) continue;
       batch.insert(
         'salary_advances',
         {
@@ -914,6 +969,94 @@ class LocalDatabase {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
+  // AUDIT LOGS
+  // ══════════════════════════════════════════════════════════════════════════
+
+  Future<void> saveAuditLog(AuditLogModel log) async {
+    final db = database;
+    await db.insert(
+      'audit_logs',
+      log.toLocalDbRow(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> saveAuditLogs(List<AuditLogModel> logs) async {
+    final db = database;
+    final batch = db.batch();
+    for (final log in logs) {
+      batch.insert(
+        'audit_logs',
+        log.toLocalDbRow(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<List<AuditLogModel>> getAuditLogs({
+    String? entityType,
+    String? userId,
+    String? action,
+    int? limit,
+    int? offset,
+  }) async {
+    final db = database;
+    final conditions = <String>[];
+    final args = <dynamic>[];
+
+    if (entityType != null && entityType.isNotEmpty) {
+      conditions.add('entity_type = ?');
+      args.add(entityType);
+    }
+    if (userId != null && userId.isNotEmpty) {
+      conditions.add('user_id = ?');
+      args.add(userId);
+    }
+    if (action != null && action.isNotEmpty) {
+      conditions.add('action = ?');
+      args.add(action);
+    }
+
+    final whereClause = conditions.isNotEmpty ? conditions.join(' AND ') : null;
+
+    final rows = await db.query(
+      'audit_logs',
+      where: whereClause,
+      whereArgs: args.isNotEmpty ? args : null,
+      orderBy: 'created_at DESC',
+      limit: limit ?? 100,
+      offset: offset,
+    );
+
+    return rows.map((r) {
+      Map<String, dynamic>? parseJson(dynamic val) {
+        if (val == null) return null;
+        if (val is Map<String, dynamic>) return val;
+        if (val is String && val.trim().isNotEmpty) {
+          try {
+            final decoded = jsonDecode(val);
+            if (decoded is Map<String, dynamic>) return decoded;
+          } catch (_) {}
+        }
+        return null;
+      }
+
+      return AuditLogModel(
+        id: r['id'] as String,
+        userId: r['user_id'] as String?,
+        userName: r['user_name'] as String?,
+        action: r['action'] as String,
+        entityType: r['entity_type'] as String,
+        entityId: r['entity_id'] as String?,
+        oldValue: parseJson(r['old_value']),
+        newValue: parseJson(r['new_value']),
+        createdAt: DateTime.tryParse(r['created_at'] as String) ?? DateTime.now(),
+      );
+    }).toList();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
   // CENTRALIZED SYNC QUEUE
   // ══════════════════════════════════════════════════════════════════════════
 
@@ -992,6 +1135,7 @@ class LocalDatabase {
     await db.delete('balance_transactions');
     await db.delete('app_settings');
     await db.delete('admin_notifications');
+    await db.delete('audit_logs');
     await db.delete('sync_queue');
   }
 

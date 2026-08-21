@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/datasources/local_database.dart';
 import '../../data/models/admin_notification_model.dart';
+import '../../data/models/audit_log_model.dart';
 import '../../data/models/balance_transaction_model.dart';
 import '../../data/models/category_model.dart';
 import '../../data/models/expense_model.dart';
@@ -182,6 +183,12 @@ class SyncManagerImpl implements SyncManager {
       // ── Step 3: Pull Latest Server Data & Update Local Database ────────
       await _pullLatestServerData(currentUserId);
 
+      // Record successful full sync timestamp
+      await localDatabase.saveSetting(
+        'last_full_sync_timestamp',
+        DateTime.now().toUtc().toIso8601String(),
+      );
+
       // Determine final sync status
       final remainingOps = await localDatabase.getPendingSyncOperations();
       final remainingExp = await localDatabase.getPendingExpenses(userId: currentUserId);
@@ -257,6 +264,10 @@ class SyncManagerImpl implements SyncManager {
 
       case 'settings':
         await supabaseClient.from('app_settings').upsert(payload, onConflict: 'key');
+        break;
+
+      case 'audit_log':
+        await supabaseClient.from('audit_logs').insert(payload);
         break;
 
       default:
@@ -388,6 +399,23 @@ class SyncManagerImpl implements SyncManager {
             .map((j) => AdminNotificationModel.fromJson(j as Map<String, dynamic>))
             .toList();
         await localDatabase.saveNotifications(notifs);
+      } catch (_) {}
+
+      // 9. Pull Audit Logs (if admin)
+      try {
+        final profile = await localDatabase.getProfile(currentUserId);
+        if (profile?.role == 'admin') {
+          final auditRes = await supabaseClient
+              .from('audit_logs')
+              .select('*, profiles:profiles(full_name, email)')
+              .order('created_at', ascending: false)
+              .limit(100);
+
+          final auditLogs = (auditRes as List<dynamic>)
+              .map((j) => AuditLogModel.fromJson(j as Map<String, dynamic>))
+              .toList();
+          await localDatabase.saveAuditLogs(auditLogs);
+        }
       } catch (_) {}
 
       debugPrint('✅ [SyncManager] Data pull completed and cached locally.');

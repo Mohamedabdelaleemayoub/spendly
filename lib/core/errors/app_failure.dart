@@ -36,6 +36,11 @@ class StorageFailure extends Failure {
   const StorageFailure([super.message = 'فشل في رفع أو تحميل الملف.']);
 }
 
+/// A failure related to local or remote database operations.
+class DatabaseFailure extends Failure {
+  const DatabaseFailure([super.message = 'حدث خطأ في قاعدة البيانات المحلية.']);
+}
+
 /// A generic catch-all failure.
 class UnknownFailure extends Failure {
   const UnknownFailure([super.message = 'حدث خطأ غير متوقع. حاول مرة أخرى.']);

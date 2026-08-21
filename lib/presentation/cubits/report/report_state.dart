@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../domain/entities/expense_currency.dart';
 import '../dashboard/dashboard_state.dart';
 
 class PaymentMethodSpending extends Equatable {
@@ -49,7 +50,10 @@ class ReportLoading extends ReportState {
 class ReportLoaded extends ReportState {
   const ReportLoaded({
     required this.selectedMonth,
+    required this.selectedCurrency,
     required this.totalAmount,
+    required this.totalAmountEgp,
+    required this.totalAmountUsd,
     required this.totalCount,
     required this.categorySpending,
     required this.paymentMethodSpending,
@@ -59,7 +63,10 @@ class ReportLoaded extends ReportState {
   });
 
   final DateTime selectedMonth;
+  final ExpenseCurrency selectedCurrency;
   final double totalAmount;
+  final double totalAmountEgp;
+  final double totalAmountUsd;
   final int totalCount;
   final List<CategorySpending> categorySpending;
   final List<PaymentMethodSpending> paymentMethodSpending;
@@ -67,10 +74,41 @@ class ReportLoaded extends ReportState {
   final List<EmployeeSpending> employeeSpending;
   final bool isAdmin;
 
+  ReportLoaded copyWith({
+    DateTime? selectedMonth,
+    ExpenseCurrency? selectedCurrency,
+    double? totalAmount,
+    double? totalAmountEgp,
+    double? totalAmountUsd,
+    int? totalCount,
+    List<CategorySpending>? categorySpending,
+    List<PaymentMethodSpending>? paymentMethodSpending,
+    List<DailySpending>? dailySpending,
+    List<EmployeeSpending>? employeeSpending,
+    bool? isAdmin,
+  }) {
+    return ReportLoaded(
+      selectedMonth: selectedMonth ?? this.selectedMonth,
+      selectedCurrency: selectedCurrency ?? this.selectedCurrency,
+      totalAmount: totalAmount ?? this.totalAmount,
+      totalAmountEgp: totalAmountEgp ?? this.totalAmountEgp,
+      totalAmountUsd: totalAmountUsd ?? this.totalAmountUsd,
+      totalCount: totalCount ?? this.totalCount,
+      categorySpending: categorySpending ?? this.categorySpending,
+      paymentMethodSpending: paymentMethodSpending ?? this.paymentMethodSpending,
+      dailySpending: dailySpending ?? this.dailySpending,
+      employeeSpending: employeeSpending ?? this.employeeSpending,
+      isAdmin: isAdmin ?? this.isAdmin,
+    );
+  }
+
   @override
   List<Object?> get props => [
         selectedMonth,
+        selectedCurrency,
         totalAmount,
+        totalAmountEgp,
+        totalAmountUsd,
         totalCount,
         categorySpending,
         paymentMethodSpending,

@@ -6,6 +6,7 @@ import '../core/services/connectivity_service.dart';
 import '../core/services/supabase_service.dart';
 import '../core/services/sync_manager.dart';
 import '../core/services/sync_service.dart';
+import '../data/datasources/audit_remote_datasource.dart';
 import '../data/datasources/auth_remote_datasource.dart';
 import '../data/datasources/balance_remote_datasource.dart';
 import '../data/datasources/category_remote_datasource.dart';
@@ -17,6 +18,7 @@ import '../data/datasources/profile_remote_datasource.dart';
 import '../data/datasources/salary_advance_remote_datasource.dart';
 import '../data/datasources/settings_remote_datasource.dart';
 import '../data/datasources/weekly_allowance_remote_datasource.dart';
+import '../data/repositories/audit_repository_impl.dart';
 import '../data/repositories/auth_repository_impl.dart';
 import '../data/repositories/balance_repository_impl.dart';
 import '../data/repositories/category_repository_impl.dart';
@@ -26,6 +28,7 @@ import '../data/repositories/profile_repository_impl.dart';
 import '../data/repositories/salary_advance_repository_impl.dart';
 import '../data/repositories/settings_repository_impl.dart';
 import '../data/repositories/weekly_allowance_repository_impl.dart';
+import '../domain/repositories/audit_repository.dart';
 import '../domain/repositories/auth_repository.dart';
 import '../domain/repositories/balance_repository.dart';
 import '../domain/repositories/category_repository.dart';
@@ -35,6 +38,7 @@ import '../domain/repositories/profile_repository.dart';
 import '../domain/repositories/salary_advance_repository.dart';
 import '../domain/repositories/settings_repository.dart';
 import '../domain/repositories/weekly_allowance_repository.dart';
+import '../presentation/cubits/audit/audit_cubit.dart';
 import '../presentation/cubits/auth/auth_cubit.dart';
 import '../presentation/cubits/balance/admin_balance_cubit.dart';
 import '../presentation/cubits/balance/employee_balance_cubit.dart';
@@ -107,6 +111,9 @@ Future<void> initDependencies() async {
   );
   sl.registerLazySingleton<WeeklyAllowanceRemoteDataSource>(
     () => WeeklyAllowanceRemoteDataSourceImpl(client: sl()),
+  );
+  sl.registerLazySingleton<AuditRemoteDataSource>(
+    () => AuditRemoteDataSourceImpl(client: sl()),
   );
 
   // ── Services ─────────────────────────────────────────────────────────
@@ -184,6 +191,13 @@ Future<void> initDependencies() async {
       localDatabase: sl(),
     ),
   );
+  sl.registerLazySingleton<AuditRepository>(
+    () => AuditRepositoryImpl(
+      remoteDataSource: sl(),
+      localDatabase: sl(),
+      supabaseClient: sl(),
+    ),
+  );
 
   // ── Cubits / State Management ─────────────────────────────────────────
   sl.registerLazySingleton<SettingsCubit>(
@@ -257,5 +271,8 @@ Future<void> initDependencies() async {
       profileRepository: sl(),
       settingsRepository: sl(),
     ),
+  );
+  sl.registerFactory<AuditCubit>(
+    () => AuditCubit(auditRepository: sl()),
   );
 }
