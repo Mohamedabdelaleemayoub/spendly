@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
@@ -26,23 +25,38 @@ class AddExpensePage extends StatelessWidget {
   const AddExpensePage({
     super.key,
     this.initialExpense,
+    this.expenseCubit,
+    this.categoryCubit,
+    this.balanceCubit,
   });
 
   final Expense? initialExpense;
+  final ExpenseCubit? expenseCubit;
+  final CategoryCubit? categoryCubit;
+  final EmployeeBalanceCubit? balanceCubit;
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<ExpenseCubit>(
-          create: (_) => sl<ExpenseCubit>(),
-        ),
-        BlocProvider<CategoryCubit>(
-          create: (_) => sl<CategoryCubit>()..loadCategories(),
-        ),
-        BlocProvider<EmployeeBalanceCubit>(
-          create: (_) => sl<EmployeeBalanceCubit>()..loadBalance(),
-        ),
+        if (expenseCubit != null)
+          BlocProvider<ExpenseCubit>.value(value: expenseCubit!)
+        else
+          BlocProvider<ExpenseCubit>(
+            create: (_) => sl<ExpenseCubit>(),
+          ),
+        if (categoryCubit != null)
+          BlocProvider<CategoryCubit>.value(value: categoryCubit!)
+        else
+          BlocProvider<CategoryCubit>(
+            create: (_) => sl<CategoryCubit>()..loadCategories(),
+          ),
+        if (balanceCubit != null)
+          BlocProvider<EmployeeBalanceCubit>.value(value: balanceCubit!)
+        else
+          BlocProvider<EmployeeBalanceCubit>(
+            create: (_) => sl<EmployeeBalanceCubit>()..loadBalance(),
+          ),
       ],
       child: _AddExpenseForm(initialExpense: initialExpense),
     );
@@ -73,6 +87,10 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
   File? _receiptFile;
   String? _existingReceiptUrl;
   final ImagePicker _picker = ImagePicker();
+
+  double? _submittedAvailableBefore;
+  double? _submittedAmount;
+  ExpenseCurrency? _submittedCurrency;
 
   bool get _isEditing => widget.initialExpense != null;
 
@@ -217,6 +235,18 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
     final title = _titleController.text.trim();
     final notes = _notesController.text.trim();
 
+    final balanceState = context.read<EmployeeBalanceCubit>().state;
+    double? availableBefore;
+    if (balanceState is EmployeeBalanceLoaded) {
+      availableBefore = balanceState.summary.availableBalanceFor(_selectedCurrency);
+      if (_isEditing && widget.initialExpense != null && widget.initialExpense!.currency == _selectedCurrency) {
+        availableBefore += widget.initialExpense!.amount;
+      }
+    }
+    _submittedAvailableBefore = availableBefore;
+    _submittedAmount = amount;
+    _submittedCurrency = _selectedCurrency;
+
     if (_isEditing) {
       context.read<ExpenseCubit>().updateExpense(
             id: widget.initialExpense!.id,
@@ -261,26 +291,47 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
       body: BlocConsumer<ExpenseCubit, ExpenseState>(
         listener: (context, state) {
           if (state is ExpenseActionSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(_isEditing ? l10n.expenseUpdatedSuccess : l10n.expenseAddedSuccess),
-                backgroundColor: AppColors.success,
-              ),
-            );
-            context.pop(true);
-          } else if (state is ExpenseError) {
-            String errorMsg = state.message;
-            final isBalanceErr = errorMsg.toLowerCase().contains('balance') ||
-                errorMsg.toLowerCase().contains('allowance') ||
-                errorMsg.contains('رصيد');
+            final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+            final symbol = _submittedCurrency?.symbolForLocale(isArabic ? 'ar' : 'en') ?? _selectedCurrency.symbolForLocale(isArabic ? 'ar' : 'en');
+            final availableBefore = _submittedAvailableBefore;
+            final submittedAmount = _submittedAmount;
 
-            if (isBalanceErr) {
-              errorMsg = l10n.insufficientBalance;
+            if (availableBefore != null && submittedAmount != null && (availableBefore - submittedAmount) < 0) {
+              final remainingAfter = availableBefore - submittedAmount;
+              final beforeStr = '${availableBefore.toStringAsFixed(availableBefore.truncateToDouble() == availableBefore ? 0 : 2)} $symbol';
+              final amountStr = '${submittedAmount.toStringAsFixed(submittedAmount.truncateToDouble() == submittedAmount ? 0 : 2)} $symbol';
+              final remainingStr = '${remainingAfter.toStringAsFixed(remainingAfter.truncateToDouble() == remainingAfter ? 0 : 2)} $symbol';
+
+              final warningMsg = '${l10n.expenseExceededBalanceWarning}\n'
+                  '${l10n.availableBalanceBefore(beforeStr)}\n'
+                  '${l10n.expenseAmountLabelValue(amountStr)}\n'
+                  '${l10n.balanceAfterExpense(remainingStr)}';
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    warningMsg,
+                    style: const TextStyle(fontWeight: FontWeight.w500, height: 1.4, color: Colors.white),
+                  ),
+                  backgroundColor: const Color(0xFFD97706),
+                  duration: const Duration(seconds: 6),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(_isEditing ? l10n.expenseUpdatedSuccess : l10n.expenseAddedSuccess),
+                  backgroundColor: AppColors.success,
+                ),
+              );
             }
-
+            if (context.mounted && Navigator.canPop(context)) {
+              Navigator.pop(context, true);
+            }
+          } else if (state is ExpenseError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(errorMsg),
+                content: Text(state.message),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -481,42 +532,27 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                 ),
 
                 // 4. Amount (Required)
-                BlocBuilder<EmployeeBalanceCubit, EmployeeBalanceState>(
-                  builder: (context, balanceState) {
-                    double? availableBalance;
-                    if (balanceState is EmployeeBalanceLoaded) {
-                      availableBalance = balanceState.summary.availableBalanceFor(_selectedCurrency);
-                      if (_isEditing && widget.initialExpense != null && widget.initialExpense!.currency == _selectedCurrency) {
-                        availableBalance += widget.initialExpense!.amount;
-                      }
+                TextFormField(
+                  controller: _amountController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: l10n.expenseAmountLabel,
+                    hintText: '0.00',
+                    prefixIcon: const Icon(Icons.attach_money),
+                    suffixText: _selectedCurrency.code,
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return l10n.amountMustBeGreaterThanZero;
                     }
-
-                    return TextFormField(
-                      controller: _amountController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: l10n.expenseAmountLabel,
-                        hintText: '0.00',
-                        prefixIcon: const Icon(Icons.attach_money),
-                        suffixText: _selectedCurrency.code,
-                      ),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return l10n.amountMustBeGreaterThanZero;
-                        }
-                        final amount = double.tryParse(val.trim());
-                        if (amount == null || amount <= 0) {
-                          return l10n.amountMustBeGreaterThanZero;
-                        }
-                        if (availableBalance != null && amount > availableBalance) {
-                          return '${l10n.insufficientBalance} (${l10n.availableBalance}: ${availableBalance.toStringAsFixed(2)} ${_selectedCurrency.code})';
-                        }
-                        return null;
-                      },
-                    );
+                    final amount = double.tryParse(val.trim());
+                    if (amount == null || amount <= 0) {
+                      return l10n.amountMustBeGreaterThanZero;
+                    }
+                    return null;
                   },
                 ),
                 const SizedBox(height: 16),

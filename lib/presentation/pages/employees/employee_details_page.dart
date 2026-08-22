@@ -160,10 +160,11 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
               ),
               child: Form(
                 key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     Center(
                       child: Container(
                         width: 40,
@@ -344,7 +345,8 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
                   ],
                 ),
               ),
-            );
+            ),
+          );
           },
         );
       },
@@ -384,10 +386,11 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
               ),
               child: Form(
                 key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     Center(
                       child: Container(
                         width: 40,
@@ -570,7 +573,8 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
                   ],
                 ),
               ),
-            );
+            ),
+          );
           },
         );
       },
@@ -780,58 +784,60 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
           ),
           content: Form(
             key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${l10n.fullNameLabel}: ${profile.name}',
-                  style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.currencyLabel,
-                  style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                SegmentedButton<ExpenseCurrency>(
-                  segments: [
-                    ButtonSegment(
-                      value: ExpenseCurrency.egp,
-                      label: Text(l10n.currencyEgpShort, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                    ButtonSegment(
-                      value: ExpenseCurrency.usd,
-                      label: Text(l10n.currencyUsdShort, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                    ),
-                  ],
-                  selected: {selectedCurrency},
-                  onSelectionChanged: (newSel) {
-                    setDialogState(() => selectedCurrency = newSel.first);
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: salaryController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    labelText: l10n.salaryAmount,
-                    hintText: '8000',
-                    prefixIcon: const Icon(Icons.attach_money),
-                    suffixText: selectedCurrency.code,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${l10n.fullNameLabel}: ${profile.name}',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
                   ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return l10n.amountMustBeGreaterThanZero;
-                    }
-                    final amt = double.tryParse(val.trim());
-                    if (amt == null || amt < 0) {
-                      return l10n.amountMustBeGreaterThanZero;
-                    }
-                    return null;
-                  },
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.currencyLabel,
+                    style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  SegmentedButton<ExpenseCurrency>(
+                    segments: [
+                      ButtonSegment(
+                        value: ExpenseCurrency.egp,
+                        label: Text(l10n.currencyEgpShort, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                      ButtonSegment(
+                        value: ExpenseCurrency.usd,
+                        label: Text(l10n.currencyUsdShort, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                    ],
+                    selected: {selectedCurrency},
+                    onSelectionChanged: (newSel) {
+                      setDialogState(() => selectedCurrency = newSel.first);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: salaryController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: l10n.salaryAmount,
+                      hintText: '8000',
+                      prefixIcon: const Icon(Icons.attach_money),
+                      suffixText: selectedCurrency.code,
+                    ),
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return l10n.amountMustBeGreaterThanZero;
+                      }
+                      final amt = double.tryParse(val.trim());
+                      if (amt == null || amt < 0) {
+                        return l10n.amountMustBeGreaterThanZero;
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -897,166 +903,168 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
               ),
               child: Form(
                 key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.divider,
-                          borderRadius: BorderRadius.circular(2),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.divider,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF6C5CE7).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6C5CE7).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.payments_outlined, color: Color(0xFF6C5CE7)),
                           ),
-                          child: const Icon(Icons.payments_outlined, color: Color(0xFF6C5CE7)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(l10n.addSalaryAdvance, style: AppTextStyles.heading3),
+                                Text(
+                                  '${l10n.fullNameLabel}: $employeeName',
+                                  style: AppTextStyles.caption,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Amount Input
+                      TextFormField(
+                        controller: amountController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: l10n.expenseAmountLabel,
+                          hintText: '0.00',
+                          prefixIcon: const Icon(Icons.attach_money),
+                          suffixText: selectedCurrency.code,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return l10n.amountMustBeGreaterThanZero;
+                          }
+                          final amount = double.tryParse(val.trim());
+                          if (amount == null || amount <= 0) {
+                            return l10n.amountMustBeGreaterThanZero;
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Date Picker Tile
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: modalCtx,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (picked != null) {
+                            setModalState(() => selectedDate = picked);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.divider),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(l10n.addSalaryAdvance, style: AppTextStyles.heading3),
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
+                                  const SizedBox(width: 10),
+                                  Text(l10n.advanceDate, style: AppTextStyles.bodyMedium),
+                                ],
+                              ),
                               Text(
-                                '${l10n.fullNameLabel}: $employeeName',
-                                style: AppTextStyles.caption,
+                                DateFormat('yyyy/MM/dd').format(selectedDate),
+                                style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Amount Input
-                    TextFormField(
-                      controller: amountController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        labelText: l10n.expenseAmountLabel,
-                        hintText: '0.00',
-                        prefixIcon: const Icon(Icons.attach_money),
-                        suffixText: selectedCurrency.code,
                       ),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return l10n.amountMustBeGreaterThanZero;
-                        }
-                        final amount = double.tryParse(val.trim());
-                        if (amount == null || amount <= 0) {
-                          return l10n.amountMustBeGreaterThanZero;
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 14),
 
-                    // Date Picker Tile
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: modalCtx,
-                          initialDate: selectedDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (picked != null) {
-                          setModalState(() => selectedDate = picked);
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.divider),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
-                                const SizedBox(width: 10),
-                                Text(l10n.advanceDate, style: AppTextStyles.bodyMedium),
-                              ],
-                            ),
-                            Text(
-                              DateFormat('yyyy/MM/dd').format(selectedDate),
-                              style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Reason / Note Input
-                    TextFormField(
-                      controller: noteController,
-                      maxLines: 2,
-                      decoration: InputDecoration(
-                        labelText: l10n.advanceReason,
-                        hintText: l10n.advanceReasonHint,
-                        prefixIcon: const Padding(
-                          padding: EdgeInsets.only(bottom: 30),
-                          child: Icon(Icons.notes_outlined),
-                        ),
-                        alignLabelWithHint: true,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Actions
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(modalCtx),
-                            child: Text(l10n.cancel),
+                      // Reason / Note Input
+                      TextFormField(
+                        controller: noteController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          labelText: l10n.advanceReason,
+                          hintText: l10n.advanceReasonHint,
+                          prefixIcon: const Padding(
+                            padding: EdgeInsets.only(bottom: 30),
+                            child: Icon(Icons.notes_outlined),
                           ),
+                          alignLabelWithHint: true,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (formKey.currentState!.validate()) {
-                                final amount = double.parse(amountController.text.trim());
-                                final note = noteController.text.trim();
-                                context.read<SalaryAdvancesCubit>().addSalaryAdvance(
-                                      userId: widget.employeeId,
-                                      amount: amount,
-                                      currency: selectedCurrency,
-                                      advanceDate: selectedDate,
-                                      note: note.isNotEmpty ? note : null,
-                                    );
-                                Navigator.pop(modalCtx);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(l10n.advanceAddedSuccess),
-                                    backgroundColor: AppColors.success,
-                                  ),
-                                );
-                              }
-                            },
-                            child: Text(l10n.addSalaryAdvance),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Actions
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(modalCtx),
+                              child: Text(l10n.cancel),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (formKey.currentState!.validate()) {
+                                  final amount = double.parse(amountController.text.trim());
+                                  final note = noteController.text.trim();
+                                  context.read<SalaryAdvancesCubit>().addSalaryAdvance(
+                                        userId: widget.employeeId,
+                                        amount: amount,
+                                        currency: selectedCurrency,
+                                        advanceDate: selectedDate,
+                                        note: note.isNotEmpty ? note : null,
+                                      );
+                                  Navigator.pop(modalCtx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(l10n.advanceAddedSuccess),
+                                      backgroundColor: AppColors.success,
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Text(l10n.addSalaryAdvance),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );

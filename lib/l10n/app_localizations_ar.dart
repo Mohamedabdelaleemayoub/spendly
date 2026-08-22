@@ -631,6 +631,25 @@ class AppLocalizationsAr extends AppLocalizations {
   String get insufficientBalance => 'الرصيد المتاح غير كافٍ لهذا المصروف.';
 
   @override
+  String get expenseExceededBalanceWarning =>
+      'تم تسجيل المصروف بنجاح، لكن المصروف تجاوز الرصيد المتاح.';
+
+  @override
+  String availableBalanceBefore(String balance) {
+    return 'الرصيد المتاح: $balance';
+  }
+
+  @override
+  String expenseAmountLabelValue(String amount) {
+    return 'المصروف: $amount';
+  }
+
+  @override
+  String balanceAfterExpense(String remaining) {
+    return 'الرصيد بعد المصروف: $remaining';
+  }
+
+  @override
   String get noAvailableBalance => 'لا يوجد رصيد متاح.';
 
   @override

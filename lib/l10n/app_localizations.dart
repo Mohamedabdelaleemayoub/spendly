@@ -1310,6 +1310,30 @@ abstract class AppLocalizations {
   /// **'Insufficient available balance for this expense.'**
   String get insufficientBalance;
 
+  /// No description provided for @expenseExceededBalanceWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense recorded successfully, but it exceeded the available balance.'**
+  String get expenseExceededBalanceWarning;
+
+  /// No description provided for @availableBalanceBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'Available balance: {balance}'**
+  String availableBalanceBefore(String balance);
+
+  /// No description provided for @expenseAmountLabelValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense: {amount}'**
+  String expenseAmountLabelValue(String amount);
+
+  /// No description provided for @balanceAfterExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance after expense: {remaining}'**
+  String balanceAfterExpense(String remaining);
+
   /// No description provided for @noAvailableBalance.
   ///
   /// In en, this message translates to:

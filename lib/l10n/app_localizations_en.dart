@@ -638,6 +638,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Insufficient available balance for this expense.';
 
   @override
+  String get expenseExceededBalanceWarning =>
+      'Expense recorded successfully, but it exceeded the available balance.';
+
+  @override
+  String availableBalanceBefore(String balance) {
+    return 'Available balance: $balance';
+  }
+
+  @override
+  String expenseAmountLabelValue(String amount) {
+    return 'Expense: $amount';
+  }
+
+  @override
+  String balanceAfterExpense(String remaining) {
+    return 'Balance after expense: $remaining';
+  }
+
+  @override
   String get noAvailableBalance => 'No available balance.';
 
   @override
