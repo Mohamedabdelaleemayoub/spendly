@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/admin_notification.dart';
 import '../../../domain/entities/expense_currency.dart';
 import '../../../domain/entities/profile.dart';
@@ -56,12 +57,15 @@ class _ProfileView extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetCtx) => SafeArea(
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(sheetCtx).size.height * 0.75,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: BlocBuilder<AdminNotificationCubit, AdminNotificationState>(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: Breakpoints.maxSheetWidth,
+              maxHeight: MediaQuery.of(sheetCtx).size.height * 0.75,
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: BlocBuilder<AdminNotificationCubit, AdminNotificationState>(
             bloc: notificationCubit,
             builder: (context, state) {
               final notifications = (state is AdminNotificationLoaded)
@@ -147,7 +151,9 @@ class _ProfileView extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   void _showEditNameDialog(BuildContext context, Profile profile) {
@@ -593,9 +599,11 @@ class _ProfileView extends StatelessWidget {
           final isAdmin = userProfile.isAdmin;
           final hasAvatar = userProfile.avatarUrl != null && userProfile.avatarUrl!.isNotEmpty;
 
-          return ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            children: [
+          return ResponsiveContentContainer(
+            maxWidth: Breakpoints.maxContentWidth,
+            child: ListView(
+              padding: Responsive.pagePadding(context),
+              children: [
               // User Avatar & Name Banner
               Center(
                 child: Column(
@@ -939,11 +947,12 @@ class _ProfileView extends StatelessWidget {
                 ),
               ),
             ],
-          );
-        },
-      ),
-    );
-  }
+          ),
+        );
+      },
+    ),
+  );
+}
 
   Widget _buildInitialAvatar(Profile profile, bool isAdmin) {
     return Container(

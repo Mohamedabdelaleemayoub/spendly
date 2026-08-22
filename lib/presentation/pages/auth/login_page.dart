@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../router/app_router.dart';
@@ -64,133 +65,134 @@ class _LoginPageState extends State<LoginPage> {
             return SafeArea(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Center(
-                          child: SpendlyLogo(
-                            size: 72,
-                            showText: false,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.loginTitle,
-                          style: AppTextStyles.heading2.copyWith(
-                            color: AppColors.primary,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          l10n.loginSubtitle,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Email Field
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textDirection: TextDirection.ltr,
-                          textAlign: TextAlign.start,
-                          decoration: InputDecoration(
-                            labelText: l10n.emailLabel,
-                            hintText: l10n.emailHint,
-                            prefixIcon: const Icon(Icons.email_outlined),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return l10n.emailRequired;
-                            }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                .hasMatch(value.trim())) {
-                              return l10n.emailInvalid;
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Password Field
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          textDirection: TextDirection.ltr,
-                          textAlign: TextAlign.start,
-                          decoration: InputDecoration(
-                            labelText: l10n.passwordLabel,
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return l10n.passwordRequired;
-                            }
-                            if (value.length < 6) {
-                              return l10n.passwordTooShort;
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 28),
-
-                        // Submit Button
-                        ElevatedButton(
-                          onPressed: isLoading ? null : () => _onLoginPressed(context),
-                          child: isLoading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppColors.textOnPrimary,
-                                    ),
-                                  ),
-                                )
-                              : Text(l10n.loginButton),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Sign Up Link
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: Breakpoints.maxAuthWidth),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            const Center(
+                              child: SpendlyLogo(
+                                size: 72,
+                                showText: false,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             Text(
-                              l10n.noAccount,
+                              l10n.loginTitle,
+                              style: AppTextStyles.heading2.copyWith(
+                                color: AppColors.primary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              l10n.loginSubtitle,
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.textSecondary,
                               ),
+                              textAlign: TextAlign.center,
                             ),
-                            const SizedBox(width: 4),
-                            TextButton(
-                              onPressed: isLoading
-                                  ? null
-                                  : () => context.push(AppRoutes.signup),
-                              child: Text(l10n.createAccountLink),
+                            const SizedBox(height: 32),
+
+                            // Email Field
+                            TextFormField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              decoration: InputDecoration(
+                                labelText: l10n.emailLabel,
+                                hintText: l10n.emailHint,
+                                prefixIcon: const Icon(Icons.email_outlined),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return l10n.emailRequired;
+                                }
+                                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                    .hasMatch(value.trim())) {
+                                  return l10n.emailInvalid;
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Password Field
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: _obscurePassword,
+                              decoration: InputDecoration(
+                                labelText: l10n.passwordLabel,
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return l10n.passwordRequired;
+                                }
+                                if (value.length < 6) {
+                                  return l10n.passwordTooShort;
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Login Button
+                            ElevatedButton(
+                              onPressed: isLoading ? null : () => _onLoginPressed(context),
+                              child: isLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          AppColors.textOnPrimary,
+                                        ),
+                                      ),
+                                    )
+                                  : Text(l10n.loginButton),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Sign Up Link
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  l10n.noAccount,
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                TextButton(
+                                  onPressed: isLoading
+                                      ? null
+                                      : () => context.push(AppRoutes.signup),
+                                  child: Text(l10n.createAccountLink),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),

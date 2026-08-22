@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/category.dart';
 import '../../../domain/entities/expense.dart';
 import '../../../injection/injection_container.dart';
@@ -238,8 +239,10 @@ class _ExpensesViewState extends State<_ExpensesView> {
         icon: const Icon(Icons.add),
         label: Text(l10n.addExpenseTitle),
       ),
-      body: Column(
-        children: [
+      body: ResponsiveContentContainer(
+        maxWidth: Breakpoints.maxContentWidth,
+        child: Column(
+          children: [
           // Search Field (if enabled)
           if (_showSearch)
             Padding(
@@ -633,6 +636,7 @@ class _ExpensesViewState extends State<_ExpensesView> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

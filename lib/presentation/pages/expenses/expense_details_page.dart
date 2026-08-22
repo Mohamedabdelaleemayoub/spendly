@@ -13,6 +13,7 @@ import '../../cubits/auth/auth_cubit.dart';
 import '../../cubits/auth/auth_state.dart';
 import '../../cubits/expense/expense_cubit.dart';
 import '../../cubits/expense/expense_state.dart';
+import '../../../core/utils/responsive.dart';
 
 class ExpenseDetailsPage extends StatelessWidget {
   const ExpenseDetailsPage({required this.expenseId, super.key});
@@ -127,9 +128,11 @@ class _ExpenseDetailsView extends StatelessWidget {
               expense.paymentMethod;
           final bool isOwner = currentUserId != null && expense.userId == currentUserId;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
+          return ResponsiveContentContainer(
+            maxWidth: Breakpoints.maxFormWidth,
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
               // Header Card with Amount
               Card(
                 margin: EdgeInsets.zero,
@@ -315,9 +318,10 @@ class _ExpenseDetailsView extends StatelessWidget {
                 ),
               ],
             ],
-          );
-        },
-      ),
-    );
-  }
+          ),
+        );
+      },
+    ),
+  );
+}
 }

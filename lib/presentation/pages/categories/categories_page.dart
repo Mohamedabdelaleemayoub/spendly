@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/category.dart';
 import '../../../injection/injection_container.dart';
 import '../../cubits/auth/auth_cubit.dart';
@@ -107,131 +108,136 @@ class _CategoriesView extends StatelessWidget {
       builder: (bottomSheetContext) {
         return StatefulBuilder(
           builder: (ctx, setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(bottomSheetContext).viewInsets.bottom + 20,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: Breakpoints.maxSheetWidth),
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: 20,
+                    right: 20,
+                    top: 20,
+                    bottom: MediaQuery.of(bottomSheetContext).viewInsets.bottom + 20,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          category == null ? 'إضافة فئة جديدة' : 'تعديل الفئة',
-                          style: AppTextStyles.heading3,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              category == null ? 'إضافة فئة جديدة' : 'تعديل الفئة',
+                              style: AppTextStyles.heading3,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () => Navigator.pop(bottomSheetContext),
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(bottomSheetContext),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'اسم الفئة',
+                            hintText: 'مثال: وجبات، انتقالات...',
+                            prefixIcon: Icon(Icons.label_outline),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('اختر الأيقونة:', style: AppTextStyles.label),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: availableIcons.map((iconName) {
+                            final isSelected = selectedIcon == iconName;
+                            return InkWell(
+                              onTap: () => setState(() => selectedIcon = iconName),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? _parseColor(selectedColor)
+                                      : AppColors.surfaceVariant,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? _parseColor(selectedColor)
+                                        : AppColors.divider,
+                                  ),
+                                ),
+                                child: Icon(
+                                  _getIconData(iconName),
+                                  color: isSelected
+                                      ? AppColors.textOnPrimary
+                                      : AppColors.textPrimary,
+                                  size: 22,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('اختر اللون:', style: AppTextStyles.label),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: availableColors.map((hex) {
+                            final isSelected = selectedColor == hex;
+                            final color = _parseColor(hex);
+                            return InkWell(
+                              onTap: () => setState(() => selectedColor = hex),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  shape: BoxShape.circle,
+                                  border: isSelected
+                                      ? Border.all(
+                                          color: AppColors.textPrimary,
+                                          width: 3,
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 28),
+                        ElevatedButton(
+                          onPressed: () {
+                            final name = nameController.text.trim();
+                            if (name.isEmpty) return;
+
+                            if (category == null) {
+                              cubit.addCategory(
+                                name: name,
+                                icon: selectedIcon,
+                                color: selectedColor,
+                              );
+                            } else {
+                              cubit.updateCategory(
+                                category.copyWith(
+                                  name: name,
+                                  icon: selectedIcon,
+                                  color: selectedColor,
+                                ),
+                              );
+                            }
+                            Navigator.pop(bottomSheetContext);
+                          },
+                          child: Text(category == null ? 'إضافة الفئة' : 'حفظ التعديلات'),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'اسم الفئة',
-                        hintText: 'مثلاً: مصاريف التسويق',
-                      ),
-                      autofocus: true,
-                    ),
-                    const SizedBox(height: 20),
-                    const Text('اختر الأيقونة:', style: AppTextStyles.label),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: availableIcons.map((iconName) {
-                        final isSelected = selectedIcon == iconName;
-                        return InkWell(
-                          onTap: () => setState(() => selectedIcon = iconName),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? _parseColor(selectedColor)
-                                  : AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected
-                                    ? _parseColor(selectedColor)
-                                    : AppColors.divider,
-                              ),
-                            ),
-                            child: Icon(
-                              _getIconData(iconName),
-                              color: isSelected
-                                  ? AppColors.textOnPrimary
-                                  : AppColors.textPrimary,
-                              size: 22,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text('اختر اللون:', style: AppTextStyles.label),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: availableColors.map((hex) {
-                        final isSelected = selectedColor == hex;
-                        final color = _parseColor(hex);
-                        return InkWell(
-                          onTap: () => setState(() => selectedColor = hex),
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                              border: isSelected
-                                  ? Border.all(
-                                      color: AppColors.textPrimary,
-                                      width: 3,
-                                    )
-                                  : null,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 28),
-                    ElevatedButton(
-                      onPressed: () {
-                        final name = nameController.text.trim();
-                        if (name.isEmpty) return;
-
-                        if (category == null) {
-                          cubit.addCategory(
-                            name: name,
-                            icon: selectedIcon,
-                            color: selectedColor,
-                          );
-                        } else {
-                          cubit.updateCategory(
-                            category.copyWith(
-                              name: name,
-                              icon: selectedIcon,
-                              color: selectedColor,
-                            ),
-                          );
-                        }
-                        Navigator.pop(bottomSheetContext);
-                      },
-                      child: Text(category == null ? 'إضافة الفئة' : 'حفظ التعديلات'),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -245,26 +251,31 @@ class _CategoriesView extends StatelessWidget {
     final cubit = context.read<CategoryCubit>();
     showDialog(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('حذف الفئة'),
-        content: Text('هل أنت متأكد من حذف فئة "${category.name}"؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('إلغاء'),
+      builder: (dialogCtx) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: Breakpoints.maxDialogWidth),
+          child: AlertDialog(
+            title: const Text('حذف الفئة'),
+            content: Text('هل أنت متأكد من حذف فئة "${category.name}"؟'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: AppColors.textOnPrimary,
+                ),
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  cubit.deleteCategory(category.id);
+                },
+                child: const Text('حذف'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textOnPrimary,
-            ),
-            onPressed: () {
-              Navigator.pop(dialogCtx);
-              cubit.deleteCategory(category.id);
-            },
-            child: const Text('حذف'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -312,8 +323,7 @@ class _CategoriesView extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          if (state is CategoryLoading &&
-              context.read<CategoryCubit>().categories.isEmpty) {
+          if (state is CategoryLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -322,7 +332,7 @@ class _CategoriesView extends StatelessWidget {
           if (categories.isEmpty) {
             return Center(
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.category_outlined,
@@ -354,70 +364,97 @@ class _CategoriesView extends StatelessWidget {
             );
           }
 
+          final isMobile = Responsive.isMobile(context);
+
           return RefreshIndicator(
             onRefresh: () async {
               await context.read<CategoryCubit>().loadCategories();
             },
-            child: ListView.builder(
-              padding: const EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 12,
-                bottom: 80,
-              ),
-              itemCount: categories.length,
-              itemBuilder: (context, index) {
-                final cat = categories[index];
-                final color = _parseColor(cat.color);
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  child: ListTile(
-                    leading: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
+            child: ResponsiveContentContainer(
+              maxWidth: Breakpoints.maxContentWidth,
+              child: isMobile
+                  ? ListView.builder(
+                      padding: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        top: 12,
+                        bottom: 80,
                       ),
-                      child: Icon(
-                        _getIconData(cat.icon),
-                        color: color,
-                        size: 24,
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        return _buildCategoryCard(context, categories[index], isAdmin);
+                      },
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.only(
+                        left: 24,
+                        right: 24,
+                        top: 16,
+                        bottom: 80,
                       ),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: Responsive.gridColumns(context, mobile: 1, tablet: 2, desktop: 3),
+                        childAspectRatio: 3.5,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        return _buildCategoryCard(context, categories[index], isAdmin);
+                      },
                     ),
-                    title: Text(
-                      cat.name,
-                      style: AppTextStyles.subtitle2.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    trailing: isAdmin
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit_outlined, size: 20),
-                                color: AppColors.textSecondary,
-                                onPressed: () => _showAddEditDialog(
-                                  context,
-                                  category: cat,
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, size: 20),
-                                color: AppColors.error,
-                                onPressed: () => _confirmDelete(context, cat),
-                              ),
-                            ],
-                          )
-                        : null,
-                  ),
-                );
-              },
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildCategoryCard(BuildContext context, Category cat, bool isAdmin) {
+    final color = _parseColor(cat.color);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ListTile(
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            _getIconData(cat.icon),
+            color: color,
+            size: 24,
+          ),
+        ),
+        title: Text(
+          cat.name,
+          style: AppTextStyles.subtitle2.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        trailing: isAdmin
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    color: AppColors.textSecondary,
+                    onPressed: () => _showAddEditDialog(
+                      context,
+                      category: cat,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    color: AppColors.error,
+                    onPressed: () => _confirmDelete(context, cat),
+                  ),
+                ],
+              )
+            : null,
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../injection/injection_container.dart';
 import '../../cubits/audit/audit_cubit.dart';
 import '../../cubits/audit/audit_state.dart';
@@ -136,8 +137,10 @@ class _AuditLogsViewState extends State<_AuditLogsView> {
           if (state is AuditLoaded) {
             final filtered = state.filteredLogs;
 
-            return Column(
-              children: [
+            return ResponsiveContentContainer(
+              maxWidth: Breakpoints.maxContentWidth,
+              child: Column(
+                children: [
                 // Search and Filter Header
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -259,8 +262,9 @@ class _AuditLogsViewState extends State<_AuditLogsView> {
                         ),
                 ),
               ],
-            );
-          }
+            ),
+          );
+        }
 
           return const SizedBox.shrink();
         },

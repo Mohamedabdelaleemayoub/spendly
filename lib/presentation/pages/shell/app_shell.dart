@@ -10,6 +10,9 @@ import '../../cubits/auth/auth_cubit.dart';
 import '../../cubits/auth/auth_state.dart';
 import '../../widgets/common/sync_status_indicator.dart';
 
+import '../../../core/utils/responsive.dart';
+import '../../widgets/spendly_logo.dart';
+
 class _TabDestination {
   const _TabDestination({
     required this.route,
@@ -24,10 +27,10 @@ class _TabDestination {
   final IconData selectedIcon;
 }
 
-/// Role-aware bottom navigation shell that wraps authenticated pages.
+/// Role-aware adaptive navigation shell that wraps authenticated pages.
 ///
-/// Automatically adjusts navigation tabs based on user role (Admin vs Employee)
-/// and updates dynamically with the active locale.
+/// Automatically uses NavigationRail on tablets/desktops (>= 720px)
+/// and NavigationBar on mobile screens (< 720px).
 class AppShell extends StatelessWidget {
   const AppShell({required this.child, super.key});
 
@@ -122,6 +125,7 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final useRail = Responsive.useNavRail(context);
 
     return BlocProvider.value(
       value: sl<AuthCubit>(),
@@ -130,6 +134,47 @@ class AppShell extends StatelessWidget {
           final bool isAdmin = (authState is Authenticated) && authState.isAdmin;
           final tabs = isAdmin ? _adminTabs : _employeeTabs;
           final index = _currentIndex(context, tabs);
+
+          if (useRail) {
+            return Scaffold(
+              body: Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: index,
+                    onDestinationSelected: (i) => context.go(tabs[i].route),
+                    backgroundColor: isDark ? AppColors.darkSurface : AppColors.surface,
+                    indicatorColor: AppColors.primary.withValues(alpha: 0.15),
+                    labelType: NavigationRailLabelType.all,
+                    leading: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: SpendlyLogo(
+                        size: 36,
+                        showText: false,
+                      ),
+                    ),
+                    destinations: tabs
+                        .map(
+                          (tab) => NavigationRailDestination(
+                            icon: Icon(tab.icon),
+                            selectedIcon: Icon(tab.selectedIcon),
+                            label: Text(tab.labelBuilder(l10n)),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const VerticalDivider(thickness: 1, width: 1),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const SyncStatusIndicator(),
+                        Expanded(child: child),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
 
           return Scaffold(
             body: Column(

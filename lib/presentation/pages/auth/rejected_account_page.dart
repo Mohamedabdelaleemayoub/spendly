@@ -4,6 +4,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../cubits/auth/auth_cubit.dart';
+import '../../../core/utils/responsive.dart';
 import '../../widgets/spendly_logo.dart';
 
 class RejectedAccountPage extends StatelessWidget {
@@ -18,11 +19,14 @@ class RejectedAccountPage extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SpendlyLogo(size: 64, showText: false),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: Breakpoints.maxAuthWidth),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SpendlyLogo(size: 64, showText: false),
                 const SizedBox(height: 28),
 
                 // Rejected Icon Card
@@ -94,6 +98,8 @@ class RejectedAccountPage extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 }

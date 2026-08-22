@@ -20,6 +20,7 @@ import '../../cubits/category/category_cubit.dart';
 import '../../cubits/category/category_state.dart';
 import '../../cubits/expense/expense_cubit.dart';
 import '../../cubits/expense/expense_state.dart';
+import '../../../core/utils/responsive.dart';
 
 class AddExpensePage extends StatelessWidget {
   const AddExpensePage({
@@ -340,11 +341,13 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
         builder: (context, state) {
           final isLoading = state is ExpenseActionInProgress;
 
-          return Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
+          return ResponsiveContentContainer(
+            maxWidth: Breakpoints.maxFormWidth,
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
                 // 1. Currency Selector (EGP / USD)
                 Card(
                   margin: const EdgeInsets.only(bottom: 16),
@@ -776,9 +779,10 @@ class _AddExpenseFormState extends State<_AddExpenseForm> {
                 ),
               ],
             ),
-          );
-        },
-      ),
-    );
-  }
+          ),
+        );
+      },
+    ),
+  );
+}
 }

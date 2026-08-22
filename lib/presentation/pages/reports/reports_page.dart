@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/expense_currency.dart';
 import '../../../injection/injection_container.dart';
 import '../../cubits/report/report_cubit.dart';
@@ -86,9 +87,11 @@ class _ReportsViewState extends State<_ReportsView> {
 
             return RefreshIndicator(
               onRefresh: () => context.read<ReportCubit>().loadReport(state.selectedMonth),
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                children: [
+              child: ResponsiveContentContainer(
+                maxWidth: Breakpoints.maxContentWidth,
+                child: ListView(
+                  padding: Responsive.pagePadding(context),
+                  children: [
                   // Month Selector Banner
                   Card(
                     margin: EdgeInsets.zero,
@@ -508,8 +511,9 @@ class _ReportsViewState extends State<_ReportsView> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 32),
-                ],
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
             );
           }

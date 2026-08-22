@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../cubits/auth/auth_cubit.dart';
@@ -90,27 +91,30 @@ class _SignUpPageState extends State<SignUpPage> {
             return SafeArea(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Center(
-                          child: SpendlyLogo(
-                            size: 68,
-                            showText: false,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.signupTitle,
-                          style: AppTextStyles.heading2.copyWith(
-                            color: AppColors.primary,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: Breakpoints.maxAuthWidth),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Center(
+                              child: SpendlyLogo(
+                                size: 68,
+                                showText: false,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              l10n.signupTitle,
+                              style: AppTextStyles.heading2.copyWith(
+                                color: AppColors.primary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                         const SizedBox(height: 6),
                         Text(
                           l10n.signupSubtitle,
@@ -237,10 +241,12 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                 ),
               ),
-            );
-          },
-        ),
-      ),
-    );
-  }
+            ),
+          ),
+        );
+      },
+    ),
+  ),
+);
+}
 }

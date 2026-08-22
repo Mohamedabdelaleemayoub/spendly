@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/expense_currency.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
@@ -129,9 +130,11 @@ class _DashboardViewState extends State<_DashboardView> {
                   context.read<EmployeeBalanceCubit>().loadBalance(),
                 ]);
               },
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                children: [
+              child: ResponsiveContentContainer(
+                maxWidth: Breakpoints.maxContentWidth,
+                child: ListView(
+                  padding: Responsive.pagePadding(context),
+                  children: [
                   // 1. Dual Available Balance Card (EGP & USD)
                   BlocBuilder<EmployeeBalanceCubit, EmployeeBalanceState>(
                     builder: (context, balanceState) {
@@ -1165,8 +1168,9 @@ class _DashboardViewState extends State<_DashboardView> {
                       );
                     }),
                   ],
-                  const SizedBox(height: 32),
-                ],
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
             );
           }
