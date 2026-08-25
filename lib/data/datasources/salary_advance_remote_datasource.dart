@@ -8,6 +8,7 @@ abstract class SalaryAdvanceRemoteDataSource {
   Future<List<SalaryAdvanceModel>> getSalaryAdvances(String userId);
   Future<List<SalaryAdvanceModel>> getAllSalaryAdvances();
   Future<SalaryAdvanceModel> createSalaryAdvance({
+    String? id,
     required String userId,
     required double amount,
     ExpenseCurrency currency = ExpenseCurrency.egp,
@@ -70,6 +71,7 @@ class SalaryAdvanceRemoteDataSourceImpl implements SalaryAdvanceRemoteDataSource
 
   @override
   Future<SalaryAdvanceModel> createSalaryAdvance({
+    String? id,
     required String userId,
     required double amount,
     ExpenseCurrency currency = ExpenseCurrency.egp,
@@ -84,6 +86,7 @@ class SalaryAdvanceRemoteDataSourceImpl implements SalaryAdvanceRemoteDataSource
 
       final dateStr = advanceDate.toIso8601String().split('T').first;
       final payload = {
+        'id': ?id,
         'user_id': userId,
         'amount': amount,
         'currency': currency.code,

@@ -262,6 +262,15 @@ class SyncManagerImpl implements SyncManager {
         }
         break;
 
+      case 'balance_transaction':
+        if (operation == 'DELETE') {
+          await supabaseClient.from(AppConstants.balanceTransactionsTable).delete().eq('id', entityId);
+          await localDatabase.deleteBalanceTransaction(entityId);
+        } else {
+          await supabaseClient.from(AppConstants.balanceTransactionsTable).upsert(payload, onConflict: 'id');
+        }
+        break;
+
       case 'settings':
         await supabaseClient.from('app_settings').upsert(payload, onConflict: 'key');
         break;

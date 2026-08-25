@@ -6,6 +6,7 @@ import '../models/category_model.dart';
 abstract class CategoryRemoteDataSource {
   Future<List<CategoryModel>> getCategories();
   Future<CategoryModel> createCategory({
+    String? id,
     required String name,
     required String icon,
     required String color,
@@ -38,6 +39,7 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
 
   @override
   Future<CategoryModel> createCategory({
+    String? id,
     required String name,
     required String icon,
     required String color,
@@ -46,6 +48,7 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
       final response = await client
           .from(AppConstants.categoriesTable)
           .insert({
+            'id': ?id,
             'name': name.trim(),
             'icon': icon,
             'color': color,

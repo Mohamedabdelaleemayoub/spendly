@@ -80,6 +80,7 @@ class SalaryAdvanceRepositoryImpl implements SalaryAdvanceRepository {
 
     try {
       final remote = await remoteDataSource.createSalaryAdvance(
+        id: clientAdvanceId,
         userId: userId,
         amount: amount,
         currency: currency,
@@ -120,15 +121,28 @@ class SalaryAdvanceRepositoryImpl implements SalaryAdvanceRepository {
     required DateTime advanceDate,
     String? note,
   }) async {
+    String existingUserId = '';
+    String existingCreatedBy = '';
+    DateTime? existingCreatedAt;
+    if (localDatabase != null && localDatabase!.isInitialized) {
+      final existingList = await localDatabase!.getAllSalaryAdvances();
+      final existing = existingList.where((item) => item.id == id).firstOrNull;
+      if (existing != null) {
+        existingUserId = existing.userId;
+        existingCreatedBy = existing.createdBy;
+        existingCreatedAt = existing.createdAt;
+      }
+    }
+
     final localModel = SalaryAdvanceModel(
       id: id,
-      userId: '',
+      userId: existingUserId,
       amount: amount,
       currency: currency,
       advanceDate: advanceDate,
       note: note,
-      createdBy: '',
-      createdAt: DateTime.now(),
+      createdBy: existingCreatedBy,
+      createdAt: existingCreatedAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );
 

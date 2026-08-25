@@ -57,6 +57,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
 
     try {
       final remote = await remoteDataSource.createCategory(
+        id: clientCatId,
         name: name,
         icon: icon,
         color: color,

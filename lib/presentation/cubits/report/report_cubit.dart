@@ -55,10 +55,13 @@ class ReportCubit extends Cubit<ReportState> {
 
       _cachedMonthExpenses = await expenseRepository.getExpensesForMonth(_currentMonth);
       _recalculateAndEmit(_currentMonth);
-    } on Failure catch (e) {
-      emit(ReportError(e.message));
     } catch (e) {
-      emit(ReportError('فشل تحميل التقارير: $e'));
+      try {
+        _cachedMonthExpenses = await expenseRepository.getExpenses(pageSize: 300);
+        _recalculateAndEmit(_currentMonth);
+        return;
+      } catch (_) {}
+      emit(ReportError(e is Failure ? e.message : 'فشل تحميل التقارير: $e'));
     }
   }
 

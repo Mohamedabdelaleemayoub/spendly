@@ -20,6 +20,7 @@ abstract class WeeklyAllowanceRemoteDataSource {
   });
 
   Future<WeeklyAllowanceModel> createAllowanceTransaction({
+    String? id,
     required String userId,
     required double amount,
     ExpenseCurrency currency = ExpenseCurrency.egp,
@@ -185,6 +186,7 @@ class WeeklyAllowanceRemoteDataSourceImpl implements WeeklyAllowanceRemoteDataSo
 
   @override
   Future<WeeklyAllowanceModel> createAllowanceTransaction({
+    String? id,
     required String userId,
     required double amount,
     ExpenseCurrency currency = ExpenseCurrency.egp,
@@ -201,6 +203,7 @@ class WeeklyAllowanceRemoteDataSourceImpl implements WeeklyAllowanceRemoteDataSo
           '${transactionDate.year.toString().padLeft(4, '0')}-${transactionDate.month.toString().padLeft(2, '0')}-${transactionDate.day.toString().padLeft(2, '0')}';
 
       final insertData = <String, dynamic>{
+        'id': ?id,
         'user_id': userId,
         'amount': amount,
         'currency': currency.code,

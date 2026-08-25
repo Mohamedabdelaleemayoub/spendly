@@ -257,7 +257,16 @@ class LocalDatabase {
   Future<void> saveProfiles(List<ProfileModel> profiles) async {
     final db = database;
     final batch = db.batch();
+
+    final pendingDel = await db.query(
+      'sync_queue',
+      columns: ['entity_id'],
+      where: "entity_type = 'profile' AND operation = 'DELETE'",
+    );
+    final deletedIds = {for (final r in pendingDel) r['entity_id'] as String};
+
     for (final profile in profiles) {
+      if (deletedIds.contains(profile.id)) continue;
       batch.insert(
         'profiles',
         {
@@ -694,11 +703,11 @@ class LocalDatabase {
     final args = <dynamic>[userId];
 
     if (startDate != null) {
-      conditions.add('transaction_date >= ?');
+      conditions.add('substr(transaction_date, 1, 10) >= ?');
       args.add(startDate.toIso8601String().split('T').first);
     }
     if (endDate != null) {
-      conditions.add('transaction_date <= ?');
+      conditions.add('substr(transaction_date, 1, 10) <= ?');
       args.add(endDate.toIso8601String().split('T').first);
     }
 
@@ -835,7 +844,16 @@ class LocalDatabase {
   Future<void> saveBalanceTransactions(List<BalanceTransactionModel> items) async {
     final db = database;
     final batch = db.batch();
+
+    final pendingDel = await db.query(
+      'sync_queue',
+      columns: ['entity_id'],
+      where: "entity_type = 'balance_transaction' AND operation = 'DELETE'",
+    );
+    final deletedIds = {for (final r in pendingDel) r['entity_id'] as String};
+
     for (final item in items) {
+      if (deletedIds.contains(item.id)) continue;
       batch.insert(
         'balance_transactions',
         {
@@ -874,6 +892,11 @@ class LocalDatabase {
       orderBy: 'transaction_date DESC, created_at DESC',
     );
     return rows.map((r) => BalanceTransactionModel.fromJson(r)).toList();
+  }
+
+  Future<void> deleteBalanceTransaction(String id) async {
+    final db = database;
+    await db.delete('balance_transactions', where: 'id = ?', whereArgs: [id]);
   }
 
   // ══════════════════════════════════════════════════════════════════════════

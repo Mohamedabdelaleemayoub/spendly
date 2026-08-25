@@ -52,6 +52,7 @@ class BalanceRepositoryImpl implements BalanceRepository {
 
     try {
       final remote = await remoteDataSource.addBalance(
+        id: clientTxId,
         userId: userId,
         amount: amount,
         currency: currency,

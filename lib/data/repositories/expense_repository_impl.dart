@@ -365,6 +365,10 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   Future<List<Expense>> getExpensesForMonth(DateTime month, {String? userId, ExpenseCurrency? currency}) async {
     try {
       final remoteList = await remoteDataSource.getExpensesForMonth(month, userId: userId, currency: currency);
+      await localDataSource.saveExpenses(
+        remoteList.map((e) => ExpenseModel.fromEntity(e)).toList(),
+        preservePending: true,
+      );
       final localPending = await localDataSource.getPendingExpenses(userId: userId);
       final monthPending = localPending.where((exp) {
         final matchesMonth = exp.expenseDate.year == month.year && exp.expenseDate.month == month.month;

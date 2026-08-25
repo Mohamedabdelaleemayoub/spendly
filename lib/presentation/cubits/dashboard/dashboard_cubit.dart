@@ -395,10 +395,52 @@ class DashboardCubit extends Cubit<DashboardState> {
         weeklyReceivedUsd: weeklyReceivedUsd,
         weeklySpentUsd: weeklySpentUsd,
       ));
-    } on Failure catch (e) {
-      emit(DashboardError(e.message));
     } catch (e) {
-      emit(DashboardError('فشل تحميل لوحة المعلومات: $e'));
+      try {
+        final localExpenses = await expenseRepository.getExpenses(pageSize: 300);
+        final (categorySpending, employeeSpending) = _calculateBreakdown(
+          expenses: localExpenses,
+          period: _currentPeriod,
+          currency: _currentCurrency,
+          isAdmin: false,
+        );
+        final travelActivity = _calculateTravelActivity(
+          expenses: localExpenses,
+          period: _currentPeriod,
+        );
+        emit(DashboardLoaded(
+          isAdmin: false,
+          period: _currentPeriod,
+          selectedCurrency: _currentCurrency,
+          totalTodayEgp: 0.0,
+          totalTodayUsd: 0.0,
+          totalThisWeekEgp: 0.0,
+          totalThisWeekUsd: 0.0,
+          totalThisMonthEgp: 0.0,
+          totalThisMonthUsd: 0.0,
+          countToday: 0,
+          countThisWeek: 0,
+          countThisMonth: 0,
+          employeeCount: 0,
+          recentExpenses: localExpenses.take(5).toList(),
+          categorySpending: categorySpending,
+          employeeSpending: employeeSpending,
+          allMonthExpenses: localExpenses,
+          outsideCairoTripsCount: travelActivity.outsideCairoCount,
+          insideCairoTripsCount: travelActivity.insideCairoCount,
+          topTravelerName: travelActivity.topTravelerName,
+          topTravelerOutsideTrips: travelActivity.topTravelerCount,
+          totalSalariesEgp: 0.0,
+          totalSalaryAdvancesEgp: 0.0,
+          totalRemainingSalariesEgp: 0.0,
+          weeklyReceivedEgp: 0.0,
+          weeklySpentEgp: 0.0,
+          weeklyReceivedUsd: 0.0,
+          weeklySpentUsd: 0.0,
+        ));
+        return;
+      } catch (_) {}
+      emit(DashboardError(e is Failure ? e.message : 'فشل تحميل لوحة المعلومات: $e'));
     }
   }
 }

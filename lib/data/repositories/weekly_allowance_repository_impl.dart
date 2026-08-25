@@ -156,6 +156,7 @@ class WeeklyAllowanceRepositoryImpl implements WeeklyAllowanceRepository {
 
     try {
       final remote = await remoteDataSource.createAllowanceTransaction(
+        id: clientTxId,
         userId: userId,
         amount: amount,
         currency: currency,
@@ -196,14 +197,28 @@ class WeeklyAllowanceRepositoryImpl implements WeeklyAllowanceRepository {
     required DateTime transactionDate,
     String? note,
   }) async {
+    String existingUserId = '';
+    String existingCreatedBy = '';
+    DateTime? existingCreatedAt;
+    if (localDatabase != null && localDatabase!.isInitialized) {
+      final existingList = await localDatabase!.getAllAllowanceTransactions();
+      final existing = existingList.where((item) => item.id == id).firstOrNull;
+      if (existing != null) {
+        existingUserId = existing.userId;
+        existingCreatedBy = existing.createdBy;
+        existingCreatedAt = existing.createdAt;
+      }
+    }
+
     final localModel = WeeklyAllowanceModel(
       id: id,
-      userId: '',
+      userId: existingUserId,
       amount: amount,
       currency: currency,
       transactionDate: transactionDate,
       note: note,
-      createdBy: '',
+      createdBy: existingCreatedBy,
+      createdAt: existingCreatedAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );
 

@@ -1168,7 +1168,36 @@ class _DashboardViewState extends State<_DashboardView> {
                       );
                     }),
                   ],
-                    const SizedBox(height: 32),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          );
+        }
+
+          if (state is DashboardError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.sync_problem, size: 48, color: AppColors.textSecondary),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bodyMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        context.read<DashboardCubit>().loadDashboard();
+                        context.read<EmployeeBalanceCubit>().loadBalance();
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: Text(l10n.retry),
+                    ),
                   ],
                 ),
               ),

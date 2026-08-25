@@ -518,6 +518,32 @@ class _ReportsViewState extends State<_ReportsView> {
             );
           }
 
+          if (state is ReportError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.sync_problem, size: 48, color: AppColors.textSecondary),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bodyMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => context.read<ReportCubit>().loadReport(),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('إعادة المحاولة'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           return const Center(child: CircularProgressIndicator());
         },
       ),

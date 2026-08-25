@@ -8,6 +8,7 @@ import '../models/employee_balance_summary_model.dart';
 
 abstract class BalanceRemoteDataSource {
   Future<BalanceTransactionModel> addBalance({
+    String? id,
     required String userId,
     required double amount,
     ExpenseCurrency currency = ExpenseCurrency.egp,
@@ -29,6 +30,7 @@ class BalanceRemoteDataSourceImpl implements BalanceRemoteDataSource {
 
   @override
   Future<BalanceTransactionModel> addBalance({
+    String? id,
     required String userId,
     required double amount,
     ExpenseCurrency currency = ExpenseCurrency.egp,
@@ -46,6 +48,7 @@ class BalanceRemoteDataSourceImpl implements BalanceRemoteDataSource {
           '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
       final insertData = <String, dynamic>{
+        'id': ?id,
         'user_id': userId,
         'amount': amount,
         'currency': currency.toDbString(),
