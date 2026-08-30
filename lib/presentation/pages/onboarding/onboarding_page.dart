@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../injection/injection_container.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../router/app_router.dart';
 
 class OnboardingPage extends StatefulWidget {
@@ -69,6 +70,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -84,20 +86,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.account_balance_wallet,
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
                           color: Colors.white,
-                          size: 16,
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/app_icon.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Spendly',
+                        l10n?.appName ?? 'Egypt Edu Gate',
                         style: AppTextStyles.subtitle2.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,

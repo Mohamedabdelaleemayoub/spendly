@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Spendly</string>
+	<string>Egypt Edu Gate</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,9 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Spendly requires access to the camera to take photos of expense receipts and profile avatars.</string>
+	<string>Egypt Edu Gate requires access to the camera to take photos of expense receipts and profile avatars.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Spendly requires access to your photo library to attach receipt images and upload profile pictures.</string>
+	<string>Egypt Edu Gate requires access to your photo library to attach receipt images and upload profile pictures.</string>
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>ar</string>

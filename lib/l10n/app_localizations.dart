@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'Spendly'**
+  /// **'Egypt Edu Gate'**
   String get appName;
 
   /// No description provided for @navDashboard.
@@ -179,7 +179,7 @@ abstract class AppLocalizations {
   /// No description provided for @signupTitle.
   ///
   /// In en, this message translates to:
-  /// **'Join Spendly'**
+  /// **'Join Egypt Edu Gate'**
   String get signupTitle;
 
   /// No description provided for @signupSubtitle.
@@ -1019,7 +1019,7 @@ abstract class AppLocalizations {
   /// No description provided for @pendingApprovalMessage.
   ///
   /// In en, this message translates to:
-  /// **'Your account is waiting for administrator approval. You will be able to access Spendly once an administrator approves your registration request.'**
+  /// **'Your account is waiting for administrator approval. You will be able to access Egypt Edu Gate once an administrator approves your registration request.'**
   String get pendingApprovalMessage;
 
   /// No description provided for @rejectedAccountTitle.

@@ -10,7 +10,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appName => 'Spendly';
+  String get appName => 'بوابة مصر التعليمية';
 
   @override
   String get navDashboard => 'الرئيسية';
@@ -49,7 +49,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get orDivider => 'أو';
 
   @override
-  String get signupTitle => 'انضم إلى Spendly';
+  String get signupTitle => 'انضم إلى بوابة مصر التعليمية';
 
   @override
   String get signupSubtitle => 'أنشئ حسابك لإدارة المصروفات ومتابعة الفواتير';

@@ -41,7 +41,8 @@ class SpendlyApp extends StatelessWidget {
       child: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, settingsState) {
           return MaterialApp.router(
-            title: 'Spendly',
+            title: 'Egypt Edu Gate',
+            onGenerateTitle: (context) => AppLocalizations.of(context)?.appName ?? 'Egypt Edu Gate',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,

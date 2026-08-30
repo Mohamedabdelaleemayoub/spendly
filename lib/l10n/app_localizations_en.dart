@@ -10,7 +10,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'Spendly';
+  String get appName => 'Egypt Edu Gate';
 
   @override
   String get navDashboard => 'Dashboard';
@@ -50,7 +50,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orDivider => 'OR';
 
   @override
-  String get signupTitle => 'Join Spendly';
+  String get signupTitle => 'Join Egypt Edu Gate';
 
   @override
   String get signupSubtitle =>
@@ -484,7 +484,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pendingApprovalMessage =>
-      'Your account is waiting for administrator approval. You will be able to access Spendly once an administrator approves your registration request.';
+      'Your account is waiting for administrator approval. You will be able to access Egypt Edu Gate once an administrator approves your registration request.';
 
   @override
   String get rejectedAccountTitle => 'Registration Request Rejected';

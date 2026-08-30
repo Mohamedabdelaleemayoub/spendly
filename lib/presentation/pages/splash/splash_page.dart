@@ -70,6 +70,9 @@ class _SplashPageState extends State<SplashPage>
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final slogan = isArabic ? 'بوابتك للدراسة في مصر' : 'Your Gateway to Study in Egypt';
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -94,10 +97,10 @@ class _SplashPageState extends State<SplashPage>
                 scale: _scaleAnimation,
                 child: FadeTransition(
                   opacity: _fadeAnimation,
-                  child: const SpendlyLogo(
-                    size: 110,
+                  child: SpendlyLogo(
+                    size: 130,
                     showText: true,
-                    slogan: 'إدارة المصروفات باحترافية وذكاء',
+                    slogan: slogan,
                     isLight: true,
                   ),
                 ),

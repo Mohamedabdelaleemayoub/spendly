@@ -1,6 +1,6 @@
 {
   "@@locale": "ar",
-  "appName": "Spendly",
+  "appName": "بوابة مصر التعليمية",
   "@appName": {},
   "navDashboard": "الرئيسية",
   "@navDashboard": {},
@@ -26,7 +26,7 @@
   "@signInWithGoogle": {},
   "orDivider": "أو",
   "@orDivider": {},
-  "signupTitle": "انضم إلى Spendly",
+  "signupTitle": "انضم إلى بوابة مصر التعليمية",
   "@signupTitle": {},
   "signupSubtitle": "أنشئ حسابك لإدارة المصروفات ومتابعة الفواتير",
   "@signupSubtitle": {},
