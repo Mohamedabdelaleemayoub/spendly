@@ -274,7 +274,7 @@ class _ExpenseDetailsView extends StatelessWidget {
                         label: const Text('تعديل'),
                         onPressed: () async {
                           await context.push(
-                            AppRoutes.addExpense,
+                            AppRoutes.editExpense,
                             extra: expense,
                           );
                           if (context.mounted) {

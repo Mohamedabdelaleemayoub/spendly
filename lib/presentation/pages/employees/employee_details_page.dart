@@ -1136,9 +1136,13 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
                                                     style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
                                                   ),
                                                   const SizedBox(height: 4),
-                                                  Text(
-                                                    _formatAmount(salaryAmount, salaryCurrency, isArabic),
-                                                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                                  FittedBox(
+                                                    fit: BoxFit.scaleDown,
+                                                    alignment: isArabic ? Alignment.centerRight : Alignment.centerLeft,
+                                                    child: Text(
+                                                      _formatAmount(salaryAmount, salaryCurrency, isArabic),
+                                                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                                    ),
                                                   ),
                                                 ],
                                               ),
