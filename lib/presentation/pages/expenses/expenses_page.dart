@@ -606,15 +606,33 @@ class _ExpensesViewState extends State<_ExpensesView> {
                                     ],
                                   ),
 
-                                  // Delete button ONLY for owner
+                                  // Edit & Delete buttons ONLY for owner
                                   if (isOwner) ...[
                                     const SizedBox(width: 2),
                                     IconButton(
                                       constraints: const BoxConstraints(),
                                       padding: const EdgeInsets.all(6),
                                       icon: const Icon(
+                                        Icons.edit_outlined,
+                                        size: 18,
+                                        color: AppColors.primary,
+                                      ),
+                                      onPressed: () async {
+                                        await context.push(
+                                          AppRoutes.editExpense,
+                                          extra: expense,
+                                        );
+                                        if (context.mounted) {
+                                          _refreshList();
+                                        }
+                                      },
+                                    ),
+                                    IconButton(
+                                      constraints: const BoxConstraints(),
+                                      padding: const EdgeInsets.all(6),
+                                      icon: const Icon(
                                         Icons.delete_outline,
-                                        size: 20,
+                                        size: 18,
                                         color: AppColors.error,
                                       ),
                                       onPressed: () => _confirmDelete(context, expense),

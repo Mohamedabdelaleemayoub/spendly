@@ -217,7 +217,11 @@ class ExpenseCubit extends Cubit<ExpenseState> {
         existingReceiptUrl: existingReceiptUrl,
       );
 
-      _expenses = _expenses.map((e) => e.id == updated.id ? updated : e).toList();
+      if (_expenses.any((e) => e.id == updated.id)) {
+        _expenses = _expenses.map((e) => e.id == updated.id ? updated : e).toList();
+      } else {
+        _expenses = [updated, ..._expenses];
+      }
       emit(const ExpenseActionSuccess('تم تعديل المصروف بنجاح'));
       emit(ExpenseLoaded(
         expenses: List.unmodifiable(_expenses),

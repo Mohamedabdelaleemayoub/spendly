@@ -96,7 +96,8 @@ class EmployeesCubit extends Cubit<EmployeesState> {
     return list.where((emp) {
       final matchesQuery = trimmed.isEmpty ||
           emp.profile.name.toLowerCase().contains(trimmed) ||
-          (emp.profile.email?.toLowerCase().contains(trimmed) ?? false);
+          (emp.profile.email?.toLowerCase().contains(trimmed) ?? false) ||
+          emp.profile.id.toLowerCase().contains(trimmed);
 
       final matchesRole = role == null || role.isEmpty || emp.profile.role == role;
       final matchesStatus = status == null || status.isEmpty || emp.profile.status == status;

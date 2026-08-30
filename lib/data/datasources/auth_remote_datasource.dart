@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/errors/exception_mapper.dart';
 
@@ -77,7 +78,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final res = await client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: redirectTo ?? 'io.supabase.spendly://login-callback/',
+        redirectTo: redirectTo ?? (kIsWeb ? null : 'io.supabase.spendly://login-callback/'),
       );
       return res;
     } catch (e) {

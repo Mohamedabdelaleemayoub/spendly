@@ -193,7 +193,12 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: 'add',
-              builder: (context, state) => const AddExpensePage(),
+              builder: (context, state) {
+                final expense = state.extra;
+                return AddExpensePage(
+                  initialExpense: expense is Expense ? expense : null,
+                );
+              },
             ),
             GoRoute(
               path: 'edit',

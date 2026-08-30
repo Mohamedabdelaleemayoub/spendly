@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/expense.dart';
 import '../../../domain/entities/expense_currency.dart';
 import '../../../domain/entities/financial_history_item.dart';
@@ -928,7 +929,9 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
               final hasAvatar = profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty;
               final isActive = profile.isActive;
 
-              return NestedScrollView(
+              return ResponsiveContentContainer(
+                maxWidth: Breakpoints.maxContentWidth,
+                child: NestedScrollView(
                 headerSliverBuilder: (context, innerBoxIsScrolled) {
                   return [
                     SliverToBoxAdapter(
@@ -1073,19 +1076,26 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Row(
-                                            children: [
-                                              const Icon(Icons.account_balance, color: Colors.white, size: 20),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                l10n.monthlySalary,
-                                                style: AppTextStyles.subtitle2.copyWith(
-                                                  color: Colors.white.withValues(alpha: 0.9),
-                                                  fontWeight: FontWeight.bold,
+                                          Expanded(
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.account_balance, color: Colors.white, size: 20),
+                                                const SizedBox(width: 8),
+                                                Flexible(
+                                                  child: Text(
+                                                    l10n.monthlySalary,
+                                                    style: AppTextStyles.subtitle2.copyWith(
+                                                      color: Colors.white.withValues(alpha: 0.9),
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
+                                          const SizedBox(width: 8),
                                           if (salaryLoaded != null)
                                             ElevatedButton.icon(
                                               onPressed: () => _showEditSalaryDialog(context, profile, salaryLoaded),
@@ -1236,19 +1246,26 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Row(
-                                            children: [
-                                              const Icon(Icons.account_balance_wallet, color: Colors.white, size: 22),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                l10n.availableBalance,
-                                                style: AppTextStyles.subtitle2.copyWith(
-                                                  color: Colors.white.withValues(alpha: 0.9),
-                                                  fontWeight: FontWeight.bold,
+                                          Expanded(
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.account_balance_wallet, color: Colors.white, size: 22),
+                                                const SizedBox(width: 8),
+                                                Flexible(
+                                                  child: Text(
+                                                    l10n.availableBalance,
+                                                    style: AppTextStyles.subtitle2.copyWith(
+                                                      color: Colors.white.withValues(alpha: 0.9),
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
+                                          const SizedBox(width: 8),
                                           ElevatedButton.icon(
                                             onPressed: () => _showAddBalanceDialog(context, profile.name),
                                             icon: const Icon(Icons.add, size: 16),
@@ -1394,8 +1411,9 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
                     _buildSalaryAdvancesTab(context, profile, l10n, isArabic, dateFormat),
                   ],
                 ),
-              );
-            }
+              ),
+            );
+          }
 
             return const Center(child: CircularProgressIndicator());
           },
@@ -1500,21 +1518,27 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
                   border: Border.all(color: AppColors.secondary.withValues(alpha: 0.3)),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.card_giftcard, size: 18, color: AppColors.secondaryDark),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${l10n.potentialBonus} (${bonusSettings.bonusPerTrip.toStringAsFixed(0)} ${bonusSettings.currency.code}/${l10n.outsideCairo})',
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.secondaryDark,
-                            fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.card_giftcard, size: 18, color: AppColors.secondaryDark),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              '${l10n.potentialBonus} (${bonusSettings.bonusPerTrip.toStringAsFixed(0)} ${bonusSettings.currency.code}/${l10n.outsideCairo})',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.secondaryDark,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       '${potentialBonus.toStringAsFixed(0)} ${bonusSettings.currency.code}',
                       style: AppTextStyles.subtitle2.copyWith(

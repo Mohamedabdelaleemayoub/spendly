@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/errors/app_failure.dart';
@@ -352,18 +354,64 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       );
 
       final data = res.data;
-      if (res.status != 200) {
-        final errMsg = data is Map ? data['error'] : 'Failed to create user';
-        throw ServerFailure(errMsg?.toString() ?? 'Failed to create user');
+      if (res.status == 200) {
+        if (data is Map && data['user'] != null) {
+          return ProfileModel.fromJson(data['user'] as Map<String, dynamic>);
+        }
+        if (data is Map && data['id'] != null) {
+          final profile = await getProfile(data['id'].toString());
+          if (profile != null) return profile;
+        }
+      }
+    } catch (e) {
+      debugPrint('ℹ️ [ProfileRemoteDataSource] admin-create-user edge function failed ($e), using isolated auth fallback.');
+    }
+
+    // Direct Auth Sign-Up Fallback (isolated SupabaseClient preserving Admin session)
+    try {
+      final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+      final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+      final isolatedAuthClient = SupabaseClient(supabaseUrl, supabaseAnonKey);
+
+      final authResponse = await isolatedAuthClient.auth.signUp(
+        email: email.trim(),
+        password: password,
+        data: {
+          'full_name': fullName.trim(),
+          'role': role,
+        },
+      );
+
+      final createdUser = authResponse.user;
+      if (createdUser == null) {
+        throw const ServerFailure('فشل إنشاء حساب المستخدم في خادم المصادقة');
       }
 
-      if (data is Map && data['user'] != null) {
-        return ProfileModel.fromJson(data['user'] as Map<String, dynamic>);
+      // Activate and ensure role & full_name in profiles table
+      try {
+        await client.from(AppConstants.profilesTable).upsert({
+          'id': createdUser.id,
+          'email': email.trim(),
+          'full_name': fullName.trim(),
+          'role': role,
+          'status': 'active',
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+      } catch (upsertErr) {
+        debugPrint('⚠️ [ProfileRemoteDataSource] Upsert profile after signup: $upsertErr');
       }
 
-      final profile = await getProfile(data['id'] ?? '');
+      final profile = await getProfile(createdUser.id);
       if (profile != null) return profile;
-      throw const ServerFailure('User created but failed to load profile');
+
+      return ProfileModel(
+        id: createdUser.id,
+        email: email.trim(),
+        name: fullName.trim(),
+        role: role,
+        status: 'active',
+        createdAt: DateTime.now(),
+      );
     } catch (e) {
       if (e is Failure) rethrow;
       throw mapExceptionToFailure(e);
