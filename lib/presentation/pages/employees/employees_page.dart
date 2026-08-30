@@ -1006,70 +1006,9 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                           style: AppTextStyles.caption.copyWith(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF6C5CE7),
+                                            color: const Color(0xFF00B894),
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                // Weekly Work Budget Row (This Week)
-                                if (emp.weeklyReceivedEgp > 0 || emp.weeklySpentEgp > 0 || emp.weeklyReceivedUsd > 0 || emp.weeklySpentUsd > 0)
-                                  Container(
-                                    margin: const EdgeInsets.only(top: 6),
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF0984E3).withValues(alpha: 0.08),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: const Color(0xFF0984E3).withValues(alpha: 0.2)),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        if (emp.weeklyReceivedEgp > 0 || emp.weeklySpentEgp > 0)
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                '${l10n.thisWeek} (EGP): ${l10n.receivedThisWeek.split(' ').first}: ${emp.weeklyReceivedEgp.toStringAsFixed(0)}',
-                                                style: AppTextStyles.caption.copyWith(fontSize: 10, fontWeight: FontWeight.w600),
-                                              ),
-                                              Text(
-                                                '${l10n.spentThisWeek.split(' ').first}: ${emp.weeklySpentEgp.toStringAsFixed(0)}',
-                                                style: AppTextStyles.caption.copyWith(fontSize: 10),
-                                              ),
-                                              Text(
-                                                '${l10n.remainingThisWeek.split(' ').first}: ${emp.weeklyRemainingEgp.toStringAsFixed(0)} ج.م',
-                                                style: AppTextStyles.caption.copyWith(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: emp.weeklyRemainingEgp >= 0 ? const Color(0xFF00B894) : AppColors.error,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        if (emp.weeklyReceivedUsd > 0 || emp.weeklySpentUsd > 0) ...[
-                                          if (emp.weeklyReceivedEgp > 0 || emp.weeklySpentEgp > 0) const SizedBox(height: 3),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                '${l10n.thisWeek} (USD): ${l10n.receivedThisWeek.split(' ').first}: ${emp.weeklyReceivedUsd.toStringAsFixed(0)}',
-                                                style: AppTextStyles.caption.copyWith(fontSize: 10, fontWeight: FontWeight.w600),
-                                              ),
-                                              Text(
-                                                '${l10n.spentThisWeek.split(' ').first}: ${emp.weeklySpentUsd.toStringAsFixed(0)}',
-                                                style: AppTextStyles.caption.copyWith(fontSize: 10),
-                                              ),
-                                              Text(
-                                                '${l10n.remainingThisWeek.split(' ').first}: \$${emp.weeklyRemainingUsd.toStringAsFixed(0)}',
-                                                style: AppTextStyles.caption.copyWith(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: emp.weeklyRemainingUsd >= 0 ? const Color(0xFF00B894) : AppColors.error,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
                                       ],
                                     ),
                                   ),

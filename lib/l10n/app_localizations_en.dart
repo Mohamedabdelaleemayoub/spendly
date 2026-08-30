@@ -44,6 +44,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginButton => 'Sign In';
 
   @override
+  String get signInWithGoogle => 'Continue with Google';
+
+  @override
+  String get orDivider => 'OR';
+
+  @override
   String get signupTitle => 'Join Spendly';
 
   @override

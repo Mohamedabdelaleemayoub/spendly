@@ -43,6 +43,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loginButton => 'تسجيل الدخول';
 
   @override
+  String get signInWithGoogle => 'المتابعة باستخدام Google';
+
+  @override
+  String get orDivider => 'أو';
+
+  @override
   String get signupTitle => 'انضم إلى Spendly';
 
   @override

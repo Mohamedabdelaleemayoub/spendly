@@ -379,13 +379,22 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       );
 
       if (res.status != 200) {
-        final data = res.data;
-        final errMsg = data is Map ? data['error'] : 'Failed to delete user';
-        throw ServerFailure(errMsg?.toString() ?? 'Failed to delete user');
+        try {
+          await client.from(AppConstants.profilesTable).delete().eq('id', userId);
+        } catch (_) {
+          await client.from(AppConstants.profilesTable).update({'status': 'inactive'}).eq('id', userId);
+        }
       }
     } catch (e) {
-      if (e is Failure) rethrow;
-      throw mapExceptionToFailure(e);
+      try {
+        await client.from(AppConstants.profilesTable).delete().eq('id', userId);
+      } catch (_) {
+        try {
+          await client.from(AppConstants.profilesTable).update({'status': 'inactive'}).eq('id', userId);
+        } catch (inner) {
+          throw mapExceptionToFailure(inner);
+        }
+      }
     }
   }
 

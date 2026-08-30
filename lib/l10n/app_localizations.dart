@@ -164,6 +164,18 @@ abstract class AppLocalizations {
   /// **'Sign In'**
   String get loginButton;
 
+  /// No description provided for @signInWithGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get signInWithGoogle;
+
+  /// No description provided for @orDivider.
+  ///
+  /// In en, this message translates to:
+  /// **'OR'**
+  String get orDivider;
+
   /// No description provided for @signupTitle.
   ///
   /// In en, this message translates to:

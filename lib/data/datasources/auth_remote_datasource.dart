@@ -17,6 +17,8 @@ abstract class AuthRemoteDataSource {
     String? name,
   });
 
+  Future<bool> signInWithGoogle({String? redirectTo});
+
   Future<UserResponse> updatePassword(String newPassword);
 
   Future<void> signOut();
@@ -65,6 +67,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         data: name != null ? {'name': name.trim()} : null,
       );
       return response;
+    } catch (e) {
+      throw mapExceptionToFailure(e);
+    }
+  }
+
+  @override
+  Future<bool> signInWithGoogle({String? redirectTo}) async {
+    try {
+      final res = await client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: redirectTo ?? 'io.supabase.spendly://login-callback/',
+      );
+      return res;
     } catch (e) {
       throw mapExceptionToFailure(e);
     }
