@@ -22,8 +22,12 @@ class EmployeesCubit extends Cubit<EmployeesState> {
   String? _currentRoleFilter;
   String? _currentStatusFilter;
 
-  Future<void> loadEmployees() async {
-    emit(const EmployeesLoading());
+  Future<void> loadEmployees({String? actionMessage}) async {
+    final currentState = state;
+    if (currentState is! EmployeesLoaded) {
+      emit(const EmployeesLoading());
+    }
+
     try {
       final employees = await profileRepository.getEmployeesWithStats();
       _allEmployees = employees;
@@ -48,6 +52,8 @@ class EmployeesCubit extends Cubit<EmployeesState> {
         statusFilter: _currentStatusFilter,
         totalCompanySpent: totalSpent,
         totalCompanyTransactions: totalTransactions,
+        isActionLoading: false,
+        actionMessage: actionMessage,
       ));
     } on Failure catch (e) {
       emit(EmployeesError(e.message));
@@ -124,19 +130,17 @@ class EmployeesCubit extends Cubit<EmployeesState> {
         fullName: fullName,
         role: role,
       );
-      await loadEmployees();
+      await loadEmployees(actionMessage: 'تم إنشاء حساب المستخدم بنجاح');
     } on Failure catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError(e.message));
-      await loadEmployees();
     } catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError('فشل إضافة المستخدم: $e'));
-      await loadEmployees();
     }
   }
 
@@ -148,19 +152,18 @@ class EmployeesCubit extends Cubit<EmployeesState> {
 
     try {
       await profileRepository.updateEmployeeRole(userId, newRole);
-      await loadEmployees();
+      final msg = newRole == 'admin' ? 'تمت ترقية المستخدم إلى مدير بنجاح' : 'تم تحويل المستخدم إلى موظف بنجاح';
+      await loadEmployees(actionMessage: msg);
     } on Failure catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError(e.message));
-      await loadEmployees();
     } catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError('فشل تعديل الصلاحية: $e'));
-      await loadEmployees();
     }
   }
 
@@ -172,19 +175,18 @@ class EmployeesCubit extends Cubit<EmployeesState> {
 
     try {
       await profileRepository.toggleEmployeeStatus(userId, newStatus);
-      await loadEmployees();
+      final msg = newStatus == 'active' ? 'تم تفعيل حساب المستخدم بنجاح' : 'تم تعطيل حساب المستخدم بنجاح';
+      await loadEmployees(actionMessage: msg);
     } on Failure catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError(e.message));
-      await loadEmployees();
     } catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError('فشل تحديث حالة الحساب: $e'));
-      await loadEmployees();
     }
   }
 
@@ -196,19 +198,17 @@ class EmployeesCubit extends Cubit<EmployeesState> {
 
     try {
       await profileRepository.approveUser(userId);
-      await loadEmployees();
+      await loadEmployees(actionMessage: 'تم اعتماد وتفعيل حساب المستخدم بنجاح');
     } on Failure catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError(e.message));
-      await loadEmployees();
     } catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError('فشل اعتماد المستخدم: $e'));
-      await loadEmployees();
     }
   }
 
@@ -220,19 +220,17 @@ class EmployeesCubit extends Cubit<EmployeesState> {
 
     try {
       await profileRepository.rejectUser(userId);
-      await loadEmployees();
+      await loadEmployees(actionMessage: 'تم رفض طلب المستخدم');
     } on Failure catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError(e.message));
-      await loadEmployees();
     } catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError('فشل رفض المستخدم: $e'));
-      await loadEmployees();
     }
   }
 
@@ -244,19 +242,17 @@ class EmployeesCubit extends Cubit<EmployeesState> {
 
     try {
       await profileRepository.deleteEmployee(userId);
-      await loadEmployees();
+      await loadEmployees(actionMessage: 'تم حذف حساب المستخدم بنجاح');
     } on Failure catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError(e.message));
-      await loadEmployees();
     } catch (e) {
       if (currentState is EmployeesLoaded) {
         emit(currentState.copyWith(isActionLoading: false));
       }
       emit(EmployeesError('فشل حذف المستخدم: $e'));
-      await loadEmployees();
     }
   }
 }

@@ -59,8 +59,8 @@ class _EmployeesViewState extends State<_EmployeesView> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetCtx) => _AddUserModal(
-        onAddUser: (email, password, name, role) {
-          cubit.createEmployee(
+        onAddUser: (email, password, name, role) async {
+          await cubit.createEmployee(
             email: email,
             password: password,
             fullName: name,
@@ -306,6 +306,13 @@ class _EmployeesViewState extends State<_EmployeesView> {
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: AppColors.error,
+              ),
+            );
+          } else if (state is EmployeesLoaded && state.actionMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.actionMessage!),
+                backgroundColor: AppColors.success,
               ),
             );
           }
@@ -1038,7 +1045,7 @@ class _AddUserModal extends StatefulWidget {
     required this.l10n,
   });
 
-  final void Function(String email, String password, String name, String role)
+  final Future<void> Function(String email, String password, String name, String role)
       onAddUser;
   final AppLocalizations l10n;
 
@@ -1055,6 +1062,7 @@ class _AddUserModalState extends State<_AddUserModal> {
 
   String _selectedRole = 'employee';
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -1065,17 +1073,27 @@ class _AddUserModalState extends State<_AddUserModal> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    widget.onAddUser(
-      _emailController.text.trim(),
-      _passwordController.text,
-      _nameController.text.trim(),
-      _selectedRole,
-    );
-
-    Navigator.pop(context);
+    setState(() => _isLoading = true);
+    try {
+      await widget.onAddUser(
+        _emailController.text.trim(),
+        _passwordController.text,
+        _nameController.text.trim(),
+        _selectedRole,
+      );
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (_) {
+      // Error handled by cubit / listener
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -1108,7 +1126,7 @@ class _AddUserModalState extends State<_AddUserModal> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _isLoading ? null : () => Navigator.pop(context),
                   ),
                 ],
               ),
@@ -1117,6 +1135,7 @@ class _AddUserModalState extends State<_AddUserModal> {
               // Full Name
               TextFormField(
                 controller: _nameController,
+                enabled: !_isLoading,
                 decoration: InputDecoration(
                   labelText: l10n.fullNameLabel,
                   prefixIcon: const Icon(Icons.person_outline),
@@ -1133,6 +1152,7 @@ class _AddUserModalState extends State<_AddUserModal> {
               // Email
               TextFormField(
                 controller: _emailController,
+                enabled: !_isLoading,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: l10n.emailLabel,
@@ -1155,6 +1175,7 @@ class _AddUserModalState extends State<_AddUserModal> {
               // Password
               TextFormField(
                 controller: _passwordController,
+                enabled: !_isLoading,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   labelText: l10n.passwordLabel,
@@ -1184,6 +1205,7 @@ class _AddUserModalState extends State<_AddUserModal> {
               // Confirm Password
               TextFormField(
                 controller: _confirmPasswordController,
+                enabled: !_isLoading,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   labelText: l10n.confirmNewPasswordLabel,
@@ -1218,18 +1240,29 @@ class _AddUserModalState extends State<_AddUserModal> {
                   ),
                 ],
                 selected: {_selectedRole},
-                onSelectionChanged: (newSelection) {
-                  setState(() {
-                    _selectedRole = newSelection.first;
-                  });
-                },
+                onSelectionChanged: _isLoading
+                    ? null
+                    : (newSelection) {
+                        setState(() {
+                          _selectedRole = newSelection.first;
+                        });
+                      },
               ),
               const SizedBox(height: 24),
 
               // Submit Button
               ElevatedButton(
-                onPressed: _submit,
-                child: Text(l10n.addUserButton),
+                onPressed: _isLoading ? null : _submit,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(l10n.addUserButton),
               ),
             ],
           ),

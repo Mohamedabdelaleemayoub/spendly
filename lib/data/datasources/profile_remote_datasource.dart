@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/errors/app_failure.dart';
@@ -346,9 +345,9 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       final res = await client.functions.invoke(
         'admin-create-user',
         body: {
-          'email': email,
+          'email': email.trim().toLowerCase(),
           'password': password,
-          'full_name': fullName,
+          'full_name': fullName.trim(),
           'role': role,
         },
       );
@@ -363,56 +362,10 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
           if (profile != null) return profile;
         }
       }
+
+      throw const ServerFailure('فشل إنشاء حساب المستخدم عبر الخادم');
     } catch (e) {
-      debugPrint('ℹ️ [ProfileRemoteDataSource] admin-create-user edge function failed ($e), using isolated auth fallback.');
-    }
-
-    // Direct Auth Sign-Up Fallback (isolated SupabaseClient preserving Admin session)
-    try {
-      final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
-      final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
-      final isolatedAuthClient = SupabaseClient(supabaseUrl, supabaseAnonKey);
-
-      final authResponse = await isolatedAuthClient.auth.signUp(
-        email: email.trim(),
-        password: password,
-        data: {
-          'full_name': fullName.trim(),
-          'role': role,
-        },
-      );
-
-      final createdUser = authResponse.user;
-      if (createdUser == null) {
-        throw const ServerFailure('فشل إنشاء حساب المستخدم في خادم المصادقة');
-      }
-
-      // Activate and ensure role & full_name in profiles table
-      try {
-        await client.from(AppConstants.profilesTable).upsert({
-          'id': createdUser.id,
-          'email': email.trim(),
-          'full_name': fullName.trim(),
-          'role': role,
-          'status': 'active',
-          'updated_at': DateTime.now().toIso8601String(),
-        });
-      } catch (upsertErr) {
-        debugPrint('⚠️ [ProfileRemoteDataSource] Upsert profile after signup: $upsertErr');
-      }
-
-      final profile = await getProfile(createdUser.id);
-      if (profile != null) return profile;
-
-      return ProfileModel(
-        id: createdUser.id,
-        email: email.trim(),
-        name: fullName.trim(),
-        role: role,
-        status: 'active',
-        createdAt: DateTime.now(),
-      );
-    } catch (e) {
+      debugPrint('🔴 [ProfileRemoteDataSource] admin-create-user error: $e');
       if (e is Failure) rethrow;
       throw mapExceptionToFailure(e);
     }
@@ -427,22 +380,12 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       );
 
       if (res.status != 200) {
-        try {
-          await client.from(AppConstants.profilesTable).delete().eq('id', userId);
-        } catch (_) {
-          await client.from(AppConstants.profilesTable).update({'status': 'inactive'}).eq('id', userId);
-        }
+        throw const ServerFailure('فشل حذف حساب المستخدم عبر الخادم');
       }
     } catch (e) {
-      try {
-        await client.from(AppConstants.profilesTable).delete().eq('id', userId);
-      } catch (_) {
-        try {
-          await client.from(AppConstants.profilesTable).update({'status': 'inactive'}).eq('id', userId);
-        } catch (inner) {
-          throw mapExceptionToFailure(inner);
-        }
-      }
+      debugPrint('🔴 [ProfileRemoteDataSource] admin-delete-user error: $e');
+      if (e is Failure) rethrow;
+      throw mapExceptionToFailure(e);
     }
   }
 
@@ -460,14 +403,15 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
             .update({'role': role})
             .eq('id', userId);
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ℹ️ [ProfileRemoteDataSource] admin-update-user-role fallback: $e');
       try {
         await client
             .from(AppConstants.profilesTable)
             .update({'role': role})
             .eq('id', userId);
-      } catch (e) {
-        throw mapExceptionToFailure(e);
+      } catch (dbErr) {
+        throw mapExceptionToFailure(e is FunctionException ? e : dbErr);
       }
     }
   }
@@ -486,14 +430,15 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
             .update({'status': status})
             .eq('id', userId);
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ℹ️ [ProfileRemoteDataSource] admin-toggle-user-status fallback: $e');
       try {
         await client
             .from(AppConstants.profilesTable)
             .update({'status': status})
             .eq('id', userId);
-      } catch (e) {
-        throw mapExceptionToFailure(e);
+      } catch (dbErr) {
+        throw mapExceptionToFailure(e is FunctionException ? e : dbErr);
       }
     }
   }

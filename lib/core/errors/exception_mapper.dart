@@ -40,6 +40,15 @@ Failure mapExceptionToFailure(Object exception) {
     return StorageFailure('خطأ في معالجة المرفقات: ${exception.message}');
   }
 
+  if (exception is FunctionException) {
+    debugPrint(
+      '🔴 [FunctionException] Status: ${exception.status}, '
+      'Details: ${exception.details}, '
+      'Reason: ${exception.reasonPhrase}',
+    );
+    return _functionMessage(exception);
+  }
+
   if (exception is SocketException) {
     return const NetworkFailure();
   }
@@ -49,6 +58,73 @@ Failure mapExceptionToFailure(Object exception) {
   }
 
   return UnknownFailure(exception.toString());
+}
+
+Failure _functionMessage(FunctionException e) {
+  String rawMessage = 'فشلت العملية على الخادم.';
+  final details = e.details;
+
+  if (details is Map) {
+    if (details['error'] != null) {
+      rawMessage = details['error'].toString();
+    } else if (details['message'] != null) {
+      rawMessage = details['message'].toString();
+    }
+  } else if (details is String && details.trim().isNotEmpty) {
+    rawMessage = details.trim();
+  } else if (e.reasonPhrase != null && e.reasonPhrase!.isNotEmpty) {
+    rawMessage = e.reasonPhrase!;
+  }
+
+  final lower = rawMessage.toLowerCase();
+  if (lower.contains('already registered') ||
+      lower.contains('already exists') ||
+      lower.contains('user already registered') ||
+      lower.contains('email already')) {
+    return const AuthFailure('البريد الإلكتروني مسجل مسبقاً لمستخدم آخر.');
+  }
+
+  if (lower.contains('admin privileges required') ||
+      lower.contains('unauthorized') ||
+      lower.contains('missing authorization') ||
+      lower.contains('invalid authentication session')) {
+    return const AuthFailure('غير مصرح لك بإجراء هذه العملية. يلزم صلاحيات المشرف.');
+  }
+
+  if (lower.contains('cannot delete your own') ||
+      lower.contains('cannot delete self')) {
+    return const ServerFailure('لا يمكنك حذف حسابك الحالي.');
+  }
+
+  if (lower.contains('cannot delete the last remaining') ||
+      (lower.contains('delete') && lower.contains('last remaining administrator'))) {
+    return const ServerFailure('لا يمكن حذف آخر مسؤول متبقي في النظام.');
+  }
+
+  if (lower.contains('cannot deactivate your own') ||
+      lower.contains('cannot deactivate self')) {
+    return const ServerFailure('لا يمكنك تعطيل حسابك الحالي.');
+  }
+
+  if (lower.contains('cannot deactivate the last active') ||
+      lower.contains('last active administrator')) {
+    return const ServerFailure('لا يمكن تعطيل آخر مسؤول نشط في النظام.');
+  }
+
+  if (lower.contains('cannot demote the last remaining') ||
+      (lower.contains('demote') && lower.contains('last remaining administrator'))) {
+    return const ServerFailure('لا يمكن تخفيض صلاحية آخر مسؤول متبقي في النظام.');
+  }
+
+  if (lower.contains('at least 6 characters')) {
+    return const AuthFailure('يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.');
+  }
+
+  if (lower.contains('email, password, and full_name are required')) {
+    return const ServerFailure('يرجى ملء جميع الحقول المطلوبة (الاسم، البريد الإلكتروني، كلمة المرور).');
+  }
+
+  return ServerFailure(rawMessage);
 }
 
 String _authMessage(AuthException e) {

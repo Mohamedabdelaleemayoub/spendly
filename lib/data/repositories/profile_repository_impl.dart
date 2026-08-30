@@ -244,71 +244,45 @@ class ProfileRepositoryImpl implements ProfileRepository {
     required String password,
     required String fullName,
     String role = 'employee',
-  }) {
-    return remoteDataSource.createEmployee(
+  }) async {
+    final profile = await remoteDataSource.createEmployee(
       email: email,
       password: password,
       fullName: fullName,
       role: role,
     );
+    if (localDatabase != null && localDatabase!.isInitialized) {
+      await localDatabase!.saveProfile(profile);
+    }
+    return profile;
   }
 
   @override
   Future<void> deleteEmployee(String userId) async {
+    await remoteDataSource.deleteEmployee(userId);
     if (localDatabase != null && localDatabase!.isInitialized) {
       await localDatabase!.deleteProfile(userId);
-    }
-    try {
-      await remoteDataSource.deleteEmployee(userId);
-    } catch (e) {
-      debugPrint('⚠️ [ProfileRepositoryImpl] Remote deleteEmployee failed ($e), deleted locally.');
     }
   }
 
   @override
   Future<void> updateEmployeeRole(String userId, String role) async {
+    await remoteDataSource.updateEmployeeRole(userId, role);
     if (localDatabase != null && localDatabase!.isInitialized) {
       final existing = await localDatabase!.getProfile(userId);
       if (existing != null) {
         await localDatabase!.saveProfile(ProfileModel.fromEntity(existing.copyWith(role: role)));
       }
     }
-    try {
-      await remoteDataSource.updateEmployeeRole(userId, role);
-    } catch (e) {
-      debugPrint('⚠️ [ProfileRepositoryImpl] Remote updateEmployeeRole failed ($e), updated locally.');
-      if (localDatabase != null && localDatabase!.isInitialized) {
-        await localDatabase!.enqueueSyncOperation(
-          operationId: UuidGenerator.generate(),
-          entityType: 'profile',
-          entityId: userId,
-          operation: 'UPDATE',
-          payload: {'id': userId, 'role': role},
-        );
-      }
-    }
   }
 
   @override
   Future<void> toggleEmployeeStatus(String userId, String status) async {
+    await remoteDataSource.toggleEmployeeStatus(userId, status);
     if (localDatabase != null && localDatabase!.isInitialized) {
       final existing = await localDatabase!.getProfile(userId);
       if (existing != null) {
         await localDatabase!.saveProfile(ProfileModel.fromEntity(existing.copyWith(status: status)));
-      }
-    }
-    try {
-      await remoteDataSource.toggleEmployeeStatus(userId, status);
-    } catch (e) {
-      debugPrint('⚠️ [ProfileRepositoryImpl] Remote toggleEmployeeStatus failed ($e), updated locally.');
-      if (localDatabase != null && localDatabase!.isInitialized) {
-        await localDatabase!.enqueueSyncOperation(
-          operationId: UuidGenerator.generate(),
-          entityType: 'profile',
-          entityId: userId,
-          operation: 'UPDATE',
-          payload: {'id': userId, 'status': status},
-        );
       }
     }
   }

@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:spendly/core/errors/exception_mapper.dart';
 import 'package:spendly/domain/entities/category.dart';
 import 'package:spendly/domain/entities/employee_summary.dart';
 import 'package:spendly/domain/entities/expense.dart';
@@ -12,7 +15,6 @@ import 'package:spendly/presentation/cubits/employee_details/employee_details_st
 import 'package:spendly/presentation/cubits/employees/employees_cubit.dart';
 import 'package:spendly/presentation/cubits/employees/employees_state.dart';
 import 'package:spendly/domain/repositories/profile_repository.dart';
-import 'dart:io';
 
 class MockProfileRepository implements ProfileRepository {
   List<EmployeeSummary> mockSummaries = [];
@@ -439,6 +441,120 @@ void main() {
       filteredState = cubit.state as EmployeeDetailsLoaded;
       expect(filteredState.expenses.length, 3);
       expect(filteredState.hasActiveFilters, false);
+    });
+
+    test('EmployeesCubit createEmployee, updateRole, and toggleStatus emit success actionMessage', () async {
+      final mockRepo = MockProfileRepository();
+      mockRepo.mockSummaries = [
+        const EmployeeSummary(
+          profile: Profile(
+            id: '1',
+            name: 'Ali Ahmed',
+            email: 'ali@example.com',
+            role: 'employee',
+            status: 'active',
+          ),
+        ),
+      ];
+
+      final cubit = EmployeesCubit(profileRepository: mockRepo);
+      await cubit.loadEmployees();
+
+      // 1. Create employee
+      await cubit.createEmployee(
+        email: 'newuser@example.com',
+        password: 'password123',
+        fullName: 'New User',
+        role: 'employee',
+      );
+
+      var state = cubit.state as EmployeesLoaded;
+      expect(state.employees.length, 2);
+      expect(state.actionMessage, 'تم إنشاء حساب المستخدم بنجاح');
+
+      // 2. Update role
+      await cubit.updateEmployeeRole('1', 'admin');
+      state = cubit.state as EmployeesLoaded;
+      expect(state.employees.firstWhere((s) => s.profile.id == '1').profile.role, 'admin');
+      expect(state.actionMessage, 'تمت ترقية المستخدم إلى مدير بنجاح');
+
+      // 3. Toggle status to inactive
+      await cubit.toggleEmployeeStatus('1', 'inactive');
+      state = cubit.state as EmployeesLoaded;
+      expect(state.employees.firstWhere((s) => s.profile.id == '1').profile.status, 'inactive');
+      expect(state.actionMessage, 'تم تعطيل حساب المستخدم بنجاح');
+
+      // 4. Toggle status to active
+      await cubit.toggleEmployeeStatus('1', 'active');
+      state = cubit.state as EmployeesLoaded;
+      expect(state.employees.firstWhere((s) => s.profile.id == '1').profile.status, 'active');
+      expect(state.actionMessage, 'تم تفعيل حساب المستخدم بنجاح');
+    });
+
+    test('mapExceptionToFailure correctly parses FunctionException from Supabase Edge Functions', () {
+      // 1. Duplicate user
+      final dupErr = FunctionException(
+        status: 400,
+        details: {'error': 'User already registered'},
+      );
+      final dupFailure = mapExceptionToFailure(dupErr);
+      expect(dupFailure.message, 'البريد الإلكتروني مسجل مسبقاً لمستخدم آخر.');
+
+      // 2. Short password
+      final passErr = FunctionException(
+        status: 400,
+        details: {'error': 'Password must be at least 6 characters long.'},
+      );
+      final passFailure = mapExceptionToFailure(passErr);
+      expect(passFailure.message, 'يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.');
+
+      // 3. Self delete
+      final selfDelErr = FunctionException(
+        status: 400,
+        details: {'error': 'You cannot delete your own admin account.'},
+      );
+      final selfDelFailure = mapExceptionToFailure(selfDelErr);
+      expect(selfDelFailure.message, 'لا يمكنك حذف حسابك الحالي.');
+
+      // 4. Last admin delete
+      final lastAdminErr = FunctionException(
+        status: 400,
+        details: {'error': 'Cannot delete the last remaining administrator.'},
+      );
+      final lastAdminFailure = mapExceptionToFailure(lastAdminErr);
+      expect(lastAdminFailure.message, 'لا يمكن حذف آخر مسؤول متبقي في النظام.');
+
+      // 5. Self deactivate
+      final selfDeactErr = FunctionException(
+        status: 400,
+        details: {'error': 'You cannot deactivate your own admin account.'},
+      );
+      final selfDeactFailure = mapExceptionToFailure(selfDeactErr);
+      expect(selfDeactFailure.message, 'لا يمكنك تعطيل حسابك الحالي.');
+
+      // 6. Last admin deactivate
+      final lastDeactErr = FunctionException(
+        status: 400,
+        details: {'error': 'Cannot deactivate the last active administrator.'},
+      );
+      final lastDeactFailure = mapExceptionToFailure(lastDeactErr);
+      expect(lastDeactFailure.message, 'لا يمكن تعطيل آخر مسؤول نشط في النظام.');
+
+      // 7. Last admin demote
+      final lastDemoteErr = FunctionException(
+        status: 400,
+        details: {'error': 'Cannot demote the last remaining administrator.'},
+      );
+      final lastDemoteFailure = mapExceptionToFailure(lastDemoteErr);
+      expect(lastDemoteFailure.message, 'لا يمكن تخفيض صلاحية آخر مسؤول متبقي في النظام.');
+
+      // 8. Unauthorized
+      final unauthErr = FunctionException(
+        status: 403,
+        details: {'error': 'Unauthorized. Admin privileges required.'},
+      );
+      final unauthFailure = mapExceptionToFailure(unauthErr);
+      expect(unauthFailure.message, 'غير مصرح لك بإجراء هذه العملية. يلزم صلاحيات المشرف.');
     });
   });
 }
