@@ -72,6 +72,14 @@ class LocalDatabase {
       onUpgrade: _onUpgrade,
     );
 
+    // Safe migration guard for existing SQLite databases
+    try {
+      await _db!.execute('ALTER TABLE profiles ADD COLUMN salary_amount REAL DEFAULT 0.0;');
+    } catch (_) {}
+    try {
+      await _db!.execute("ALTER TABLE profiles ADD COLUMN salary_currency TEXT DEFAULT 'EGP';");
+    } catch (_) {}
+
     debugPrint('💾 [LocalDatabase] Initialized at path: $dbPath');
   }
 

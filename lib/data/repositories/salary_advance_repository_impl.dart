@@ -227,6 +227,16 @@ class SalaryAdvanceRepositoryImpl implements SalaryAdvanceRepository {
         salaryAmount: salaryAmount,
         salaryCurrency: salaryCurrency,
       );
+
+      if (localDatabase != null && localDatabase!.isInitialized) {
+        final prof = await localDatabase!.getProfile(userId);
+        if (prof != null) {
+          await localDatabase!.saveProfile(ProfileModel.fromEntity(prof.copyWith(
+            salaryAmount: salaryAmount,
+            salaryCurrency: salaryCurrency,
+          )));
+        }
+      }
     } catch (e) {
       debugPrint('⚠️ [SalaryAdvanceRepositoryImpl] Remote updateEmployeeSalary failed ($e), updated locally.');
       if (localDatabase != null && localDatabase!.isInitialized) {

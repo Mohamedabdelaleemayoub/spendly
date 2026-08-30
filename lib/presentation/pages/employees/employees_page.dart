@@ -905,8 +905,11 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                         minimumSize: Size.zero,
                                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                       ),
-                                      onPressed: () {
-                                        context.push('/employees/${profile.id}', extra: profile);
+                                      onPressed: () async {
+                                        await context.push('/employees/${profile.id}', extra: profile);
+                                        if (context.mounted) {
+                                          context.read<EmployeesCubit>().loadEmployees();
+                                        }
                                       },
                                       icon: const Icon(Icons.arrow_forward, size: 14),
                                       label: Text(l10n.viewExpenses, style: const TextStyle(fontSize: 12)),

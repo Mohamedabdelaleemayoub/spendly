@@ -437,11 +437,14 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
               onPressed: () {
                 if (formKey.currentState!.validate()) {
                   final amount = double.parse(salaryController.text.trim());
-                  context.read<SalaryAdvancesCubit>().updateEmployeeSalary(
+                  final salaryCubit = context.read<SalaryAdvancesCubit>();
+                  final detailsCubit = context.read<EmployeeDetailsCubit>();
+                  salaryCubit.updateEmployeeSalary(
                         userId: widget.employeeId,
                         salaryAmount: amount,
                         salaryCurrency: selectedCurrency,
                       );
+                  detailsCubit.updateProfileSalary(amount, selectedCurrency);
                   Navigator.pop(dialogCtx);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

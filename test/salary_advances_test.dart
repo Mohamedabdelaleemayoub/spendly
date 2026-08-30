@@ -285,5 +285,24 @@ void main() {
       final remainingSalary = salary - salaryAdvanceTaken; // 6500 EGP
       expect(remainingSalary, equals(6500.0));
     });
+
+    test('11. loadSalaryAdvances ALWAYS fetches persisted salary from profileRepository even if initialSalary is 0.0', () async {
+      when(() => mockProfileRepository.getProfile(tUserId))
+          .thenAnswer((_) async => tProfile); // salaryAmount is 8000.0
+      when(() => mockSalaryAdvanceRepository.getSalaryAdvances(tUserId))
+          .thenAnswer((_) async => []);
+
+      // Call with initialSalary: 0.0 (simulating opening from route with default profile.salaryAmount)
+      await salaryAdvancesCubit.loadSalaryAdvances(
+        tUserId,
+        initialSalary: 0.0,
+        initialCurrency: ExpenseCurrency.egp,
+      );
+
+      final state = salaryAdvancesCubit.state as SalaryAdvancesLoaded;
+      expect(state.salaryAmount, equals(8000.0)); // Overridden by authoritative repo fetch
+      expect(state.remainingSalary, equals(8000.0));
+      verify(() => mockProfileRepository.getProfile(tUserId)).called(1);
+    });
   });
 }

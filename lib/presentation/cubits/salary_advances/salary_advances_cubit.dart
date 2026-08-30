@@ -31,12 +31,11 @@ class SalaryAdvancesCubit extends Cubit<SalaryAdvancesState> {
       double salary = initialSalary ?? 0.0;
       ExpenseCurrency currency = initialCurrency ?? ExpenseCurrency.egp;
 
-      if (initialSalary == null) {
-        final profile = await profileRepository.getProfile(userId);
-        if (profile != null) {
-          salary = profile.salaryAmount;
-          currency = profile.salaryCurrency;
-        }
+      // Always fetch latest persisted profile from repository as authoritative source
+      final profile = await profileRepository.getProfile(userId);
+      if (profile != null) {
+        salary = profile.salaryAmount;
+        currency = profile.salaryCurrency;
       }
 
       final advances = await salaryAdvanceRepository.getSalaryAdvances(userId);

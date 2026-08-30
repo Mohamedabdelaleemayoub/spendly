@@ -47,9 +47,9 @@ class EmployeeDetailsCubit extends Cubit<EmployeeDetailsState> {
   Future<void> loadEmployeeDetails(String employeeId, {Profile? initialProfile}) async {
     emit(const EmployeeDetailsLoading());
     try {
-      // 1. Fetch Profile
-      var profile = initialProfile;
-      profile ??= await profileRepository.getProfile(employeeId);
+      // 1. Fetch Profile (always fetch latest from repository as authoritative source)
+      var profile = await profileRepository.getProfile(employeeId);
+      profile ??= initialProfile;
 
       if (profile == null) {
         emit(const EmployeeDetailsError('تعذر العثور على بيانات الموظف.'));
@@ -207,6 +207,19 @@ class EmployeeDetailsCubit extends Cubit<EmployeeDetailsState> {
     _startDate = null;
     _endDate = null;
     _reemitFiltered();
+  }
+
+  void updateProfileSalary(double amount, ExpenseCurrency currency) {
+    if (_profile != null) {
+      _profile = _profile!.copyWith(
+        salaryAmount: amount,
+        salaryCurrency: currency,
+      );
+      final currentState = state;
+      if (currentState is EmployeeDetailsLoaded) {
+        emit(currentState.copyWith(profile: _profile!));
+      }
+    }
   }
 
   void _reemitFiltered() {
