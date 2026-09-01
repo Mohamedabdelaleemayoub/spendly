@@ -341,105 +341,204 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     required String fullName,
     String role = 'employee',
   }) async {
+    final cleanEmail = email.trim().toLowerCase();
+    final cleanName = fullName.trim();
+    final cleanRole = role.trim();
+
+    // 1. Primary path: PostgreSQL RPC (direct, fast, production-safe)
     try {
-      final res = await client.functions.invoke(
-        'admin-create-user',
-        body: {
-          'email': email.trim().toLowerCase(),
-          'password': password,
-          'full_name': fullName.trim(),
-          'role': role,
+      final rpcRes = await client.rpc(
+        'admin_create_user',
+        params: {
+          'p_email': cleanEmail,
+          'p_password': password,
+          'p_full_name': cleanName,
+          'p_role': cleanRole,
         },
       );
 
-      final data = res.data;
-      if (res.status == 200) {
-        if (data is Map && data['user'] != null) {
-          return ProfileModel.fromJson(data['user'] as Map<String, dynamic>);
+      if (rpcRes is Map) {
+        final map = Map<String, dynamic>.from(rpcRes);
+        if (map['user'] != null && map['user'] is Map) {
+          return ProfileModel.fromJson(
+            Map<String, dynamic>.from(map['user'] as Map),
+          );
         }
-        if (data is Map && data['id'] != null) {
-          final profile = await getProfile(data['id'].toString());
+        if (map['id'] != null) {
+          final profile = await getProfile(map['id'].toString());
           if (profile != null) return profile;
         }
       }
+    } catch (rpcError) {
+      debugPrint('ℹ️ [ProfileRemoteDataSource] admin_create_user RPC failed ($rpcError), trying Edge Function.');
+      
+      // If the error was a specific business validation from DB (e.g. duplicate email, invalid password), don't fallback to Edge function
+      if (rpcError is PostgrestException && rpcError.code == 'P0001') {
+        throw mapExceptionToFailure(rpcError);
+      }
 
-      throw const ServerFailure('فشل إنشاء حساب المستخدم عبر الخادم');
-    } catch (e) {
-      debugPrint('🔴 [ProfileRemoteDataSource] admin-create-user error: $e');
-      if (e is Failure) rethrow;
-      throw mapExceptionToFailure(e);
+      // 2. Fallback path: Edge Function (if deployed)
+      try {
+        final res = await client.functions.invoke(
+          'admin-create-user',
+          body: {
+            'email': cleanEmail,
+            'password': password,
+            'full_name': cleanName,
+            'role': cleanRole,
+          },
+        );
+
+        final data = res.data;
+        if (res.status == 200) {
+          if (data is Map && data['user'] != null) {
+            return ProfileModel.fromJson(data['user'] as Map<String, dynamic>);
+          }
+          if (data is Map && data['id'] != null) {
+            final profile = await getProfile(data['id'].toString());
+            if (profile != null) return profile;
+          }
+        }
+      } catch (edgeError) {
+        debugPrint('🔴 [ProfileRemoteDataSource] admin-create-user Edge Function failed ($edgeError).');
+        // If RPC failed with PostgrestException, throw that exception for accurate message
+        if (rpcError is PostgrestException) {
+          throw mapExceptionToFailure(rpcError);
+        }
+        throw mapExceptionToFailure(edgeError);
+      }
     }
+
+    // 3. If both somehow finished without returning or throwing
+    final existing = await client
+        .from(AppConstants.profilesTable)
+        .select()
+        .eq('email', cleanEmail)
+        .maybeSingle();
+
+    if (existing != null) {
+      return ProfileModel.fromJson(existing);
+    }
+
+    throw const ServerFailure('فشل إنشاء حساب المستخدم عبر الخادم');
   }
 
   @override
   Future<void> deleteEmployee(String userId) async {
+    // 1. Primary path: PostgreSQL RPC (direct, fast, production-safe)
     try {
-      final res = await client.functions.invoke(
-        'admin-delete-user',
-        body: {'user_id': userId},
+      await client.rpc(
+        'admin_delete_user',
+        params: {'p_user_id': userId},
       );
+      return;
+    } catch (rpcError) {
+      debugPrint('ℹ️ [ProfileRemoteDataSource] admin_delete_user RPC failed ($rpcError), trying Edge Function.');
 
-      if (res.status != 200) {
-        throw const ServerFailure('فشل حذف حساب المستخدم عبر الخادم');
+      // If business rule violation (e.g. cannot delete self or last admin), throw immediately
+      if (rpcError is PostgrestException && rpcError.code == 'P0001') {
+        throw mapExceptionToFailure(rpcError);
       }
-    } catch (e) {
-      debugPrint('🔴 [ProfileRemoteDataSource] admin-delete-user error: $e');
-      if (e is Failure) rethrow;
-      throw mapExceptionToFailure(e);
+
+      // 2. Fallback path: Edge Function (if deployed)
+      try {
+        final res = await client.functions.invoke(
+          'admin-delete-user',
+          body: {'user_id': userId},
+        );
+
+        if (res.status == 200) {
+          return;
+        }
+      } catch (edgeError) {
+        debugPrint('🔴 [ProfileRemoteDataSource] admin-delete-user Edge Function failed ($edgeError).');
+        if (rpcError is PostgrestException) {
+          throw mapExceptionToFailure(rpcError);
+        }
+        throw mapExceptionToFailure(edgeError);
+      }
+    }
+
+    // 3. Fallback: Direct delete on profiles if allowed by Admin RLS
+    try {
+      await client
+          .from(AppConstants.profilesTable)
+          .delete()
+          .eq('id', userId);
+    } catch (dbErr) {
+      throw mapExceptionToFailure(dbErr);
     }
   }
 
   @override
   Future<void> updateEmployeeRole(String userId, String role) async {
+    // 1. Primary path: PostgreSQL RPC
+    try {
+      await client.rpc(
+        'admin_update_user_role',
+        params: {'p_user_id': userId, 'p_role': role},
+      );
+      return;
+    } catch (rpcError) {
+      debugPrint('ℹ️ [ProfileRemoteDataSource] admin_update_user_role RPC failed ($rpcError), trying Edge Function / table fallback.');
+      if (rpcError is PostgrestException && rpcError.code == 'P0001') {
+        throw mapExceptionToFailure(rpcError);
+      }
+    }
+
+    // 2. Fallback path: Edge Function
     try {
       final res = await client.functions.invoke(
         'admin-update-user-role',
         body: {'user_id': userId, 'role': role},
       );
+      if (res.status == 200) return;
+    } catch (_) {}
 
-      if (res.status != 200) {
-        await client
-            .from(AppConstants.profilesTable)
-            .update({'role': role})
-            .eq('id', userId);
-      }
+    // 3. Fallback path: Direct table update allowed by Admin RLS
+    try {
+      await client
+          .from(AppConstants.profilesTable)
+          .update({'role': role})
+          .eq('id', userId);
     } catch (e) {
-      debugPrint('ℹ️ [ProfileRemoteDataSource] admin-update-user-role fallback: $e');
-      try {
-        await client
-            .from(AppConstants.profilesTable)
-            .update({'role': role})
-            .eq('id', userId);
-      } catch (dbErr) {
-        throw mapExceptionToFailure(e is FunctionException ? e : dbErr);
-      }
+      throw mapExceptionToFailure(e);
     }
   }
 
   @override
   Future<void> toggleEmployeeStatus(String userId, String status) async {
+    // 1. Primary path: PostgreSQL RPC
+    try {
+      await client.rpc(
+        'admin_toggle_user_status',
+        params: {'p_user_id': userId, 'p_status': status},
+      );
+      return;
+    } catch (rpcError) {
+      debugPrint('ℹ️ [ProfileRemoteDataSource] admin_toggle_user_status RPC failed ($rpcError), trying Edge Function / table fallback.');
+      if (rpcError is PostgrestException && rpcError.code == 'P0001') {
+        throw mapExceptionToFailure(rpcError);
+      }
+    }
+
+    // 2. Fallback path: Edge Function
     try {
       final res = await client.functions.invoke(
         'admin-toggle-user-status',
         body: {'user_id': userId, 'status': status},
       );
+      if (res.status == 200) return;
+    } catch (_) {}
 
-      if (res.status != 200) {
-        await client
-            .from(AppConstants.profilesTable)
-            .update({'status': status})
-            .eq('id', userId);
-      }
+    // 3. Fallback path: Direct table update allowed by Admin RLS
+    try {
+      await client
+          .from(AppConstants.profilesTable)
+          .update({'status': status})
+          .eq('id', userId);
     } catch (e) {
-      debugPrint('ℹ️ [ProfileRemoteDataSource] admin-toggle-user-status fallback: $e');
-      try {
-        await client
-            .from(AppConstants.profilesTable)
-            .update({'status': status})
-            .eq('id', userId);
-      } catch (dbErr) {
-        throw mapExceptionToFailure(e is FunctionException ? e : dbErr);
-      }
+      throw mapExceptionToFailure(e);
     }
   }
 

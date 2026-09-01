@@ -56,9 +56,9 @@ serve(async (req) => {
     // 3. Parse target user_id and new status
     const { user_id, status } = await req.json();
 
-    if (!user_id || !status || (status !== "active" && status !== "inactive")) {
+    if (!user_id || !status || (status !== "active" && status !== "inactive" && status !== "pending" && status !== "rejected")) {
       return new Response(
-        JSON.stringify({ error: "user_id and valid status ('active' | 'inactive') are required." }),
+        JSON.stringify({ error: "user_id and valid status ('active' | 'inactive' | 'pending' | 'rejected') are required." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

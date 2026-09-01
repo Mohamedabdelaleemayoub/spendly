@@ -148,7 +148,55 @@ String _authMessage(AuthException e) {
 
 String _postgrestMessage(PostgrestException e) {
   final code = e.code?.toUpperCase() ?? '';
-  final msg = e.message.toLowerCase();
+  final rawMsg = e.message.trim();
+  final msg = rawMsg.toLowerCase();
+
+  // If the database raised a custom exception with an Arabic message
+  if (RegExp(r'[\u0600-\u06FF]').hasMatch(rawMsg)) {
+    return rawMsg;
+  }
+
+  if (code == 'P0001' && rawMsg.isNotEmpty) {
+    return rawMsg;
+  }
+
+  if (msg.contains('already registered') ||
+      msg.contains('already exists') ||
+      msg.contains('user already registered') ||
+      msg.contains('email already')) {
+    return 'البريد الإلكتروني مسجل مسبقاً لمستخدم آخر.';
+  }
+
+  if (msg.contains('admin privileges required') ||
+      msg.contains('unauthorized') ||
+      msg.contains('missing authorization')) {
+    return 'غير مصرح لك بإجراء هذه العملية. يلزم صلاحيات المشرف.';
+  }
+
+  if (msg.contains('cannot delete your own') ||
+      msg.contains('cannot delete self')) {
+    return 'لا يمكنك حذف حسابك الحالي.';
+  }
+
+  if (msg.contains('cannot delete the last remaining') ||
+      (msg.contains('delete') && msg.contains('last remaining administrator'))) {
+    return 'لا يمكن حذف آخر مسؤول متبقي في النظام.';
+  }
+
+  if (msg.contains('cannot deactivate your own') ||
+      msg.contains('cannot deactivate self')) {
+    return 'لا يمكنك تعطيل حسابك الحالي.';
+  }
+
+  if (msg.contains('cannot deactivate the last active') ||
+      msg.contains('last active administrator')) {
+    return 'لا يمكن تعطيل آخر مسؤول نشط في النظام.';
+  }
+
+  if (msg.contains('cannot demote the last remaining') ||
+      (msg.contains('demote') && msg.contains('last remaining administrator'))) {
+    return 'لا يمكن تخفيض صلاحية آخر مسؤول متبقي في النظام.';
+  }
 
   if (code == 'PGRST200' || msg.contains('could not find a relationship')) {
     return 'خطأ في علاقات الجداول (PGRST200): يرجى التأكد من تشغيل migration 002 لإنشاء المفتاح الأجنبي.';
@@ -172,6 +220,10 @@ String _postgrestMessage(PostgrestException e) {
 
   if (code == '23503' || msg.contains('foreign key')) {
     return 'تعذر إتمام العملية لوجود بيانات مرتبطة ($code).';
+  }
+
+  if (rawMsg.isNotEmpty && !rawMsg.startsWith('PostgrestException')) {
+    return code.isNotEmpty ? '$rawMsg ($code)' : rawMsg;
   }
 
   return 'حدث خطأ أثناء الاتصال بقاعدة البيانات ($code).';
