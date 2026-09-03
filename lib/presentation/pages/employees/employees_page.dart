@@ -952,8 +952,10 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               if (hasEgp)
-                                                Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                Wrap(
+                                                  spacing: 8,
+                                                  runSpacing: 4,
+                                                  alignment: WrapAlignment.spaceBetween,
                                                   children: [
                                                     Text(
                                                       '${l10n.totalReceived}: ${empBalance.totalReceivedEgp.toStringAsFixed(0)} EGP',
@@ -977,8 +979,10 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                                 ),
                                               if (hasEgp && hasUsd) const SizedBox(height: 4),
                                               if (hasUsd)
-                                                Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                Wrap(
+                                                  spacing: 8,
+                                                  runSpacing: 4,
+                                                  alignment: WrapAlignment.spaceBetween,
                                                   children: [
                                                     Text(
                                                       '${l10n.totalReceived}: \$${empBalance.totalReceivedUsd.toStringAsFixed(0)}',
@@ -1041,15 +1045,21 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                           Row(
                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Row(
-                                                children: [
-                                                  const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Color(0xFF6C5CE7)),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '${l10n.salary}: ${profile.salaryAmount.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
-                                                    style: AppTextStyles.caption.copyWith(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF2D3436)),
-                                                  ),
-                                                ],
+                                              Flexible(
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Color(0xFF6C5CE7)),
+                                                    const SizedBox(width: 4),
+                                                    Flexible(
+                                                      child: Text(
+                                                        '${l10n.salary}: ${profile.salaryAmount.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
+                                                        style: AppTextStyles.caption.copyWith(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF2D3436)),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                               if (summary != null && hasSalary)
                                                 Container(
@@ -1096,8 +1106,10 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                             ],
                                           ),
                                           const SizedBox(height: 6),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 4,
+                                            alignment: WrapAlignment.spaceBetween,
                                             children: [
                                               Text(
                                                 '${l10n.paidAmount}: ${totalPaid.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
