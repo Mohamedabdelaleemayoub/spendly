@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../domain/entities/employee_summary.dart';
+import '../../../domain/entities/payroll_summary.dart';
 import '../../../domain/entities/profile.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
@@ -16,6 +17,8 @@ import '../../cubits/employees/employees_cubit.dart';
 import '../../cubits/balance/admin_balance_cubit.dart';
 import '../../cubits/balance/admin_balance_state.dart';
 import '../../cubits/employees/employees_state.dart';
+import '../../cubits/payroll/payroll_cubit.dart';
+import '../../cubits/payroll/payroll_state.dart';
 
 class EmployeesPage extends StatelessWidget {
   const EmployeesPage({super.key});
@@ -26,6 +29,7 @@ class EmployeesPage extends StatelessWidget {
       providers: [
         BlocProvider(create: (context) => sl<EmployeesCubit>()..loadEmployees()..subscribeToRealtime()),
         BlocProvider(create: (context) => sl<AdminBalanceCubit>()..loadAllBalances()),
+        BlocProvider(create: (context) => sl<PayrollCubit>()..loadAllPayrollSummaries()),
       ],
       child: const _EmployeesView(),
     );
@@ -276,6 +280,7 @@ class _EmployeesViewState extends State<_EmployeesView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final currencyFormat = NumberFormat.currency(symbol: 'ر.س ', decimalDigits: 2);
     final currentUserId = sl<AuthCubit>().authRepository.currentUser?.id;
 
@@ -528,6 +533,8 @@ class _EmployeesViewState extends State<_EmployeesView> {
                       ),
                     ),
                   ],
+                  // Upcoming Payroll Cash-Flow Overview Banner
+                  _buildUpcomingPayrollOverview(context, l10n, isArabic),
 
                   // Search Field
                   TextField(
@@ -667,8 +674,12 @@ class _EmployeesViewState extends State<_EmployeesView> {
                         margin: const EdgeInsets.symmetric(vertical: 6),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            context.push('/employees/${profile.id}', extra: profile);
+                          onTap: () async {
+                            await context.push('/employees/${profile.id}', extra: profile);
+                            if (context.mounted) {
+                              context.read<EmployeesCubit>().loadEmployees();
+                              context.read<PayrollCubit>().loadAllPayrollSummaries();
+                            }
                           },
                           child: Padding(
                             padding: const EdgeInsets.all(16),
@@ -761,86 +772,82 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                           _confirmApproveUser(context, profile);
                                         } else if (val == 'reject') {
                                           _confirmRejectUser(context, profile);
-                                        } else if (val == 'role') {
-                                          _confirmChangeRole(context, profile);
-                                        } else if (val == 'status') {
-                                          if (isSelf) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(l10n.cannotDeactivateSelf),
-                                                backgroundColor: AppColors.warning,
-                                              ),
-                                            );
-                                            return;
-                                          }
+                                        } else if (val == 'toggle_status') {
                                           _confirmToggleStatus(context, profile);
+                                        } else if (val == 'change_role') {
+                                          _confirmChangeRole(context, profile);
                                         } else if (val == 'delete') {
-                                          if (isSelf) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(l10n.cannotDeleteSelf),
-                                                backgroundColor: AppColors.warning,
-                                              ),
-                                            );
-                                            return;
-                                          }
                                           _confirmDeleteUser(context, profile);
                                         }
                                       },
                                       itemBuilder: (popCtx) => [
-                                        if (profile.isPending || profile.isRejected)
+                                        if (profile.isPending) ...[
                                           PopupMenuItem(
                                             value: 'approve',
                                             child: Row(
                                               children: [
                                                 const Icon(Icons.check_circle, size: 18, color: AppColors.success),
                                                 const SizedBox(width: 8),
-                                                Text(l10n.approveUser, style: const TextStyle(color: AppColors.success)),
+                                                Text(
+                                                  l10n.approveUser,
+                                                  style: const TextStyle(color: AppColors.success),
+                                                ),
                                               ],
                                             ),
                                           ),
-                                        if (profile.isPending)
                                           PopupMenuItem(
                                             value: 'reject',
                                             child: Row(
                                               children: [
-                                                const Icon(Icons.cancel, size: 18, color: AppColors.error),
+                                                const Icon(Icons.cancel_outlined, size: 18, color: AppColors.error),
                                                 const SizedBox(width: 8),
-                                                Text(l10n.rejectUser, style: const TextStyle(color: AppColors.error)),
+                                                Text(
+                                                  l10n.rejectUser,
+                                                  style: const TextStyle(color: AppColors.error),
+                                                ),
                                               ],
                                             ),
                                           ),
-                                        PopupMenuItem(
-                                          value: 'role',
-                                          child: Row(
-                                            children: [
-                                              const Icon(Icons.shield_outlined, size: 18),
-                                              const SizedBox(width: 8),
-                                              Text(l10n.changeRole),
-                                            ],
+                                        ],
+                                        if (!isSelf && !profile.isPending && !profile.isRejected)
+                                          PopupMenuItem(
+                                            value: 'change_role',
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  isAdmin
+                                                      ? Icons.person_outline
+                                                      : Icons.admin_panel_settings_outlined,
+                                                  size: 18,
+                                                  color: AppColors.primary,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(isAdmin ? l10n.makeEmployee : l10n.makeAdmin),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'status',
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                isActive
-                                                    ? Icons.block_outlined
-                                                    : Icons.check_circle_outline,
-                                                size: 18,
-                                                color: isActive ? AppColors.warning : AppColors.success,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                isActive ? l10n.deactivateUser : l10n.reactivateUser,
-                                                style: TextStyle(
+                                        if (!isSelf && !profile.isPending && !profile.isRejected)
+                                          PopupMenuItem(
+                                            value: 'toggle_status',
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  isActive
+                                                      ? Icons.block_outlined
+                                                      : Icons.check_circle_outline,
+                                                  size: 18,
                                                   color: isActive ? AppColors.warning : AppColors.success,
                                                 ),
-                                              ),
-                                            ],
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  isActive ? l10n.deactivateUser : l10n.reactivateUser,
+                                                  style: TextStyle(
+                                                    color: isActive ? AppColors.warning : AppColors.success,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
                                         PopupMenuItem(
                                           value: 'delete',
                                           child: Row(
@@ -909,6 +916,7 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                         await context.push('/employees/${profile.id}', extra: profile);
                                         if (context.mounted) {
                                           context.read<EmployeesCubit>().loadEmployees();
+                                          context.read<PayrollCubit>().loadAllPayrollSummaries();
                                         }
                                       },
                                       icon: const Icon(Icons.arrow_forward, size: 14),
@@ -920,68 +928,78 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                 BlocBuilder<AdminBalanceCubit, AdminBalanceState>(
                                   builder: (context, balanceState) {
                                     if (balanceState is AdminBalanceLoaded) {
-                                      final summary = balanceState.employeeBalances
+                                      final empBalance = balanceState.employeeBalances
                                           .where((b) => b.userId == profile.id)
                                           .firstOrNull;
-                                      if (summary != null) {
+
+                                      if (empBalance != null) {
+                                        final hasEgp = empBalance.totalReceivedEgp > 0 || empBalance.totalSpentEgp > 0;
+                                        final hasUsd = empBalance.totalReceivedUsd > 0 || empBalance.totalSpentUsd > 0;
+
+                                        if (!hasEgp && !hasUsd) {
+                                          return const SizedBox.shrink();
+                                        }
+
                                         return Container(
-                                          margin: const EdgeInsets.only(top: 10),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          margin: const EdgeInsets.only(top: 8),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: AppColors.surfaceVariant,
+                                            color: AppColors.surfaceVariant.withValues(alpha: 0.5),
                                             borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: AppColors.divider.withValues(alpha: 0.5)),
                                           ),
                                           child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              // EGP Row
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    'EGP: ${l10n.givenAmount}: ${summary.totalReceivedEgp.toStringAsFixed(0)}',
-                                                    style: AppTextStyles.caption.copyWith(fontSize: 10),
-                                                  ),
-                                                  Text(
-                                                    '${l10n.spentAmount}: ${summary.totalSpentEgp.toStringAsFixed(0)}',
-                                                    style: AppTextStyles.caption.copyWith(fontSize: 10),
-                                                  ),
-                                                  Text(
-                                                    '${l10n.remainingBalance}: ${summary.availableBalanceEgp.toStringAsFixed(0)} ج.م',
-                                                    style: AppTextStyles.caption.copyWith(
-                                                      fontSize: 10,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: summary.availableBalanceEgp > 0
-                                                          ? AppColors.success
-                                                          : AppColors.error,
+                                              if (hasEgp)
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Text(
+                                                      '${l10n.totalReceived}: ${empBalance.totalReceivedEgp.toStringAsFixed(0)} EGP',
+                                                      style: AppTextStyles.caption.copyWith(fontSize: 10, fontWeight: FontWeight.w600),
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              // USD Row
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    'USD: ${l10n.givenAmount}: ${summary.totalReceivedUsd.toStringAsFixed(0)}',
-                                                    style: AppTextStyles.caption.copyWith(fontSize: 10),
-                                                  ),
-                                                  Text(
-                                                    '${l10n.spentAmount}: ${summary.totalSpentUsd.toStringAsFixed(0)}',
-                                                    style: AppTextStyles.caption.copyWith(fontSize: 10),
-                                                  ),
-                                                  Text(
-                                                    '${l10n.remainingBalance}: \$${summary.availableBalanceUsd.toStringAsFixed(0)}',
-                                                    style: AppTextStyles.caption.copyWith(
-                                                      fontSize: 10,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: summary.availableBalanceUsd > 0
-                                                          ? AppColors.success
-                                                          : AppColors.error,
+                                                    Text(
+                                                      '${l10n.totalSpent}: ${empBalance.totalSpentEgp.toStringAsFixed(0)} EGP',
+                                                      style: AppTextStyles.caption.copyWith(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.w600),
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
+                                                    Text(
+                                                      '${l10n.availableBalance}: ${empBalance.availableBalanceEgp.toStringAsFixed(0)} EGP',
+                                                      style: AppTextStyles.caption.copyWith(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: empBalance.availableBalanceEgp >= 0
+                                                            ? AppColors.success
+                                                            : AppColors.error,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              if (hasEgp && hasUsd) const SizedBox(height: 4),
+                                              if (hasUsd)
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Text(
+                                                      '${l10n.totalReceived}: \$${empBalance.totalReceivedUsd.toStringAsFixed(0)}',
+                                                      style: AppTextStyles.caption.copyWith(fontSize: 10, fontWeight: FontWeight.w600),
+                                                    ),
+                                                    Text(
+                                                      '${l10n.totalSpent}: \$${empBalance.totalSpentUsd.toStringAsFixed(0)}',
+                                                      style: AppTextStyles.caption.copyWith(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.w600),
+                                                    ),
+                                                    Text(
+                                                      '${l10n.availableBalance}: \$${empBalance.availableBalanceUsd.toStringAsFixed(0)}',
+                                                      style: AppTextStyles.caption.copyWith(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: empBalance.availableBalanceUsd >= 0
+                                                            ? AppColors.success
+                                                            : AppColors.error,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                             ],
                                           ),
                                         );
@@ -990,38 +1008,121 @@ class _EmployeesViewState extends State<_EmployeesView> {
                                     return const SizedBox.shrink();
                                   },
                                 ),
-                                // Salary & Advances Row (Separated from expense allowance)
-                                if (profile.salaryAmount > 0 || emp.totalAdvances > 0)
-                                  Container(
-                                    margin: const EdgeInsets.only(top: 6),
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF6C5CE7).withValues(alpha: 0.08),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: const Color(0xFF6C5CE7).withValues(alpha: 0.2)),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          '${l10n.salary}: ${profile.salaryAmount.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
-                                          style: AppTextStyles.caption.copyWith(fontSize: 10, fontWeight: FontWeight.w600),
-                                        ),
-                                        Text(
-                                          '${l10n.salaryAdvances}: ${emp.totalAdvances.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
-                                          style: AppTextStyles.caption.copyWith(fontSize: 10, color: const Color(0xFFE17055), fontWeight: FontWeight.w600),
-                                        ),
-                                        Text(
-                                          '${l10n.remainingSalary}: ${emp.remainingSalary.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
-                                          style: AppTextStyles.caption.copyWith(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF00B894),
+                                // Enhanced Payroll / Salary Schedule Card
+                                BlocBuilder<PayrollCubit, PayrollState>(
+                                  builder: (context, payrollState) {
+                                    PayrollSummary? summary;
+                                    if (payrollState is PayrollLoaded) {
+                                      summary = payrollState.summaries
+                                          .where((s) => s.profile.id == profile.id)
+                                          .firstOrNull;
+                                    }
+
+                                    final hasSalary = profile.salaryAmount > 0;
+                                    final totalPaid = summary?.totalPaidInPeriod ?? 0.0;
+                                    final remainingSalary = summary?.remainingSalary ?? (profile.salaryAmount - emp.totalAdvances).clamp(0.0, double.infinity);
+                                    final isOverpaid = summary?.status == PayrollPaymentStatus.overpaid;
+
+                                    if (!hasSalary && emp.totalAdvances <= 0 && totalPaid <= 0) {
+                                      return const SizedBox.shrink();
+                                    }
+
+                                    return Container(
+                                      margin: const EdgeInsets.only(top: 8),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF6C5CE7).withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: const Color(0xFF6C5CE7).withValues(alpha: 0.2)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Color(0xFF6C5CE7)),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '${l10n.salary}: ${profile.salaryAmount.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
+                                                    style: AppTextStyles.caption.copyWith(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF2D3436)),
+                                                  ),
+                                                ],
+                                              ),
+                                              if (summary != null && hasSalary)
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: summary.isDueToday
+                                                        ? AppColors.error.withValues(alpha: 0.15)
+                                                        : summary.isDueSoon
+                                                            ? const Color(0xFFE17055).withValues(alpha: 0.15)
+                                                            : isOverpaid
+                                                                ? const Color(0xFF0984E3).withValues(alpha: 0.15)
+                                                                : summary.isFullyPaid
+                                                                    ? const Color(0xFF00B894).withValues(alpha: 0.15)
+                                                                    : const Color(0xFF6C5CE7).withValues(alpha: 0.15),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    summary.isDueToday
+                                                        ? l10n.paymentDueToday
+                                                        : summary.isDueSoon
+                                                            ? l10n.paymentDueInDays(summary.daysUntilPayment)
+                                                            : summary.isOverdue
+                                                                ? l10n.overduePayment(summary.daysUntilPayment.abs())
+                                                                : isOverpaid
+                                                                    ? l10n.overpaid
+                                                                    : summary.isFullyPaid
+                                                                        ? l10n.fullyPaid
+                                                                        : l10n.paymentDueInDays(summary.daysUntilPayment),
+                                                    style: TextStyle(
+                                                      fontSize: 9,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: summary.isDueToday
+                                                          ? AppColors.error
+                                                          : summary.isDueSoon
+                                                              ? const Color(0xFFE17055)
+                                                              : isOverpaid
+                                                                  ? const Color(0xFF0984E3)
+                                                                  : summary.isFullyPaid
+                                                                      ? const Color(0xFF00B894)
+                                                                      : const Color(0xFF6C5CE7),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                          const SizedBox(height: 6),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                '${l10n.paidAmount}: ${totalPaid.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
+                                                style: AppTextStyles.caption.copyWith(fontSize: 10, color: const Color(0xFF00B894), fontWeight: FontWeight.w600),
+                                              ),
+                                              Text(
+                                                '${l10n.remainingAmount}: ${remainingSalary.toStringAsFixed(0)} ${profile.salaryCurrency.code}',
+                                                style: AppTextStyles.caption.copyWith(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: remainingSalary > 0 ? const Color(0xFFE17055) : const Color(0xFF00B894),
+                                                ),
+                                              ),
+                                              if (summary != null)
+                                                Text(
+                                                  '${summary.paidDays.toStringAsFixed(0)} / ${summary.totalPeriodDays} ${l10n.daysUnit}',
+                                                  style: AppTextStyles.caption.copyWith(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                                                ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                               ],
                             ),
                           ),
@@ -1064,6 +1165,132 @@ class _EmployeesViewState extends State<_EmployeesView> {
           return const Center(child: CircularProgressIndicator());
         },
       ),
+    );
+  }
+
+  Widget _buildUpcomingPayrollOverview(BuildContext context, AppLocalizations l10n, bool isArabic) {
+    return BlocBuilder<PayrollCubit, PayrollState>(
+      builder: (context, state) {
+        if (state is! PayrollLoaded) return const SizedBox.shrink();
+
+        final egpDue = state.upcomingEgp;
+        final usdDue = state.upcomingUsd;
+        final dueTodayCount = state.dueTodayEmployees.length;
+        final dueSoonCount = state.dueSoonEmployees.length;
+
+        if (egpDue <= 0 && usdDue <= 0 && dueTodayCount == 0 && dueSoonCount == 0) {
+          return const SizedBox.shrink();
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2C3E50), Color(0xFF34495E)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.schedule_send_rounded, color: Color(0xFFF39C12), size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.upcomingSalariesOverview,
+                        style: AppTextStyles.subtitle2.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (dueTodayCount > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '$dueTodayCount ${l10n.paymentDueToday}',
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  if (egpDue > 0)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${l10n.totalUpcomingSalaries} (EGP)',
+                              style: const TextStyle(color: Colors.white70, fontSize: 10),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${egpDue.toStringAsFixed(0)} EGP',
+                              style: const TextStyle(color: Color(0xFF2ECC71), fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (egpDue > 0 && usdDue > 0) const SizedBox(width: 8),
+                  if (usdDue > 0)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${l10n.totalUpcomingSalaries} (USD)',
+                              style: const TextStyle(color: Colors.white70, fontSize: 10),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '\$${usdDue.toStringAsFixed(0)}',
+                              style: const TextStyle(color: Color(0xFF3498DB), fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

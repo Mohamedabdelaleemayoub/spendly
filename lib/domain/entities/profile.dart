@@ -12,6 +12,9 @@ class Profile extends Equatable {
     this.avatarUrl,
     this.salaryAmount = 0.0,
     this.salaryCurrency = ExpenseCurrency.egp,
+    this.salaryCycleType = 'monthly',
+    this.salaryCycleDays = 30,
+    this.salaryCycleStartDay = 1,
     this.createdAt,
     this.updatedAt,
   });
@@ -24,6 +27,9 @@ class Profile extends Equatable {
   final String? avatarUrl;
   final double salaryAmount;
   final ExpenseCurrency salaryCurrency;
+  final String salaryCycleType;
+  final int salaryCycleDays;
+  final int salaryCycleStartDay;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -45,6 +51,9 @@ class Profile extends Equatable {
     String? avatarUrl,
     double? salaryAmount,
     ExpenseCurrency? salaryCurrency,
+    String? salaryCycleType,
+    int? salaryCycleDays,
+    int? salaryCycleStartDay,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -57,6 +66,9 @@ class Profile extends Equatable {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       salaryAmount: salaryAmount ?? this.salaryAmount,
       salaryCurrency: salaryCurrency ?? this.salaryCurrency,
+      salaryCycleType: salaryCycleType ?? this.salaryCycleType,
+      salaryCycleDays: salaryCycleDays ?? this.salaryCycleDays,
+      salaryCycleStartDay: salaryCycleStartDay ?? this.salaryCycleStartDay,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -72,6 +84,9 @@ class Profile extends Equatable {
         avatarUrl,
         salaryAmount,
         salaryCurrency,
+        salaryCycleType,
+        salaryCycleDays,
+        salaryCycleStartDay,
         createdAt,
         updatedAt,
       ];

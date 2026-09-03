@@ -976,4 +976,147 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weeklyAllowanceTransactions => 'Allowance Transactions';
+
+  @override
+  String get payroll => 'Payroll';
+
+  @override
+  String get salarySchedule => 'Salary Schedule';
+
+  @override
+  String get salaryPayment => 'Salary Payment';
+
+  @override
+  String get salaryPayments => 'Salary Payments';
+
+  @override
+  String get addSalaryPayment => 'Record Salary Payment';
+
+  @override
+  String get editSalaryPayment => 'Edit Salary Payment';
+
+  @override
+  String get deleteSalaryPayment => 'Delete Salary Payment';
+
+  @override
+  String get deleteSalaryPaymentConfirm =>
+      'Are you sure you want to delete this salary payment record?';
+
+  @override
+  String get paidAmount => 'Paid Amount';
+
+  @override
+  String get remainingAmount => 'Remaining Amount';
+
+  @override
+  String get paidDays => 'Paid Days';
+
+  @override
+  String get remainingDays => 'Remaining Days';
+
+  @override
+  String get daysUnit => 'days';
+
+  @override
+  String get nextPaymentDate => 'Next Expected Payment';
+
+  @override
+  String get daysUntilPayment => 'Days Until Payment';
+
+  @override
+  String get paymentDueToday => 'Due Today';
+
+  @override
+  String get paymentDueSoon => 'Due Soon';
+
+  @override
+  String paymentDueInDays(int days) {
+    return 'Due in $days days';
+  }
+
+  @override
+  String overduePayment(int days) {
+    return 'Overdue ($days days)';
+  }
+
+  @override
+  String get salaryCycle => 'Salary Cycle';
+
+  @override
+  String get salaryCycleMonthly => 'Monthly';
+
+  @override
+  String get salaryCycleCustomDays => 'Custom Cycle';
+
+  @override
+  String get cycleDaysCount => 'Cycle Length (Days)';
+
+  @override
+  String get cycleStartDay => 'Cycle Start Day of Month';
+
+  @override
+  String get configureSalaryCycle => 'Configure Salary Cycle';
+
+  @override
+  String get paymentPeriod => 'Payment Period';
+
+  @override
+  String get salaryPeriodStart => 'Period Start';
+
+  @override
+  String get salaryPeriodEnd => 'Period End';
+
+  @override
+  String get paymentDate => 'Payment Date';
+
+  @override
+  String get paymentHistory => 'Payment History';
+
+  @override
+  String get noSalaryPaymentsYet => 'No salary payments recorded yet';
+
+  @override
+  String get paymentAddedSuccess => 'Salary payment recorded successfully';
+
+  @override
+  String get paymentUpdatedSuccess => 'Salary payment updated successfully';
+
+  @override
+  String get paymentDeletedSuccess => 'Salary payment deleted successfully';
+
+  @override
+  String get cycleUpdatedSuccess => 'Salary cycle updated successfully';
+
+  @override
+  String get upcomingSalariesOverview => 'Upcoming Payroll Cash-Flow';
+
+  @override
+  String get salariesDueToday => 'Salaries Due Today';
+
+  @override
+  String get salariesDueSoon => 'Salaries Due Soon';
+
+  @override
+  String get totalUpcomingSalaries => 'Upcoming Salary Obligations';
+
+  @override
+  String get overpaid => 'Overpaid';
+
+  @override
+  String get partiallyPaid => 'Partially Paid';
+
+  @override
+  String get fullyPaid => 'Fully Paid';
+
+  @override
+  String get unpaid => 'Unpaid';
+
+  @override
+  String get paymentStatus => 'Payment Status';
+
+  @override
+  String get lastPayment => 'Last Payment';
+
+  @override
+  String get noteOptional => 'Note (Optional)';
 }

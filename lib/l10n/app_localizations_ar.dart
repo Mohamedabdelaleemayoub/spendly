@@ -968,4 +968,147 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get weeklyAllowanceTransactions => 'حركات العهد';
+
+  @override
+  String get payroll => 'جدول الرواتب';
+
+  @override
+  String get salarySchedule => 'جدول صرف الرواتب';
+
+  @override
+  String get salaryPayment => 'دفعة راتب';
+
+  @override
+  String get salaryPayments => 'دفعات الرواتب';
+
+  @override
+  String get addSalaryPayment => 'تسجيل دفعة راتب';
+
+  @override
+  String get editSalaryPayment => 'تعديل دفعة الراتب';
+
+  @override
+  String get deleteSalaryPayment => 'حذف دفعة الراتب';
+
+  @override
+  String get deleteSalaryPaymentConfirm =>
+      'هل أنت متأكد من رغبتك في حذف دفعة الراتب هذه؟';
+
+  @override
+  String get paidAmount => 'المبلغ المدفوع';
+
+  @override
+  String get remainingAmount => 'المبلغ المتبقي';
+
+  @override
+  String get paidDays => 'الأيام المدفوعة';
+
+  @override
+  String get remainingDays => 'الأيام المتبقية';
+
+  @override
+  String get daysUnit => 'يوم';
+
+  @override
+  String get nextPaymentDate => 'موعد الصرف القادم';
+
+  @override
+  String get daysUntilPayment => 'الأيام المتبقية للصرف';
+
+  @override
+  String get paymentDueToday => 'مستحق اليوم';
+
+  @override
+  String get paymentDueSoon => 'مستحق قريباً';
+
+  @override
+  String paymentDueInDays(int days) {
+    return 'مستحق خلال $days يوم';
+  }
+
+  @override
+  String overduePayment(int days) {
+    return 'متأخر ($days يوم)';
+  }
+
+  @override
+  String get salaryCycle => 'دورة الصرف';
+
+  @override
+  String get salaryCycleMonthly => 'شهري';
+
+  @override
+  String get salaryCycleCustomDays => 'دورة مخصصة';
+
+  @override
+  String get cycleDaysCount => 'مدة الدورة (بالأيام)';
+
+  @override
+  String get cycleStartDay => 'يوم بداية الدورة من الشهر';
+
+  @override
+  String get configureSalaryCycle => 'ضبط دورة الصرف';
+
+  @override
+  String get paymentPeriod => 'فترة الراتب';
+
+  @override
+  String get salaryPeriodStart => 'بداية الفترة';
+
+  @override
+  String get salaryPeriodEnd => 'نهاية الفترة';
+
+  @override
+  String get paymentDate => 'تاريخ الدفع';
+
+  @override
+  String get paymentHistory => 'سجل دفعات الراتب';
+
+  @override
+  String get noSalaryPaymentsYet => 'لا توجد دفعات رواتب مسجلة حتى الآن';
+
+  @override
+  String get paymentAddedSuccess => 'تم تسجيل دفعة الراتب بنجاح';
+
+  @override
+  String get paymentUpdatedSuccess => 'تم تعديل دفعة الراتب بنجاح';
+
+  @override
+  String get paymentDeletedSuccess => 'تم حذف دفعة الراتب بنجاح';
+
+  @override
+  String get cycleUpdatedSuccess => 'تم ضبط دورة الصرف بنجاح';
+
+  @override
+  String get upcomingSalariesOverview => 'التدفق النقدي للرواتب القادمة';
+
+  @override
+  String get salariesDueToday => 'رواتب مستحقة اليوم';
+
+  @override
+  String get salariesDueSoon => 'رواتب مستحقة قريباً';
+
+  @override
+  String get totalUpcomingSalaries => 'إجمالي التزامات الرواتب القادمة';
+
+  @override
+  String get overpaid => 'فائض مدفوع';
+
+  @override
+  String get partiallyPaid => 'مدفوع جزئياً';
+
+  @override
+  String get fullyPaid => 'مدفوع بالكامل';
+
+  @override
+  String get unpaid => 'غير مدفوع';
+
+  @override
+  String get paymentStatus => 'حالة الصرف';
+
+  @override
+  String get lastPayment => 'آخر دفعة';
+
+  @override
+  String get noteOptional => 'ملاحظة (اختياري)';
 }

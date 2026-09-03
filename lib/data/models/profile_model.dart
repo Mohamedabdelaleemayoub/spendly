@@ -11,6 +11,9 @@ class ProfileModel extends Profile {
     super.avatarUrl,
     super.salaryAmount = 0.0,
     super.salaryCurrency = ExpenseCurrency.egp,
+    super.salaryCycleType = 'monthly',
+    super.salaryCycleDays = 30,
+    super.salaryCycleStartDay = 1,
     super.createdAt,
     super.updatedAt,
   });
@@ -24,6 +27,12 @@ class ProfileModel extends Profile {
     final currencyStr = json['salary_currency'] as String? ?? 'EGP';
     final currency = ExpenseCurrency.fromString(currencyStr);
 
+    final cycleType = json['salary_cycle_type'] as String? ?? 'monthly';
+    final rawDays = json['salary_cycle_days'];
+    final cycleDays = rawDays is num ? rawDays.toInt() : int.tryParse(rawDays?.toString() ?? '30') ?? 30;
+    final rawStartDay = json['salary_cycle_start_day'];
+    final cycleStartDay = rawStartDay is num ? rawStartDay.toInt() : int.tryParse(rawStartDay?.toString() ?? '1') ?? 1;
+
     return ProfileModel(
       id: json['id'] as String,
       name: json['full_name'] as String? ?? json['name'] as String? ?? 'مستخدم',
@@ -33,6 +42,9 @@ class ProfileModel extends Profile {
       avatarUrl: json['avatar_url'] as String?,
       salaryAmount: salary,
       salaryCurrency: currency,
+      salaryCycleType: cycleType,
+      salaryCycleDays: cycleDays,
+      salaryCycleStartDay: cycleStartDay,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)?.toLocal()
           : null,
@@ -52,6 +64,9 @@ class ProfileModel extends Profile {
       'avatar_url': avatarUrl,
       'salary_amount': salaryAmount,
       'salary_currency': salaryCurrency.code,
+      'salary_cycle_type': salaryCycleType,
+      'salary_cycle_days': salaryCycleDays,
+      'salary_cycle_start_day': salaryCycleStartDay,
     };
   }
 
@@ -65,6 +80,9 @@ class ProfileModel extends Profile {
       avatarUrl: profile.avatarUrl,
       salaryAmount: profile.salaryAmount,
       salaryCurrency: profile.salaryCurrency,
+      salaryCycleType: profile.salaryCycleType,
+      salaryCycleDays: profile.salaryCycleDays,
+      salaryCycleStartDay: profile.salaryCycleStartDay,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt,
     );

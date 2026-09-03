@@ -1963,6 +1963,282 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Allowance Transactions'**
   String get weeklyAllowanceTransactions;
+
+  /// No description provided for @payroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Payroll'**
+  String get payroll;
+
+  /// No description provided for @salarySchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary Schedule'**
+  String get salarySchedule;
+
+  /// No description provided for @salaryPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary Payment'**
+  String get salaryPayment;
+
+  /// No description provided for @salaryPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary Payments'**
+  String get salaryPayments;
+
+  /// No description provided for @addSalaryPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Record Salary Payment'**
+  String get addSalaryPayment;
+
+  /// No description provided for @editSalaryPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Salary Payment'**
+  String get editSalaryPayment;
+
+  /// No description provided for @deleteSalaryPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Salary Payment'**
+  String get deleteSalaryPayment;
+
+  /// No description provided for @deleteSalaryPaymentConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this salary payment record?'**
+  String get deleteSalaryPaymentConfirm;
+
+  /// No description provided for @paidAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid Amount'**
+  String get paidAmount;
+
+  /// No description provided for @remainingAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining Amount'**
+  String get remainingAmount;
+
+  /// No description provided for @paidDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid Days'**
+  String get paidDays;
+
+  /// No description provided for @remainingDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining Days'**
+  String get remainingDays;
+
+  /// No description provided for @daysUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'days'**
+  String get daysUnit;
+
+  /// No description provided for @nextPaymentDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Expected Payment'**
+  String get nextPaymentDate;
+
+  /// No description provided for @daysUntilPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Days Until Payment'**
+  String get daysUntilPayment;
+
+  /// No description provided for @paymentDueToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Due Today'**
+  String get paymentDueToday;
+
+  /// No description provided for @paymentDueSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Due Soon'**
+  String get paymentDueSoon;
+
+  /// No description provided for @paymentDueInDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Due in {days} days'**
+  String paymentDueInDays(int days);
+
+  /// No description provided for @overduePayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue ({days} days)'**
+  String overduePayment(int days);
+
+  /// No description provided for @salaryCycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary Cycle'**
+  String get salaryCycle;
+
+  /// No description provided for @salaryCycleMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get salaryCycleMonthly;
+
+  /// No description provided for @salaryCycleCustomDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Cycle'**
+  String get salaryCycleCustomDays;
+
+  /// No description provided for @cycleDaysCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle Length (Days)'**
+  String get cycleDaysCount;
+
+  /// No description provided for @cycleStartDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle Start Day of Month'**
+  String get cycleStartDay;
+
+  /// No description provided for @configureSalaryCycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure Salary Cycle'**
+  String get configureSalaryCycle;
+
+  /// No description provided for @paymentPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Period'**
+  String get paymentPeriod;
+
+  /// No description provided for @salaryPeriodStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Period Start'**
+  String get salaryPeriodStart;
+
+  /// No description provided for @salaryPeriodEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Period End'**
+  String get salaryPeriodEnd;
+
+  /// No description provided for @paymentDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Date'**
+  String get paymentDate;
+
+  /// No description provided for @paymentHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment History'**
+  String get paymentHistory;
+
+  /// No description provided for @noSalaryPaymentsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No salary payments recorded yet'**
+  String get noSalaryPaymentsYet;
+
+  /// No description provided for @paymentAddedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary payment recorded successfully'**
+  String get paymentAddedSuccess;
+
+  /// No description provided for @paymentUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary payment updated successfully'**
+  String get paymentUpdatedSuccess;
+
+  /// No description provided for @paymentDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary payment deleted successfully'**
+  String get paymentDeletedSuccess;
+
+  /// No description provided for @cycleUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary cycle updated successfully'**
+  String get cycleUpdatedSuccess;
+
+  /// No description provided for @upcomingSalariesOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming Payroll Cash-Flow'**
+  String get upcomingSalariesOverview;
+
+  /// No description provided for @salariesDueToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Salaries Due Today'**
+  String get salariesDueToday;
+
+  /// No description provided for @salariesDueSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Salaries Due Soon'**
+  String get salariesDueSoon;
+
+  /// No description provided for @totalUpcomingSalaries.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming Salary Obligations'**
+  String get totalUpcomingSalaries;
+
+  /// No description provided for @overpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Overpaid'**
+  String get overpaid;
+
+  /// No description provided for @partiallyPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Partially Paid'**
+  String get partiallyPaid;
+
+  /// No description provided for @fullyPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Fully Paid'**
+  String get fullyPaid;
+
+  /// No description provided for @unpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpaid'**
+  String get unpaid;
+
+  /// No description provided for @paymentStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Status'**
+  String get paymentStatus;
+
+  /// No description provided for @lastPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Payment'**
+  String get lastPayment;
+
+  /// No description provided for @noteOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (Optional)'**
+  String get noteOptional;
 }
 
 class _AppLocalizationsDelegate

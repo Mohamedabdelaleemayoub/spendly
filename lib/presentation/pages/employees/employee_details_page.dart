@@ -7,11 +7,14 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../core/utils/payroll_calculator.dart';
 import '../../../domain/entities/expense.dart';
 import '../../../domain/entities/expense_currency.dart';
 import '../../../domain/entities/financial_history_item.dart';
+import '../../../domain/entities/payroll_summary.dart';
 import '../../../domain/entities/profile.dart';
 import '../../../domain/entities/salary_advance.dart';
+import '../../../domain/entities/salary_payment.dart';
 import '../../../domain/entities/trip_location_type.dart';
 import '../../../injection/injection_container.dart';
 import '../../../l10n/app_localizations.dart';
@@ -22,6 +25,8 @@ import '../../cubits/category/category_state.dart';
 import '../../cubits/dashboard/dashboard_state.dart';
 import '../../cubits/employee_details/employee_details_cubit.dart';
 import '../../cubits/employee_details/employee_details_state.dart';
+import '../../cubits/payroll/payroll_cubit.dart';
+import '../../cubits/payroll/payroll_state.dart';
 import '../../cubits/salary_advances/salary_advances_cubit.dart';
 import '../../cubits/salary_advances/salary_advances_state.dart';
 
@@ -58,6 +63,9 @@ class EmployeeDetailsPage extends StatelessWidget {
               initialCurrency: initialProfile?.salaryCurrency,
             ),
         ),
+        BlocProvider<PayrollCubit>(
+          create: (_) => sl<PayrollCubit>()..loadEmployeePayroll(employeeId),
+        ),
       ],
       child: _EmployeeDetailsView(employeeId: employeeId),
     );
@@ -80,7 +88,7 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -346,17 +354,23 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
     );
   }
 
-  // ── Salary Dialogs ─────────────────────────────────────────────────────────
-  void _showEditSalaryDialog(
+  // ── Salary & Cycle Dialogs ──────────────────────────────────────────────────
+  void _showConfigureSalaryCycleDialog(
     BuildContext context,
     Profile profile,
-    SalaryAdvancesLoaded salaryState,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final salaryController = TextEditingController(
-      text: salaryState.salaryAmount > 0 ? salaryState.salaryAmount.toStringAsFixed(0) : '',
+      text: profile.salaryAmount > 0 ? profile.salaryAmount.toStringAsFixed(0) : '',
     );
-    ExpenseCurrency selectedCurrency = salaryState.salaryCurrency;
+    final cycleDaysController = TextEditingController(
+      text: '${profile.salaryCycleDays}',
+    );
+    final startDayController = TextEditingController(
+      text: '${profile.salaryCycleStartDay}',
+    );
+    ExpenseCurrency selectedCurrency = profile.salaryCurrency;
+    String selectedCycleType = profile.salaryCycleType;
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -365,9 +379,9 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
         builder: (ctx, setDialogState) => AlertDialog(
           title: Row(
             children: [
-              const Icon(Icons.account_balance, color: Color(0xFF6C5CE7)),
+              const Icon(Icons.tune, color: Color(0xFF6C5CE7)),
               const SizedBox(width: 8),
-              Flexible(child: Text(l10n.editSalary, style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold))),
+              Flexible(child: Text(l10n.configureSalaryCycle, style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold))),
             ],
           ),
           content: Form(
@@ -424,6 +438,62 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
                       return null;
                     },
                   ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.salaryCycle,
+                    style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  SegmentedButton<String>(
+                    segments: [
+                      ButtonSegment(
+                        value: 'monthly',
+                        label: Text(l10n.salaryCycleMonthly, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                      ButtonSegment(
+                        value: 'custom_days',
+                        label: Text(l10n.salaryCycleCustomDays, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                    ],
+                    selected: {selectedCycleType},
+                    onSelectionChanged: (newSel) {
+                      setDialogState(() => selectedCycleType = newSel.first);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  if (selectedCycleType == 'monthly') ...[
+                    TextFormField(
+                      controller: startDayController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: l10n.cycleStartDay,
+                        hintText: '1',
+                        prefixIcon: const Icon(Icons.calendar_month_outlined),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) return l10n.amountMustBeGreaterThanZero;
+                        final day = int.tryParse(val.trim());
+                        if (day == null || day < 1 || day > 28) return l10n.amountMustBeGreaterThanZero;
+                        return null;
+                      },
+                    ),
+                  ] else ...[
+                    TextFormField(
+                      controller: cycleDaysController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: l10n.cycleDaysCount,
+                        hintText: '30',
+                        prefixIcon: const Icon(Icons.date_range_outlined),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) return l10n.amountMustBeGreaterThanZero;
+                        final days = int.tryParse(val.trim());
+                        if (days == null || days < 1 || days > 365) return l10n.amountMustBeGreaterThanZero;
+                        return null;
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -434,30 +504,558 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
               child: Text(l10n.cancel),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   final amount = double.parse(salaryController.text.trim());
+                  final cycleDays = int.tryParse(cycleDaysController.text.trim()) ?? 30;
+                  final startDay = int.tryParse(startDayController.text.trim()) ?? 1;
+
+                  final payrollCubit = context.read<PayrollCubit>();
                   final salaryCubit = context.read<SalaryAdvancesCubit>();
                   final detailsCubit = context.read<EmployeeDetailsCubit>();
-                  salaryCubit.updateEmployeeSalary(
-                        userId: widget.employeeId,
-                        salaryAmount: amount,
-                        salaryCurrency: selectedCurrency,
-                      );
-                  detailsCubit.updateProfileSalary(amount, selectedCurrency);
-                  Navigator.pop(dialogCtx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(l10n.salaryUpdatedSuccess),
-                      backgroundColor: AppColors.success,
-                    ),
+
+                  await payrollCubit.updateSalaryCycleConfig(
+                    userId: widget.employeeId,
+                    cycleType: selectedCycleType,
+                    cycleDays: cycleDays,
+                    cycleStartDay: startDay,
                   );
+
+                  await salaryCubit.updateEmployeeSalary(
+                    userId: widget.employeeId,
+                    salaryAmount: amount,
+                    salaryCurrency: selectedCurrency,
+                  );
+
+                  detailsCubit.updateProfileSalary(amount, selectedCurrency);
+                  if (context.mounted) {
+                    detailsCubit.loadEmployeeDetails(widget.employeeId);
+                  }
+
+                  if (dialogCtx.mounted) {
+                    Navigator.pop(dialogCtx);
+                  }
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.cycleUpdatedSuccess),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
                 }
               },
               child: Text(l10n.save),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showAddSalaryPaymentDialog(
+    BuildContext context,
+    Profile profile,
+    PayrollSummary? summary,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final amountController = TextEditingController(
+      text: summary != null && summary.remainingSalary > 0
+          ? summary.remainingSalary.toStringAsFixed(0)
+          : (profile.salaryAmount > 0 ? profile.salaryAmount.toStringAsFixed(0) : ''),
+    );
+    final noteController = TextEditingController();
+    ExpenseCurrency selectedCurrency = profile.salaryCurrency;
+    DateTime paymentDate = DateTime.now();
+    DateTime periodStart = summary?.salaryPeriodStart ?? DateTime(paymentDate.year, paymentDate.month, 1);
+    DateTime periodEnd = summary?.salaryPeriodEnd ?? DateTime(paymentDate.year, paymentDate.month + 1, 0);
+    final formKey = GlobalKey<FormState>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (bottomSheetCtx) {
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 20,
+                top: 20,
+                left: 20,
+                right: 20,
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(modalCtx).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.divider,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00B894).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.payments, color: Color(0xFF00B894)),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(l10n.addSalaryPayment, style: AppTextStyles.heading3),
+                                Text(
+                                  '${l10n.fullNameLabel}: ${profile.name}',
+                                  style: AppTextStyles.caption,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Currency Segment
+                      Text(l10n.currencyLabel, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      SegmentedButton<ExpenseCurrency>(
+                        segments: [
+                          ButtonSegment(
+                            value: ExpenseCurrency.egp,
+                            label: Text(l10n.currencyEgpShort, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          ),
+                          ButtonSegment(
+                            value: ExpenseCurrency.usd,
+                            label: Text(l10n.currencyUsdShort, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          ),
+                        ],
+                        selected: {selectedCurrency},
+                        onSelectionChanged: (newSel) {
+                          setModalState(() => selectedCurrency = newSel.first);
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Amount Input
+                      TextFormField(
+                        controller: amountController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: l10n.salaryAmount,
+                          hintText: '5000',
+                          prefixIcon: const Icon(Icons.attach_money),
+                          suffixText: selectedCurrency.code,
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) return l10n.amountMustBeGreaterThanZero;
+                          final amt = double.tryParse(val.trim());
+                          if (amt == null || amt <= 0) return l10n.amountMustBeGreaterThanZero;
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Payment Date Picker
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: modalCtx,
+                            initialDate: paymentDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (picked != null) {
+                            setModalState(() => paymentDate = picked);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.divider),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
+                                  const SizedBox(width: 10),
+                                  Text(l10n.paymentDate, style: AppTextStyles.bodyMedium),
+                                ],
+                              ),
+                              Text(
+                                DateFormat('yyyy/MM/dd').format(paymentDate),
+                                style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Period Range Picker
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDateRangePicker(
+                            context: modalCtx,
+                            initialDateRange: DateTimeRange(start: periodStart, end: periodEnd),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now().add(const Duration(days: 730)),
+                          );
+                          if (picked != null) {
+                            setModalState(() {
+                              periodStart = picked.start;
+                              periodEnd = picked.end;
+                            });
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.divider),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.date_range, size: 18, color: AppColors.textSecondary),
+                                  const SizedBox(width: 10),
+                                  Text(l10n.paymentPeriod, style: AppTextStyles.bodyMedium),
+                                ],
+                              ),
+                              Text(
+                                '${DateFormat('MM/dd').format(periodStart)} – ${DateFormat('MM/dd').format(periodEnd)}',
+                                style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Optional Note Input
+                      TextFormField(
+                        controller: noteController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          labelText: l10n.noteOptional,
+                          prefixIcon: const Padding(
+                            padding: EdgeInsets.only(bottom: 30),
+                            child: Icon(Icons.notes_outlined),
+                          ),
+                          alignLabelWithHint: true,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Actions
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(modalCtx),
+                              child: Text(l10n.cancel),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                if (formKey.currentState!.validate()) {
+                                  final amount = double.parse(amountController.text.trim());
+                                  final note = noteController.text.trim();
+                                  final payrollCubit = context.read<PayrollCubit>();
+
+                                  await payrollCubit.addSalaryPayment(
+                                    userId: widget.employeeId,
+                                    amount: amount,
+                                    currency: selectedCurrency,
+                                    paymentDate: paymentDate,
+                                    salaryPeriodStart: periodStart,
+                                    salaryPeriodEnd: periodEnd,
+                                    note: note.isNotEmpty ? note : null,
+                                  );
+
+                                  if (modalCtx.mounted) {
+                                    Navigator.pop(modalCtx);
+                                  }
+
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(l10n.paymentAddedSuccess),
+                                        backgroundColor: AppColors.success,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              child: Text(l10n.addSalaryPayment),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showEditSalaryPaymentDialog(
+    BuildContext context,
+    SalaryPayment payment,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final amountController = TextEditingController(text: payment.amount.toStringAsFixed(0));
+    final noteController = TextEditingController(text: payment.note ?? '');
+    ExpenseCurrency selectedCurrency = payment.currency;
+    DateTime paymentDate = payment.paymentDate;
+    DateTime periodStart = payment.salaryPeriodStart;
+    DateTime periodEnd = payment.salaryPeriodEnd;
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.edit_note, color: Color(0xFF00B894)),
+              const SizedBox(width: 8),
+              Flexible(child: Text(l10n.editSalaryPayment, style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold))),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: l10n.salaryAmount,
+                      prefixIcon: const Icon(Icons.attach_money),
+                      suffixText: selectedCurrency.code,
+                    ),
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) return l10n.amountMustBeGreaterThanZero;
+                      final amt = double.tryParse(val.trim());
+                      if (amt == null || amt <= 0) return l10n.amountMustBeGreaterThanZero;
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: dialogCtx,
+                        initialDate: paymentDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (picked != null) {
+                        setDialogState(() => paymentDate = picked);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.divider),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
+                              const SizedBox(width: 10),
+                              Text(l10n.paymentDate, style: AppTextStyles.bodyMedium),
+                            ],
+                          ),
+                          Text(
+                            DateFormat('yyyy/MM/dd').format(paymentDate),
+                            style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDateRangePicker(
+                        context: dialogCtx,
+                        initialDateRange: DateTimeRange(start: periodStart, end: periodEnd),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now().add(const Duration(days: 730)),
+                      );
+                      if (picked != null) {
+                        setDialogState(() {
+                          periodStart = picked.start;
+                          periodEnd = picked.end;
+                        });
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.divider),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.date_range, size: 18, color: AppColors.textSecondary),
+                              const SizedBox(width: 10),
+                              Text(l10n.paymentPeriod, style: AppTextStyles.bodyMedium),
+                            ],
+                          ),
+                          Text(
+                            '${DateFormat('MM/dd').format(periodStart)} – ${DateFormat('MM/dd').format(periodEnd)}',
+                            style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: noteController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: l10n.noteOptional,
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.only(bottom: 30),
+                        child: Icon(Icons.notes_outlined),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final amount = double.parse(amountController.text.trim());
+                  final note = noteController.text.trim();
+                  final payrollCubit = context.read<PayrollCubit>();
+
+                  await payrollCubit.updateSalaryPayment(
+                    id: payment.id,
+                    userId: payment.userId,
+                    amount: amount,
+                    currency: selectedCurrency,
+                    paymentDate: paymentDate,
+                    salaryPeriodStart: periodStart,
+                    salaryPeriodEnd: periodEnd,
+                    note: note.isNotEmpty ? note : null,
+                  );
+
+                  if (dialogCtx.mounted) {
+                    Navigator.pop(dialogCtx);
+                  }
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.paymentUpdatedSuccess),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteSalaryPayment(
+    BuildContext context,
+    SalaryPayment payment,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(l10n.deleteSalaryPayment),
+        content: Text(l10n.deleteSalaryPaymentConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () async {
+              final payrollCubit = context.read<PayrollCubit>();
+              await payrollCubit.deleteSalaryPayment(
+                payment.id,
+                payment.userId,
+              );
+              if (dialogCtx.mounted) {
+                Navigator.pop(dialogCtx);
+              }
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.paymentDeletedSuccess),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
+            child: Text(l10n.deleteSalaryPayment, style: const TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
@@ -1047,161 +1645,222 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
 
 
 
-                            // 3. Salary & Advances Summary Card (Separated from Allowance/Spending Balance)
-                            BlocBuilder<SalaryAdvancesCubit, SalaryAdvancesState>(
-                              builder: (context, salaryState) {
-                                final salaryLoaded = salaryState is SalaryAdvancesLoaded ? salaryState : null;
-                                final salaryAmount = salaryLoaded?.salaryAmount ?? profile.salaryAmount;
-                                final salaryCurrency = salaryLoaded?.salaryCurrency ?? profile.salaryCurrency;
-                                final totalAdv = salaryLoaded?.totalAdvances ?? 0.0;
-                                final remaining = salaryLoaded?.remainingSalary ?? salaryAmount;
+                            // 3. Salary & Advances & Payroll Summary Card (Separated from Allowance/Spending Balance)
+                            BlocBuilder<PayrollCubit, PayrollState>(
+                              builder: (context, payrollState) {
+                                PayrollSummary? summary;
+                                if (payrollState is PayrollLoaded) {
+                                  summary = payrollState.summaries.where((s) => s.profile.id == profile.id).firstOrNull;
+                                }
 
-                                return Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFF6C5CE7), Color(0xFF5352ED)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF6C5CE7).withValues(alpha: 0.3),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 5),
+                                return BlocBuilder<SalaryAdvancesCubit, SalaryAdvancesState>(
+                                  builder: (context, salaryState) {
+                                    final salaryLoaded = salaryState is SalaryAdvancesLoaded ? salaryState : null;
+                                    final salaryAmount = summary?.profile.salaryAmount ?? (salaryLoaded?.salaryAmount ?? profile.salaryAmount);
+                                    final salaryCurrency = summary?.profile.salaryCurrency ?? (salaryLoaded?.salaryCurrency ?? profile.salaryCurrency);
+                                    final totalPaid = summary?.totalPaidInPeriod ?? 0.0;
+                                    final remaining = summary?.remainingSalary ?? (salaryLoaded?.remainingSalary ?? salaryAmount);
+                                    final isOverpaid = summary?.status == PayrollPaymentStatus.overpaid;
+
+                                    return Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF6C5CE7), Color(0xFF5352ED)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF6C5CE7).withValues(alpha: 0.3),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 5),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Expanded(
-                                            child: Row(
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(Icons.account_balance, color: Colors.white, size: 20),
+                                                    const SizedBox(width: 8),
+                                                    Flexible(
+                                                      child: Text(
+                                                        l10n.monthlySalary,
+                                                        style: AppTextStyles.subtitle2.copyWith(
+                                                          color: Colors.white.withValues(alpha: 0.9),
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              ElevatedButton.icon(
+                                                onPressed: () => _showConfigureSalaryCycleDialog(context, summary?.profile ?? profile),
+                                                icon: const Icon(Icons.tune, size: 14),
+                                                label: Text(
+                                                  l10n.configureSalaryCycle,
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                                                ),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.white,
+                                                  foregroundColor: const Color(0xFF6C5CE7),
+                                                  elevation: 0,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          if (summary != null && salaryAmount > 0) ...[
+                                            const SizedBox(height: 10),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
-                                                const Icon(Icons.account_balance, color: Colors.white, size: 20),
-                                                const SizedBox(width: 8),
-                                                Flexible(
+                                                Expanded(
                                                   child: Text(
-                                                    l10n.monthlySalary,
-                                                    style: AppTextStyles.subtitle2.copyWith(
-                                                      color: Colors.white.withValues(alpha: 0.9),
+                                                    '${l10n.paymentPeriod}: ${PayrollCalculator.formatPeriod(summary.salaryPeriodStart, summary.salaryPeriodEnd, isArabic)} (${summary.totalPeriodDays} ${l10n.daysUnit})',
+                                                    style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: summary.isDueToday
+                                                        ? AppColors.error
+                                                        : summary.isDueSoon
+                                                            ? const Color(0xFFE17055)
+                                                            : isOverpaid
+                                                                ? const Color(0xFF0984E3)
+                                                                : summary.isFullyPaid
+                                                                    ? const Color(0xFF00B894)
+                                                                    : Colors.white.withValues(alpha: 0.2),
+                                                    borderRadius: BorderRadius.circular(10),
+                                                  ),
+                                                  child: Text(
+                                                    summary.isDueToday
+                                                        ? l10n.paymentDueToday
+                                                        : summary.isDueSoon
+                                                            ? l10n.paymentDueInDays(summary.daysUntilPayment)
+                                                            : summary.isOverdue
+                                                                ? l10n.overduePayment(summary.daysUntilPayment.abs())
+                                                                : isOverpaid
+                                                                    ? l10n.overpaid
+                                                                    : summary.isFullyPaid
+                                                                        ? l10n.fullyPaid
+                                                                        : l10n.paymentDueInDays(summary.daysUntilPayment),
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 10,
                                                       fontWeight: FontWeight.bold,
                                                     ),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          if (salaryLoaded != null)
-                                            ElevatedButton.icon(
-                                              onPressed: () => _showEditSalaryDialog(context, profile, salaryLoaded),
-                                              icon: const Icon(Icons.edit, size: 14),
-                                              label: Text(
-                                                l10n.editSalary,
-                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-                                              ),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.white,
-                                                foregroundColor: const Color(0xFF6C5CE7),
-                                                elevation: 0,
-                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        children: [
-                                          // Monthly Salary
-                                          Expanded(
-                                            child: Container(
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withValues(alpha: 0.15),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    l10n.salary,
-                                                    style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                                          ],
+                                          const SizedBox(height: 12),
+                                          Row(
+                                            children: [
+                                              // Monthly Salary
+                                              Expanded(
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(10),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withValues(alpha: 0.15),
+                                                    borderRadius: BorderRadius.circular(12),
                                                   ),
-                                                  const SizedBox(height: 4),
-                                                  FittedBox(
-                                                    fit: BoxFit.scaleDown,
-                                                    alignment: isArabic ? Alignment.centerRight : Alignment.centerLeft,
-                                                    child: Text(
-                                                      _formatAmount(salaryAmount, salaryCurrency, isArabic),
-                                                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                                                    ),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        l10n.salary,
+                                                        style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      FittedBox(
+                                                        fit: BoxFit.scaleDown,
+                                                        alignment: isArabic ? Alignment.centerRight : Alignment.centerLeft,
+                                                        child: Text(
+                                                          _formatAmount(salaryAmount, salaryCurrency, isArabic),
+                                                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ],
+                                                ),
                                               ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          // Total Advances
-                                          Expanded(
-                                            child: Container(
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withValues(alpha: 0.15),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    l10n.totalAdvances,
-                                                    style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                                              const SizedBox(width: 8),
+                                              // Total Paid
+                                              Expanded(
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(10),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withValues(alpha: 0.15),
+                                                    borderRadius: BorderRadius.circular(12),
                                                   ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    _formatAmount(totalAdv, salaryCurrency, isArabic),
-                                                    style: const TextStyle(color: Color(0xFFFF7675), fontSize: 14, fontWeight: FontWeight.bold),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        l10n.paidAmount,
+                                                        style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        _formatAmount(totalPaid, salaryCurrency, isArabic),
+                                                        style: const TextStyle(color: Color(0xFF55EFC4), fontSize: 14, fontWeight: FontWeight.bold),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ],
+                                                ),
                                               ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          // Remaining Salary
-                                          Expanded(
-                                            child: Container(
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withValues(alpha: 0.25),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    l10n.remainingSalary,
-                                                    style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                                              const SizedBox(width: 8),
+                                              // Remaining Salary
+                                              Expanded(
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(10),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withValues(alpha: 0.25),
+                                                    borderRadius: BorderRadius.circular(12),
                                                   ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    _formatAmount(remaining, salaryCurrency, isArabic),
-                                                    style: const TextStyle(color: Color(0xFF55EFC4), fontSize: 14, fontWeight: FontWeight.bold),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        l10n.remainingSalary,
+                                                        style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        _formatAmount(remaining, salaryCurrency, isArabic),
+                                                        style: TextStyle(
+                                                          color: remaining > 0 ? const Color(0xFFFF7675) : const Color(0xFF55EFC4),
+                                                          fontSize: 14,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ],
+                                                ),
                                               ),
-                                            ),
+                                            ],
                                           ),
                                         ],
                                       ),
-                                    ],
-                                  ),
+                                    );
+                                  },
                                 );
                               },
                             ),
@@ -1396,6 +2055,7 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
                                   Tab(text: l10n.employeeExpensesTitle),
                                   Tab(text: l10n.transactionHistory),
                                   Tab(text: l10n.salaryAdvances),
+                                  Tab(text: l10n.payroll),
                                 ],
                               ),
                             ),
@@ -1416,6 +2076,9 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
 
                     // Tab 3: Salary Advances (Advances history + Add/Edit/Delete)
                     _buildSalaryAdvancesTab(context, profile, l10n, isArabic, dateFormat),
+
+                    // Tab 4: Payroll Schedule & Salary Payments
+                    _buildPayrollTab(context, profile, l10n, isArabic, dateFormat),
                   ],
                 ),
               ),
@@ -2105,6 +2768,320 @@ class _EmployeeDetailsViewState extends State<_EmployeeDetailsView> with SingleT
                               const Icon(Icons.delete_outline, size: 16, color: AppColors.error),
                               const SizedBox(width: 8),
                               Text(l10n.deleteSalaryAdvance, style: const TextStyle(color: AppColors.error)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+            const SizedBox(height: 32),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPayrollTab(
+    BuildContext context,
+    Profile profile,
+    AppLocalizations l10n,
+    bool isArabic,
+    DateFormat dateFormat,
+  ) {
+    return BlocBuilder<PayrollCubit, PayrollState>(
+      builder: (context, state) {
+        if (state is PayrollLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final loadedState = state is PayrollLoaded ? state : null;
+        final summary = loadedState?.summaries.where((s) => s.profile.id == profile.id).firstOrNull;
+        final payments = loadedState?.payments.where((p) => p.userId == profile.id).toList() ?? [];
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Period & Schedule Summary Card
+            if (summary != null && profile.salaryAmount > 0) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.divider),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n.paymentPeriod,
+                          style: AppTextStyles.subtitle2.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6C5CE7).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            summary.profile.salaryCycleType == 'monthly'
+                                ? '${l10n.salaryCycleMonthly} (${l10n.cycleStartDay}: ${summary.profile.salaryCycleStartDay})'
+                                : '${l10n.salaryCycleCustomDays} (${summary.profile.salaryCycleDays} ${l10n.daysUnit})',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF6C5CE7),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${PayrollCalculator.formatPeriod(summary.salaryPeriodStart, summary.salaryPeriodEnd, isArabic)} • ${summary.totalPeriodDays} ${l10n.daysUnit}',
+                      style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Paid Amount Progress Bar
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${l10n.paidAmount}: ${summary.totalPaidInPeriod.toStringAsFixed(0)} / ${summary.salaryAmount.toStringAsFixed(0)} ${summary.salaryCurrency.code}',
+                          style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '${(summary.salaryAmount > 0 ? (summary.totalPaidInPeriod / summary.salaryAmount * 100).clamp(0, 100) : 0).toStringAsFixed(0)}%',
+                          style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: summary.salaryAmount > 0
+                            ? (summary.totalPaidInPeriod / summary.salaryAmount).clamp(0.0, 1.0)
+                            : 0.0,
+                        minHeight: 8,
+                        backgroundColor: AppColors.surfaceVariant,
+                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00B894)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Paid Days Progress Bar
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${l10n.paidDays}: ${summary.paidDays.toStringAsFixed(1)} / ${summary.totalPeriodDays} ${l10n.daysUnit}',
+                          style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '${summary.remainingDays.toStringAsFixed(1)} ${l10n.remainingDays}',
+                          style: AppTextStyles.caption.copyWith(color: const Color(0xFFE17055), fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: summary.totalPeriodDays > 0
+                            ? (summary.paidDays / summary.totalPeriodDays).clamp(0.0, 1.0)
+                            : 0.0,
+                        minHeight: 8,
+                        backgroundColor: AppColors.surfaceVariant,
+                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6C5CE7)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Next Payment Countdown Banner
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: summary.isDueToday
+                            ? AppColors.error.withValues(alpha: 0.1)
+                            : summary.isDueSoon
+                                ? const Color(0xFFE17055).withValues(alpha: 0.1)
+                                : summary.isFullyPaid
+                                    ? const Color(0xFF00B894).withValues(alpha: 0.1)
+                                    : AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.event,
+                                size: 16,
+                                color: summary.isDueToday
+                                    ? AppColors.error
+                                    : summary.isDueSoon
+                                        ? const Color(0xFFE17055)
+                                        : summary.isFullyPaid
+                                            ? const Color(0xFF00B894)
+                                            : AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${l10n.nextPaymentDate}: ${dateFormat.format(summary.nextExpectedPaymentDate)}',
+                                style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            summary.isDueToday
+                                ? l10n.paymentDueToday
+                                : summary.isDueSoon
+                                    ? l10n.paymentDueInDays(summary.daysUntilPayment)
+                                    : summary.isOverdue
+                                        ? l10n.overduePayment(summary.daysUntilPayment.abs())
+                                        : summary.isFullyPaid
+                                            ? l10n.fullyPaid
+                                            : l10n.paymentDueInDays(summary.daysUntilPayment),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: summary.isDueToday
+                                  ? AppColors.error
+                                  : summary.isDueSoon
+                                      ? const Color(0xFFE17055)
+                                      : summary.isFullyPaid
+                                          ? const Color(0xFF00B894)
+                                          : AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Payments Header & Action Button
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${l10n.paymentHistory} (${payments.length})',
+                  style: AppTextStyles.heading3,
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddSalaryPaymentDialog(context, profile, summary),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: Text(l10n.addSalaryPayment),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00B894),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            if (payments.isEmpty) ...[
+              Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        const Icon(Icons.payments_outlined, size: 48, color: AppColors.textHint),
+                        const SizedBox(height: 12),
+                        Text(
+                          l10n.noSalaryPaymentsYet,
+                          style: AppTextStyles.subtitle1.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
+              ...payments.map((payment) {
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: const Color(0xFF00B894).withValues(alpha: 0.15),
+                      child: const Icon(
+                        Icons.payments,
+                        color: Color(0xFF00B894),
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(
+                      _formatAmount(payment.amount, payment.currency, isArabic),
+                      style: AppTextStyles.subtitle2.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF00B894),
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${l10n.paymentDate}: ${dateFormat.format(payment.paymentDate)} • ${dateFormat.format(payment.salaryPeriodStart)} – ${dateFormat.format(payment.salaryPeriodEnd)}${payment.note != null && payment.note!.isNotEmpty ? " • ${payment.note}" : ""}',
+                          style: AppTextStyles.caption,
+                        ),
+                        if (payment.createdByName != null && payment.createdByName!.isNotEmpty)
+                          Text(
+                            '${l10n.advanceCreatedBy}: ${payment.createdByName}',
+                            style: AppTextStyles.caption.copyWith(fontSize: 10, color: AppColors.textSecondary),
+                          ),
+                      ],
+                    ),
+                    trailing: PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, size: 18),
+                      onSelected: (action) {
+                        if (action == 'edit') {
+                          _showEditSalaryPaymentDialog(context, payment);
+                        } else if (action == 'delete') {
+                          _confirmDeleteSalaryPayment(context, payment);
+                        }
+                      },
+                      itemBuilder: (ctx) => [
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              Text(l10n.editSalaryPayment),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.delete_outline, size: 16, color: AppColors.error),
+                              const SizedBox(width: 8),
+                              Text(l10n.deleteSalaryPayment, style: const TextStyle(color: AppColors.error)),
                             ],
                           ),
                         ),

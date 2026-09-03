@@ -16,6 +16,7 @@ import '../data/datasources/local_expense_datasource.dart';
 import '../data/datasources/notification_remote_datasource.dart';
 import '../data/datasources/profile_remote_datasource.dart';
 import '../data/datasources/salary_advance_remote_datasource.dart';
+import '../data/datasources/salary_payment_remote_datasource.dart';
 import '../data/datasources/settings_remote_datasource.dart';
 import '../data/datasources/weekly_allowance_remote_datasource.dart';
 import '../data/repositories/audit_repository_impl.dart';
@@ -26,6 +27,7 @@ import '../data/repositories/expense_repository_impl.dart';
 import '../data/repositories/notification_repository_impl.dart';
 import '../data/repositories/profile_repository_impl.dart';
 import '../data/repositories/salary_advance_repository_impl.dart';
+import '../data/repositories/salary_payment_repository_impl.dart';
 import '../data/repositories/settings_repository_impl.dart';
 import '../data/repositories/weekly_allowance_repository_impl.dart';
 import '../domain/repositories/audit_repository.dart';
@@ -36,6 +38,7 @@ import '../domain/repositories/expense_repository.dart';
 import '../domain/repositories/notification_repository.dart';
 import '../domain/repositories/profile_repository.dart';
 import '../domain/repositories/salary_advance_repository.dart';
+import '../domain/repositories/salary_payment_repository.dart';
 import '../domain/repositories/settings_repository.dart';
 import '../domain/repositories/weekly_allowance_repository.dart';
 import '../presentation/cubits/audit/audit_cubit.dart';
@@ -48,6 +51,7 @@ import '../presentation/cubits/employee_details/employee_details_cubit.dart';
 import '../presentation/cubits/employees/employees_cubit.dart';
 import '../presentation/cubits/expense/expense_cubit.dart';
 import '../presentation/cubits/notifications/admin_notification_cubit.dart';
+import '../presentation/cubits/payroll/payroll_cubit.dart';
 import '../presentation/cubits/profile/profile_cubit.dart';
 import '../presentation/cubits/report/report_cubit.dart';
 import '../presentation/cubits/salary_advances/salary_advances_cubit.dart';
@@ -108,6 +112,9 @@ Future<void> initDependencies() async {
   );
   sl.registerLazySingleton<SalaryAdvanceRemoteDataSource>(
     () => SalaryAdvanceRemoteDataSourceImpl(client: sl()),
+  );
+  sl.registerLazySingleton<SalaryPaymentRemoteDataSource>(
+    () => SalaryPaymentRemoteDataSourceImpl(client: sl()),
   );
   sl.registerLazySingleton<WeeklyAllowanceRemoteDataSource>(
     () => WeeklyAllowanceRemoteDataSourceImpl(client: sl()),
@@ -185,6 +192,13 @@ Future<void> initDependencies() async {
       localDatabase: sl(),
     ),
   );
+  sl.registerLazySingleton<SalaryPaymentRepository>(
+    () => SalaryPaymentRepositoryImpl(
+      remoteDataSource: sl(),
+      profileRepository: sl(),
+      localDatabase: sl(),
+    ),
+  );
   sl.registerLazySingleton<WeeklyAllowanceRepository>(
     () => WeeklyAllowanceRepositoryImpl(
       remoteDataSource: sl(),
@@ -222,6 +236,11 @@ Future<void> initDependencies() async {
     () => SalaryAdvancesCubit(
       salaryAdvanceRepository: sl(),
       profileRepository: sl(),
+    ),
+  );
+  sl.registerFactory<PayrollCubit>(
+    () => PayrollCubit(
+      salaryPaymentRepository: sl(),
     ),
   );
   sl.registerFactory<WeeklyAllowanceCubit>(

@@ -12,6 +12,7 @@ import '../models/category_model.dart';
 import '../models/expense_model.dart';
 import '../models/profile_model.dart';
 import '../models/salary_advance_model.dart';
+import '../models/salary_payment_model.dart';
 import '../models/weekly_allowance_model.dart';
 
 /// Centralized Local Database for Spendly.
@@ -79,6 +80,37 @@ class LocalDatabase {
     try {
       await _db!.execute("ALTER TABLE profiles ADD COLUMN salary_currency TEXT DEFAULT 'EGP';");
     } catch (_) {}
+    try {
+      await _db!.execute("ALTER TABLE profiles ADD COLUMN salary_cycle_type TEXT DEFAULT 'monthly';");
+    } catch (_) {}
+    try {
+      await _db!.execute('ALTER TABLE profiles ADD COLUMN salary_cycle_days INTEGER DEFAULT 30;');
+    } catch (_) {}
+    try {
+      await _db!.execute('ALTER TABLE profiles ADD COLUMN salary_cycle_start_day INTEGER DEFAULT 1;');
+    } catch (_) {}
+    try {
+      await _db!.execute('''
+        CREATE TABLE IF NOT EXISTS salary_payments (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          amount REAL NOT NULL,
+          currency TEXT NOT NULL DEFAULT 'EGP',
+          payment_date TEXT NOT NULL,
+          salary_period_start TEXT NOT NULL,
+          salary_period_end TEXT NOT NULL,
+          note TEXT,
+          created_by TEXT,
+          created_by_name TEXT,
+          sync_status TEXT NOT NULL DEFAULT 'synced',
+          created_at TEXT,
+          updated_at TEXT
+        );
+      ''');
+    } catch (_) {}
+    try {
+      await _db!.execute('CREATE INDEX IF NOT EXISTS idx_salary_payments_user_date ON salary_payments(user_id, payment_date);');
+    } catch (_) {}
 
     debugPrint('💾 [LocalDatabase] Initialized at path: $dbPath');
   }
@@ -94,6 +126,9 @@ class LocalDatabase {
         avatar_url TEXT,
         salary_amount REAL DEFAULT 0.0,
         salary_currency TEXT DEFAULT 'EGP',
+        salary_cycle_type TEXT DEFAULT 'monthly',
+        salary_cycle_days INTEGER DEFAULT 30,
+        salary_cycle_start_day INTEGER DEFAULT 1,
         created_at TEXT,
         updated_at TEXT
       );
@@ -154,6 +189,24 @@ class LocalDatabase {
         advance_date TEXT NOT NULL,
         note TEXT,
         created_by TEXT,
+        sync_status TEXT NOT NULL DEFAULT 'synced',
+        created_at TEXT,
+        updated_at TEXT
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE salary_payments (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        amount REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'EGP',
+        payment_date TEXT NOT NULL,
+        salary_period_start TEXT NOT NULL,
+        salary_period_end TEXT NOT NULL,
+        note TEXT,
+        created_by TEXT,
+        created_by_name TEXT,
         sync_status TEXT NOT NULL DEFAULT 'synced',
         created_at TEXT,
         updated_at TEXT
@@ -228,6 +281,7 @@ class LocalDatabase {
     await db.execute('CREATE INDEX idx_expenses_user_date ON expenses(user_id, expense_date);');
     await db.execute('CREATE INDEX idx_allowance_user_date ON allowance_transactions(user_id, transaction_date);');
     await db.execute('CREATE INDEX idx_salary_user_date ON salary_advances(user_id, advance_date);');
+    await db.execute('CREATE INDEX idx_salary_payments_user_date ON salary_payments(user_id, payment_date);');
     await db.execute('CREATE INDEX idx_balance_user ON balance_transactions(user_id);');
     await db.execute('CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);');
     await db.execute('CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);');
@@ -826,6 +880,94 @@ class LocalDatabase {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
+  // SALARY PAYMENTS
+  // ══════════════════════════════════════════════════════════════════════════
+
+  Future<void> saveSalaryPayment(SalaryPaymentModel item) async {
+    final db = database;
+    await db.insert(
+      'salary_payments',
+      {
+        'id': item.id,
+        'user_id': item.userId,
+        'amount': item.amount,
+        'currency': item.currency.code,
+        'payment_date': item.paymentDate.toIso8601String(),
+        'salary_period_start': item.salaryPeriodStart.toIso8601String(),
+        'salary_period_end': item.salaryPeriodEnd.toIso8601String(),
+        'note': item.note,
+        'created_by': item.createdBy,
+        'created_by_name': item.createdByName,
+        'sync_status': 'synced',
+        'created_at': item.createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'updated_at': item.updatedAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> saveSalaryPayments(List<SalaryPaymentModel> items) async {
+    final db = database;
+    final batch = db.batch();
+
+    final pendingDel = await db.query(
+      'sync_queue',
+      columns: ['entity_id'],
+      where: "entity_type = 'salary_payment' AND operation = 'DELETE'",
+    );
+    final deletedIds = {for (final r in pendingDel) r['entity_id'] as String};
+
+    for (final item in items) {
+      if (deletedIds.contains(item.id)) continue;
+      batch.insert(
+        'salary_payments',
+        {
+          'id': item.id,
+          'user_id': item.userId,
+          'amount': item.amount,
+          'currency': item.currency.code,
+          'payment_date': item.paymentDate.toIso8601String(),
+          'salary_period_start': item.salaryPeriodStart.toIso8601String(),
+          'salary_period_end': item.salaryPeriodEnd.toIso8601String(),
+          'note': item.note,
+          'created_by': item.createdBy,
+          'created_by_name': item.createdByName,
+          'sync_status': 'synced',
+          'created_at': item.createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+          'updated_at': item.updatedAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<List<SalaryPaymentModel>> getSalaryPayments(String userId) async {
+    final db = database;
+    final rows = await db.query(
+      'salary_payments',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      orderBy: 'payment_date DESC, created_at DESC',
+    );
+    return rows.map((r) => SalaryPaymentModel.fromJson(r)).toList();
+  }
+
+  Future<List<SalaryPaymentModel>> getAllSalaryPayments() async {
+    final db = database;
+    final rows = await db.query(
+      'salary_payments',
+      orderBy: 'payment_date DESC, created_at DESC',
+    );
+    return rows.map((r) => SalaryPaymentModel.fromJson(r)).toList();
+  }
+
+  Future<void> deleteSalaryPayment(String id) async {
+    final db = database;
+    await db.delete('salary_payments', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
   // BALANCE TRANSACTIONS
   // ══════════════════════════════════════════════════════════════════════════
 
@@ -1163,6 +1305,7 @@ class LocalDatabase {
     await db.delete('expenses');
     await db.delete('allowance_transactions');
     await db.delete('salary_advances');
+    await db.delete('salary_payments');
     await db.delete('balance_transactions');
     await db.delete('app_settings');
     await db.delete('admin_notifications');

@@ -12,6 +12,7 @@ import '../../data/models/category_model.dart';
 import '../../data/models/expense_model.dart';
 import '../../data/models/profile_model.dart';
 import '../../data/models/salary_advance_model.dart';
+import '../../data/models/salary_payment_model.dart';
 import '../../data/models/weekly_allowance_model.dart';
 import '../../domain/entities/expense.dart';
 import '../constants/app_constants.dart';
@@ -245,6 +246,15 @@ class SyncManagerImpl implements SyncManager {
         }
         break;
 
+      case 'salary_payment':
+        if (operation == 'DELETE') {
+          await supabaseClient.from(AppConstants.salaryPaymentsTable).delete().eq('id', entityId);
+          await localDatabase.deleteSalaryPayment(entityId);
+        } else {
+          await supabaseClient.from(AppConstants.salaryPaymentsTable).upsert(payload, onConflict: 'id');
+        }
+        break;
+
       case 'category':
         if (operation == 'DELETE') {
           await supabaseClient.from(AppConstants.categoriesTable).delete().eq('id', entityId);
@@ -366,6 +376,22 @@ class SyncManagerImpl implements SyncManager {
         await localDatabase.saveSalaryAdvances(advances);
       } catch (e) {
         debugPrint('⚠️ [SyncManager] Error pulling salary advances: $e');
+      }
+
+      // 5b. Pull Salary Payments
+      try {
+        final payRes = await supabaseClient
+            .from(AppConstants.salaryPaymentsTable)
+            .select('*, creator:created_by(full_name)')
+            .order('payment_date', ascending: false)
+            .limit(300);
+
+        final payments = (payRes as List<dynamic>)
+            .map((j) => SalaryPaymentModel.fromJson(j as Map<String, dynamic>))
+            .toList();
+        await localDatabase.saveSalaryPayments(payments);
+      } catch (e) {
+        debugPrint('⚠️ [SyncManager] Error pulling salary payments: $e');
       }
 
       // 6. Pull Balance Transactions
