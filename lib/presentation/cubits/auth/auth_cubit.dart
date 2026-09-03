@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import '../../../core/errors/app_failure.dart';
@@ -49,40 +50,51 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> _processUserSession(User user, Session? session) async {
+    debugPrint('🔐 [AuthCubit] Processing session for User UID: ${user.id}, Email: ${user.email}');
     Profile? profile;
     try {
       profile = await profileRepository.getProfile(user.id);
-    } catch (_) {}
+      debugPrint('👤 [AuthCubit] Retrieved profile: name=${profile?.name}, role=${profile?.role}, status=${profile?.status}');
+    } catch (e) {
+      debugPrint('⚠️ [AuthCubit] Failed to retrieve profile for ${user.id}: $e');
+    }
 
     if (profile == null) {
       // Fallback: Ensure profile is created
       try {
+        debugPrint('ℹ️ [AuthCubit] Profile null, attempting ensureProfileExists...');
         profile = await profileRepository.ensureProfileExists(
           userId: user.id,
           name: user.email?.split('@').first ?? 'مستخدم',
           email: user.email,
         );
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('⚠️ [AuthCubit] Failed to ensure profile exists: $e');
+      }
     }
 
     if (profile != null) {
       if (profile.isInactive) {
+        debugPrint('🚫 [AuthCubit] User account is inactive. Signing out.');
         await authRepository.signOut();
         emit(const AuthError('هذا الحساب غير مفعل. يرجى التواصل مع المسؤول.'));
         return;
       }
 
       if (profile.isPending) {
+        debugPrint('⏳ [AuthCubit] User account is pending approval.');
         emit(AuthPendingApproval(user: user, profile: profile, session: session));
         return;
       }
 
       if (profile.isRejected) {
+        debugPrint('❌ [AuthCubit] User account is rejected.');
         emit(AuthRejected(user: user, profile: profile, session: session));
         return;
       }
     }
 
+    debugPrint('✅ [AuthCubit] Authenticated successfully as ${profile?.role ?? "user"}.');
     emit(Authenticated(user: user, profile: profile, session: session));
   }
 
@@ -130,23 +142,11 @@ class AuthCubit extends Cubit<AuthState> {
         emit(const Unauthenticated());
       }
     } on Failure catch (e) {
+      debugPrint('🔴 [AuthCubit] signIn failure: ${e.message}');
       emit(AuthError(e.message));
     } catch (e) {
+      debugPrint('🔴 [AuthCubit] signIn unexpected error: $e');
       emit(AuthError('فشل تسجيل الدخول: $e'));
-    }
-  }
-
-  Future<void> signInWithGoogle() async {
-    emit(const AuthLoading());
-    try {
-      final success = await authRepository.signInWithGoogle();
-      if (!success) {
-        emit(const Unauthenticated());
-      }
-    } on Failure catch (e) {
-      emit(AuthError(e.message));
-    } catch (e) {
-      emit(AuthError('فشل تسجيل الدخول عبر Google: $e'));
     }
   }
 

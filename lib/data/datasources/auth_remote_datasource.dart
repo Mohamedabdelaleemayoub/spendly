@@ -18,8 +18,6 @@ abstract class AuthRemoteDataSource {
     String? name,
   });
 
-  Future<bool> signInWithGoogle({String? redirectTo});
-
   Future<UserResponse> updatePassword(String newPassword);
 
   Future<void> signOut();
@@ -44,13 +42,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
     required String password,
   }) async {
+    final cleanEmail = email.trim();
+    debugPrint('🔐 [AuthRemoteDataSource] Attempting signInWithPassword for: $cleanEmail');
     try {
       final response = await client.auth.signInWithPassword(
-        email: email.trim(),
+        email: cleanEmail,
         password: password,
       );
+      debugPrint('✅ [AuthRemoteDataSource] signInWithPassword succeeded for user: ${response.user?.id}, email: ${response.user?.email}');
       return response;
     } catch (e) {
+      debugPrint('❌ [AuthRemoteDataSource] signInWithPassword failed for $cleanEmail: $e');
       throw mapExceptionToFailure(e);
     }
   }
@@ -61,27 +63,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
     String? name,
   }) async {
+    final cleanEmail = email.trim();
+    debugPrint('📝 [AuthRemoteDataSource] Attempting signUp for: $cleanEmail');
     try {
       final response = await client.auth.signUp(
-        email: email.trim(),
+        email: cleanEmail,
         password: password,
         data: name != null ? {'name': name.trim()} : null,
       );
+      debugPrint('✅ [AuthRemoteDataSource] signUp succeeded for user: ${response.user?.id}');
       return response;
     } catch (e) {
-      throw mapExceptionToFailure(e);
-    }
-  }
-
-  @override
-  Future<bool> signInWithGoogle({String? redirectTo}) async {
-    try {
-      final res = await client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: redirectTo ?? (kIsWeb ? null : 'io.supabase.spendly://login-callback/'),
-      );
-      return res;
-    } catch (e) {
+      debugPrint('❌ [AuthRemoteDataSource] signUp failed for $cleanEmail: $e');
       throw mapExceptionToFailure(e);
     }
   }

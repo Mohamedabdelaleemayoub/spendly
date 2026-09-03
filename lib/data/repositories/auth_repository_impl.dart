@@ -41,11 +41,6 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<bool> signInWithGoogle({String? redirectTo}) {
-    return remoteDataSource.signInWithGoogle(redirectTo: redirectTo);
-  }
-
-  @override
   Future<UserResponse> updatePassword(String newPassword) {
     return remoteDataSource.updatePassword(newPassword);
   }

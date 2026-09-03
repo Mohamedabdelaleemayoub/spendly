@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/services/supabase_service.dart';
 import '../../../domain/entities/employee_summary.dart';
 import '../../../domain/repositories/profile_repository.dart';
 import 'employees_state.dart';
@@ -9,6 +11,7 @@ class EmployeesCubit extends Cubit<EmployeesState> {
       : super(const EmployeesInitial());
 
   final ProfileRepository profileRepository;
+  RealtimeChannel? _realtimeChannel;
 
   @override
   void emit(EmployeesState state) {
@@ -21,6 +24,29 @@ class EmployeesCubit extends Cubit<EmployeesState> {
   String _currentSearch = '';
   String? _currentRoleFilter;
   String? _currentStatusFilter;
+
+  void subscribeToRealtime() {
+    _realtimeChannel?.unsubscribe();
+    try {
+      _realtimeChannel = SupabaseService.client
+          .channel('public:profiles:employees_cubit')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'profiles',
+            callback: (payload) {
+              loadEmployees();
+            },
+          )
+          .subscribe();
+    } catch (_) {}
+  }
+
+  @override
+  Future<void> close() {
+    _realtimeChannel?.unsubscribe();
+    return super.close();
+  }
 
   Future<void> loadEmployees({String? actionMessage}) async {
     final currentState = state;

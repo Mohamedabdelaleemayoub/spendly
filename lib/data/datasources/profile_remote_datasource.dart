@@ -42,6 +42,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<ProfileModel?> getProfile(String userId) async {
+    debugPrint('🔍 [ProfileRemoteDataSource] getProfile for userId: $userId');
     try {
       final response = await client
           .from(AppConstants.profilesTable)
@@ -49,9 +50,15 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
           .eq('id', userId)
           .maybeSingle();
 
-      if (response == null) return null;
-      return ProfileModel.fromJson(response);
+      if (response == null) {
+        debugPrint('⚠️ [ProfileRemoteDataSource] getProfile returned null for $userId');
+        return null;
+      }
+      final profile = ProfileModel.fromJson(response);
+      debugPrint('✅ [ProfileRemoteDataSource] getProfile found: ${profile.name} (${profile.role}, ${profile.status})');
+      return profile;
     } catch (e) {
+      debugPrint('❌ [ProfileRemoteDataSource] getProfile error for $userId: $e');
       throw mapExceptionToFailure(e);
     }
   }
@@ -345,6 +352,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     final cleanName = fullName.trim();
     final cleanRole = role.trim();
 
+    debugPrint('👤 [ProfileRemoteDataSource] createEmployee initiated for $cleanEmail (role: $cleanRole)');
+
     // 1. Primary path: PostgreSQL RPC (direct, fast, production-safe)
     try {
       final rpcRes = await client.rpc(
@@ -356,6 +365,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
           'p_role': cleanRole,
         },
       );
+
+      debugPrint('✅ [ProfileRemoteDataSource] admin_create_user RPC returned: $rpcRes');
 
       if (rpcRes is Map) {
         final map = Map<String, dynamic>.from(rpcRes);
@@ -370,7 +381,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         }
       }
     } catch (rpcError) {
-      debugPrint('ℹ️ [ProfileRemoteDataSource] admin_create_user RPC failed ($rpcError), trying Edge Function.');
+      debugPrint('ℹ️ [ProfileRemoteDataSource] admin_create_user RPC error: $rpcError');
       
       // If the error was a specific business validation from DB (e.g. duplicate email, invalid password), don't fallback to Edge function
       if (rpcError is PostgrestException && rpcError.code == 'P0001') {

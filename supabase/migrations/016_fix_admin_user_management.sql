@@ -105,7 +105,14 @@ BEGIN
         role,
         aud,
         confirmation_token,
-        is_super_admin
+        recovery_token,
+        email_change_token_new,
+        email_change_token_current,
+        phone_change_token,
+        reauthentication_token,
+        is_super_admin,
+        is_sso_user,
+        is_anonymous
     ) VALUES (
         v_user_id,
         '00000000-0000-0000-0000-000000000000'::uuid,
@@ -113,12 +120,26 @@ BEGIN
         v_encrypted_pw,
         v_now,
         jsonb_build_object('provider', 'email', 'providers', jsonb_build_array('email')),
-        jsonb_build_object('full_name', v_clean_name, 'name', v_clean_name),
+        jsonb_build_object(
+            'full_name', v_clean_name,
+            'name', v_clean_name,
+            'email', v_clean_email,
+            'email_verified', true,
+            'phone_verified', false,
+            'sub', v_user_id::text
+        ),
         v_now,
         v_now,
         'authenticated',
         'authenticated',
-        encode(gen_random_bytes(32), 'hex'),
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        false,
+        false,
         false
     );
 
@@ -134,15 +155,23 @@ BEGIN
             created_at,
             updated_at
         ) VALUES (
-            v_user_id::text,
             v_user_id,
-            jsonb_build_object('sub', v_user_id::text, 'email', v_clean_email),
+            v_user_id,
+            jsonb_build_object(
+                'sub', v_user_id::text,
+                'email', v_clean_email,
+                'email_verified', true,
+                'phone_verified', false
+            ),
             'email',
-            v_clean_email,
+            v_user_id::text,
             v_now,
             v_now,
             v_now
-        );
+        )
+        ON CONFLICT (provider, provider_id) DO UPDATE SET
+            identity_data = EXCLUDED.identity_data,
+            updated_at = EXCLUDED.updated_at;
     EXCEPTION WHEN OTHERS THEN
         -- Fallback if table constraints differ in local/hosted version
         NULL;

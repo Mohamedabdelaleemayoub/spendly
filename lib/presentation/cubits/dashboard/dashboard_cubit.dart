@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/services/supabase_service.dart';
 import '../../../domain/entities/expense.dart';
 import '../../../domain/entities/expense_currency.dart';
 import '../../../domain/entities/profile.dart';
@@ -23,6 +25,8 @@ class DashboardCubit extends Cubit<DashboardState> {
   final ProfileRepository profileRepository;
   final AuthRepository authRepository;
 
+  RealtimeChannel? _realtimeChannel;
+
   ExpenseSummaryPeriod _currentPeriod = ExpenseSummaryPeriod.month;
   ExpenseCurrency _currentCurrency = ExpenseCurrency.egp;
 
@@ -31,6 +35,37 @@ class DashboardCubit extends Cubit<DashboardState> {
     if (!isClosed) {
       super.emit(state);
     }
+  }
+
+  void subscribeToRealtime() {
+    _realtimeChannel?.unsubscribe();
+    try {
+      _realtimeChannel = SupabaseService.client
+          .channel('public:profiles_and_expenses:dashboard')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'profiles',
+            callback: (payload) {
+              loadDashboard();
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'expenses',
+            callback: (payload) {
+              loadDashboard();
+            },
+          )
+          .subscribe();
+    } catch (_) {}
+  }
+
+  @override
+  Future<void> close() {
+    _realtimeChannel?.unsubscribe();
+    return super.close();
   }
 
   void changePeriod(ExpenseSummaryPeriod period) {

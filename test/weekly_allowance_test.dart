@@ -36,22 +36,8 @@ void main() {
     authStateController.close();
   });
 
-  group('Google Sign-In & Admin Approval Workflow Tests', () {
-    test('1. Google Sign-In calls AuthRepository.signInWithGoogle() successfully', () async {
-      when(() => mockAuthRepository.signInWithGoogle(redirectTo: any(named: 'redirectTo')))
-          .thenAnswer((_) async => true);
-
-      final cubit = AuthCubit(
-        authRepository: mockAuthRepository,
-        profileRepository: mockProfileRepository,
-      );
-
-      await cubit.signInWithGoogle();
-
-      verify(() => mockAuthRepository.signInWithGoogle()).called(1);
-    });
-
-    test('2. Pending user is held at AuthPendingApproval and blocked from app entry', () async {
+  group('Admin Approval Workflow Tests', () {
+    test('1. Pending user is held at AuthPendingApproval and blocked from app entry', () async {
       final user = supa.User(
         id: 'pending-user-1',
         appMetadata: {},

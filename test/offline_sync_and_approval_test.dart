@@ -64,9 +64,6 @@ class MockAuthRepository implements AuthRepository {
   Future<supabase.UserResponse> updatePassword(String newPassword) async {
     return supabase.UserResponse.fromJson({});
   }
-
-  @override
-  Future<bool> signInWithGoogle({String? redirectTo}) async => true;
 }
 
 class MockSettingsRepository implements SettingsRepository {

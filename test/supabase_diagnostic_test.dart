@@ -130,6 +130,37 @@ void main() {
         } catch (e) {
           print('❌ RPC get_weekly_work_budget_summary failed: $e');
         }
+        print('\n==================== 6. AUTH DIAGNOSTIC ====================');
+        try {
+          print('Attempting login with ma5737@fayoum.edu.eg...');
+          final authRes = await client.auth.signInWithPassword(
+            email: 'ma5737@fayoum.edu.eg',
+            password: 'password123',
+          );
+          print('✅ Login succeeded for ma5737@fayoum.edu.eg: ${authRes.user?.id}');
+        } catch (e) {
+          print('❌ Login error for ma5737@fayoum.edu.eg: $e');
+        }
+
+        try {
+          final testEmail = 'diag_test_${DateTime.now().millisecondsSinceEpoch}@example.com';
+          print('Attempting signUp with test email: $testEmail...');
+          final signUpRes = await client.auth.signUp(
+            email: testEmail,
+            password: 'TestPassword123!',
+            data: {'name': 'Diagnostic Test User'},
+          );
+          print('✅ SignUp succeeded: user=${signUpRes.user?.id}, session=${signUpRes.session != null}');
+
+          print('Attempting login with newly signed up test email: $testEmail...');
+          final loginRes = await client.auth.signInWithPassword(
+            email: testEmail,
+            password: 'TestPassword123!',
+          );
+          print('✅ Login succeeded for test email: user=${loginRes.user?.id}, session=${loginRes.session != null}');
+        } catch (e) {
+          print('❌ Test email auth error: $e');
+        }
       } catch (e) {
         print('ℹ️ Live Supabase connection skipped in test environment: $e');
       }

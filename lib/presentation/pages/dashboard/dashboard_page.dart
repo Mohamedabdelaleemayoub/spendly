@@ -23,7 +23,7 @@ class DashboardPage extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<DashboardCubit>(
-          create: (context) => sl<DashboardCubit>()..loadDashboard(),
+          create: (context) => sl<DashboardCubit>()..loadDashboard()..subscribeToRealtime(),
         ),
         BlocProvider<EmployeeBalanceCubit>(
           create: (context) => sl<EmployeeBalanceCubit>()..loadBalance(),

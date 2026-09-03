@@ -24,7 +24,7 @@ class EmployeesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => sl<EmployeesCubit>()..loadEmployees()),
+        BlocProvider(create: (context) => sl<EmployeesCubit>()..loadEmployees()..subscribeToRealtime()),
         BlocProvider(create: (context) => sl<AdminBalanceCubit>()..loadAllBalances()),
       ],
       child: const _EmployeesView(),

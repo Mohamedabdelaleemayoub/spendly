@@ -16,8 +16,6 @@ abstract class AuthRepository {
     String? name,
   });
 
-  Future<bool> signInWithGoogle({String? redirectTo});
-
   Future<UserResponse> updatePassword(String newPassword);
 
   Future<void> signOut();

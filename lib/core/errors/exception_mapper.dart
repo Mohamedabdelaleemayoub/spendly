@@ -143,6 +143,14 @@ String _authMessage(AuthException e) {
       msg.contains('already registered')) {
     return 'البريد الإلكتروني مسجل مسبقاً.';
   }
+  if (msg.contains('unsupported provider') ||
+      msg.contains('provider is not enabled')) {
+    return 'تسجيل الدخول عبر Google غير مفعّل حالياً في إعدادات النظام (Supabase). يرجى استخدام البريد الإلكتروني أو تفعيل Google Provider من لوحة تحكم Supabase.';
+  }
+  if (msg.contains('database error querying schema') ||
+      msg.contains('unexpected_failure')) {
+    return 'تعذر إتمام عملية تسجيل الدخول. يرجى التأكد من تشغيل التحديثات في قاعدة البيانات ثم المحاولة مجدداً.';
+  }
   return 'فشل تسجيل الدخول: ${e.message}';
 }
 
